@@ -92,7 +92,7 @@ def b0_avg(dat, aff, bval):
         b0_dat_reg, b0_aff = affine_registration(b0_dat[..., 0], b0_dat[..., i], aff, b0_aff, rigid=True)
         b0_sum = np.add(b0_sum, b0_dat_reg)
 
-    b0 = b0_sum/b0_dir
+    b0 = b0_sum / b0_dir
 
     return b0
 
@@ -125,7 +125,7 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     new_gtab = gradients.reorient_bvecs(gtab, affines)
     reg_bvecs = new_gtab.bvecs
 
-    return reg_dat,  reg_bvecs
+    return reg_dat, reg_bvecs
 
 
 def fit_dti(dat, bval, bvec):
@@ -176,7 +176,7 @@ def roi_stats(dat, overlay, labels):
     for coord, val in np.ndenumerate(dat):
         key = overlay[coord]
         if key in labels:
-            avgs[labels[key]] = [avgs[labels[key]][0]+val, avgs[labels[key]][1]+1]
+            avgs[labels[key]] = [avgs[labels[key]][0] + val, avgs[labels[key]][1] + 1]
 
     avg_keys = avgs.keys()
     for akey in avg_keys:
@@ -221,24 +221,24 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     params0 = None
 
     c_of_mass = imaffine.transform_centers_of_mass(
-                static, static_affine,
-                moving, moving_affine)
+        static, static_affine,
+        moving, moving_affine)
 
     if rigid:
         rig_map = affreg.optimize(
-                    static, moving,
-                    transforms.RigidTransform3D(),
-                    params0, static_affine,
-                    moving_affine, c_of_mass.affine)
+            static, moving,
+            transforms.RigidTransform3D(),
+            params0, static_affine,
+            moving_affine, c_of_mass.affine)
         dat_reg = rig_map.transform(moving)
         return dat_reg, rig_map.affine
 
     if not rigid:
         aff_map = affreg.optimize(
-                    static, moving,
-                    transforms.AffineTransform3D(),
-                    params0, static_affine,
-                    moving_affine, c_of_mass.affine)
+            static, moving,
+            transforms.AffineTransform3D(),
+            params0, static_affine,
+            moving_affine, c_of_mass.affine)
         dat_reg = aff_map.transform(moving)
         return dat_reg, aff_map.affine
 
