@@ -9,6 +9,5 @@ setup(
         "numpy",
         "dipy",
         "nibabel",
-        "pijp",
     ],
 )
