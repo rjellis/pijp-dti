@@ -29,7 +29,6 @@ def get_case_dir(project, code):
 
 
 class DTStep(Step):
-
     def __init__(self, project, code, args):
         super(DTStep, self).__init__(project, code, args)
         self.subjects_dir = get_subjects_dir(project)
@@ -99,7 +98,6 @@ class DTStep(Step):
 
 
 class Stage(DTStep):
-
     process_name = "DTI"
     step_name = "Stage"
     step_cli = "stage"
@@ -138,7 +136,6 @@ class Stage(DTStep):
 
 
 class Preregister(DTStep):
-
     process_name = "DTI"
     step_name = "Preregister"
     step_cli = "prereg"
@@ -159,7 +156,6 @@ class Preregister(DTStep):
 
 
 class Register(DTStep):
-
     process_name = "DTI"
     step_name = "Register"
     step_cli = "reg"
@@ -181,7 +177,6 @@ class Register(DTStep):
 
 
 class TensorFit(DTStep):
-
     process_name = "DTI"
     step_name = "TensorFit"
     step_cli = "tenfit"
@@ -208,8 +203,8 @@ class TensorFit(DTStep):
 
         self.logger.debug('Building nonlinear registration map for FA')
         warped_template, mapping = dtfunc.symm_diff_registration(
-                                       fa, template,
-                                       aff, template_aff)
+            fa, template,
+            aff, template_aff)
 
         warped_labels = mapping.transform(temp_labels, interpolation='nearest')
         warped_fa = mapping.transform_inverse(fa)
@@ -226,7 +221,6 @@ class TensorFit(DTStep):
 
 
 class RoiStats(DTStep):
-
     process_name = "DTI"
     step_name = "RoiStats"
     step_cli = "roistats"
@@ -266,7 +260,6 @@ class RoiStats(DTStep):
 
 
 class StoreInDatabase(DTStep):
-
     process_name = "DTI"
     step_name = "StoreInDatabase"
     step_cli = "db"
