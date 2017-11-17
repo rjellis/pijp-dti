@@ -1,4 +1,4 @@
 numpy
 dipy
 nibabel
-pijp
+git+https://github.com/pijp.git@master
