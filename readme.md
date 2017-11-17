@@ -4,7 +4,7 @@ All the steps necessary to for Diffusion Tensor Imaging.
 
 ## Stage
 
-**Load the Dicoms and set up the pipeline***
+**Load the Dicoms and set up the pipeline**
 
 Copies Dicom files for a particular DWI image code from a database and
 converts them to a singular Nifti file with accompanying .bval and
@@ -19,7 +19,7 @@ File Structure:
             * prereg
             * reg
             * tenfit
-            * roiavg
+            * roistats
         * another image code
             * stage
             * ...
@@ -51,7 +51,7 @@ intensities.
 
 ## TensorFit
 
-**Fit the diffusion tensor to the image**
+**Fit the diffusion tensor model**
 
 Loads the registered Nifti file and calculates the eigenvalues and
 eigenvectors (and more) by fitting the image to the diffusion tensor
