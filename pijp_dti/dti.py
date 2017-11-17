@@ -127,12 +127,20 @@ class Stage(DTStep):
 
         DicomRepository.fetch_dicoms(self.code, stage_dir)
         cmd = 'dcm2nii {}'.format(stage_dir)
-
-        # TODO rename the converted files to code.ext
-        # TODO delete the dicoms or put them into a temp dir
-
         self.logger.debug(cmd)
         self._run_cmd(cmd)
+
+        pref = stage_dir + '/'
+        with os.scandir(stage_dir) as it:
+            for entry in it:
+                if entry.name.split('.')[-1] == 'gz':
+                    os.rename(pref + entry.name, pref + self.code + '.nii.gz')
+                if entry.name.split('.')[-1] == 'bval':
+                    os.rename(pref + entry.name, pref + self.code + '.bval')
+                if entry.name.split('.')[-1] == 'bvec':
+                    os.rename(pref + entry.name, pref + self.code + '.bvec')
+                else:
+                    os.remove(entry.name)
 
 
 class Preregister(DTStep):
