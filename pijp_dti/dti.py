@@ -271,7 +271,6 @@ class StoreInDatabase(DTStep):
     step_name = "StoreInDatabase"
     step_cli = "db"
 
-
     def __init__(self, project, code, args):
         super(StoreInDatabase, self).__init__(project, code, args)
 
