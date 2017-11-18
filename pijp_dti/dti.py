@@ -1,11 +1,11 @@
-import os
-import subprocess
-import shutil
-import gzip
 import csv
+import gzip
+import os
+import shutil
+import subprocess
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 from dipy.io import read_bvals_bvecs
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository
