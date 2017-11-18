@@ -1,13 +1,12 @@
 import numpy as np
-
-from dipy.core import gradients
-from dipy.segment import mask as otsu
-from dipy.reconst import dti
 from dipy.align import (imaffine, imwarp,
                         transforms, metrics)
+from dipy.core import gradients
 from dipy.denoise import noise_estimate, nlmeans
 from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
+from dipy.reconst import dti
+from dipy.segment import mask as otsu
 
 
 def mask(dat):
@@ -168,24 +167,22 @@ def roi_stats(dat, overlay, labels):
     # TODO do this better (don't return a dict)
     # TODO also add min, max, std dev
 
-    avgs = dict()
-    vals = labels.values()
-    for names in vals:
-        avgs[names] = [0, 0]
+    intensities_by_roi = dict()
+    stats = []
+
+    for int_value, roi_label in labels:
+        intensities_by_roi[roi_label] = []
 
     for coord, val in np.ndenumerate(dat):
         key = overlay[coord]
         if key in labels:
-            avgs[labels[key]] = [avgs[labels[key]][0] + val, avgs[labels[key]][1] + 1]
+            roi_name = labels[key]
 
-    avg_keys = avgs.keys()
-    for akey in avg_keys:
-        if avgs[akey][1] == 0:
-            avgs[akey] = 0
-        else:
-            avgs[akey] = avgs[akey][0] / avgs[akey][1]
+    for name, lst in intensities_by_roi:
+        npa = np.asarray(lst)
+        stats.append([name, npa.min(), npa.max(), npa.mean(), npa.std()])
 
-    return avgs
+    return stats
 
 
 def affine_registration(static, moving, static_affine, moving_affine, rigid=False):
