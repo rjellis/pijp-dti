@@ -167,8 +167,8 @@ def roi_stats(dat, overlay, labels):
     intensities_by_roi = dict()
     stats = []
 
-    for int_value, roi_label in labels:
-        intensities_by_roi[roi_label] = []
+    for roi_labels in labels.values():
+        intensities_by_roi[roi_labels] = []
 
     for coord, val in np.ndenumerate(dat):
         key = overlay[coord]
@@ -176,9 +176,10 @@ def roi_stats(dat, overlay, labels):
             roi_name = labels[key]
             intensities_by_roi[roi_name].append(val)
 
-    for name, lst in intensities_by_roi:
-        npa = np.asarray(lst)
-        stats.append([name, npa.min(), npa.max(), npa.mean(), npa.std()])
+    for rois in intensities_by_roi.keys():
+        npa = np.asarray(intensities_by_roi[rois])
+        stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std()])
+
 
     return stats
 
