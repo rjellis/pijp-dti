@@ -66,6 +66,7 @@ anisotropy are calculated:
 * Axial Diffusivity (AD)
 * Radial Diffusivity (RD)
 
+Each measure of anisotropy is a 3D volume in the same space as the subject.
 Once the FA is generated, an atlas's FA is non-linearly registered using
 symmetric diffeomorphic registration. While FA is chose for the
 registration, the generated mapping applies to all the other anisotropy
