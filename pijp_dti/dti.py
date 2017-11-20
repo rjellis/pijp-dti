@@ -247,24 +247,26 @@ class RoiStats(DTStep):
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels).item()
 
-        fa_roi = dtfunc.roi_stats(fa, warped_labels, labels)
-        md_roi = dtfunc.roi_stats(md, warped_labels, labels)
-        ga_roi = dtfunc.roi_stats(ga, warped_labels, labels)
-        ad_roi = dtfunc.roi_stats(ad, warped_labels, labels)
-        rd_roi = dtfunc.roi_stats(rd, warped_labels, labels)
+        fa_stats = dtfunc.roi_stats(fa, warped_labels, labels)
+        md_stats = dtfunc.roi_stats(md, warped_labels, labels)
+        ga_stats = dtfunc.roi_stats(ga, warped_labels, labels)
+        ad_stats = dtfunc.roi_stats(ad, warped_labels, labels)
+        rd_stats = dtfunc.roi_stats(rd, warped_labels, labels)
 
-        self._save_dict(fa_roi, self.fa_roi)
-        self._save_dict(md_roi, self.md_roi)
-        self._save_dict(ga_roi, self.ga_roi)
-        self._save_dict(ad_roi, self.ad_roi)
-        self._save_dict(rd_roi, self.rd_roi)
+        self._write_array(fa_stats, self.fa_roi)
+        self._write_array(md_stats, self.md_roi)
+        self._write_array(ga_stats, self.ga_roi)
+        self._write_array(ad_stats, self.ad_roi)
+        self._write_array(rd_stats, self.rd_roi)
 
-    def _save_dict(self, dictionary, csv_path):
+
+
+    def _write_array(self, array, csv_path):
         with open(csv_path, 'w') as csv_file:
             writer = csv.writer(csv_file)
-            for key, value in dictionary.items():
-                writer.writerow([key, value])
-        self.logger.debug("Saving dictionary {}".format(csv_path))
+            for line in ndarray:
+                writer.writerow(', '.join(line))
+        self.logger.debug("Saving array {}".format(csv_path))
 
 
 class StoreInDatabase(DTStep):

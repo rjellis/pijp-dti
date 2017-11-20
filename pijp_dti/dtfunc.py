@@ -164,9 +164,6 @@ def roi_stats(dat, overlay, labels):
         avgs (dict): A dictionary of the region labels as keys and the averages for those regions as values.
 
     """
-    # TODO do this better (don't return a dict)
-    # TODO also add min, max, std dev
-
     intensities_by_roi = dict()
     stats = []
 
@@ -177,6 +174,7 @@ def roi_stats(dat, overlay, labels):
         key = overlay[coord]
         if key in labels:
             roi_name = labels[key]
+            intensities_by_roi[roi_name].append(val)
 
     for name, lst in intensities_by_roi:
         npa = np.asarray(lst)
