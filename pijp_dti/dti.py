@@ -262,7 +262,7 @@ class RoiStats(DTStep):
         with open(csv_path, 'w') as csv_file:
             writer = csv.writer(csv_file)
             for line in array:
-                writer.writerow(', '.join(line))
+                writer.writerow(line)
         self.logger.debug("Saving array {}".format(csv_path))
 
 

@@ -161,7 +161,8 @@ def roi_stats(dat, overlay, labels):
         labels (Union): A dictionary of overlay values as keys that correspond to region labels as dictionary values.
 
     Returns:
-        avgs (dict): A dictionary of the region labels as keys and the averages for those regions as values.
+        stats (list): Array of the list of stats for all regions of interests. Lists are in the format: [name, min, max,
+                      mean, standard deviation].
 
     """
     intensities_by_roi = dict()
