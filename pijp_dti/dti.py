@@ -130,17 +130,16 @@ class Stage(DTStep):
         self.logger.debug(cmd)
         self._run_cmd(cmd)
 
-        pref = stage_dir + '/'
         with os.scandir(stage_dir) as it:
             for entry in it:
                 if entry.name.split('.')[-1] == 'gz':
-                    os.rename(pref + entry.name, pref + self.code + '.nii.gz')
+                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.nii.gz'))
                 if entry.name.split('.')[-1] == 'bval':
-                    os.rename(pref + entry.name, pref + self.code + '.bval')
+                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.bval'))
                 if entry.name.split('.')[-1] == 'bvec':
-                    os.rename(pref + entry.name, pref + self.code + '.bvec')
+                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.bvec'))
                 else:
-                    os.remove(entry.name)
+                    os.remove(os.path.join(stage_dir, entry.name))
 
 
 class Preregister(DTStep):
@@ -259,12 +258,10 @@ class RoiStats(DTStep):
         self._write_array(ad_stats, self.ad_roi)
         self._write_array(rd_stats, self.rd_roi)
 
-
-
     def _write_array(self, array, csv_path):
         with open(csv_path, 'w') as csv_file:
             writer = csv.writer(csv_file)
-            for line in ndarray:
+            for line in array:
                 writer.writerow(', '.join(line))
         self.logger.debug("Saving array {}".format(csv_path))
 
