@@ -86,4 +86,10 @@ correspond to regions in the brain
 **Generate CSV files for the statistics of various anisotropy measures in
 certain regions of interest.**
 
-*Work in progress*
+Loads the anisotropy measure, the warped labels, and a dictionary
+relating the integer values in the warped labels to names of regions of
+interest. The values for the anisotropy measure are then found for each
+region of interest. The minimum value, maximum value, mean, and standard
+deviation are calculated for each region of interest. A comma separated
+value file (CSV) is generated for each anisotropy measure. CSV
+format: name, min, max, mean, std. dev.
