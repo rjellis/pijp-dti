@@ -133,13 +133,13 @@ class Stage(DTStep):
         with os.scandir(stage_dir) as it:
             for entry in it:
                 if entry.name.split('.')[-1] == 'gz':
-                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.nii.gz'))
+                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.nii.gz'))
                 if entry.name.split('.')[-1] == 'bval':
-                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.bval'))
+                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.bval'))
                 if entry.name.split('.')[-1] == 'bvec':
-                    os.rename(os.path.join(stage_dir, entry.name), os.path.join(stage_dir, self.code + '.bvec'))
+                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
                 else:
-                    os.remove(os.path.join(stage_dir, entry.name))
+                    os.remove(entry.path)
 
 
 class Preregister(DTStep):
