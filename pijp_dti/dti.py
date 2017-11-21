@@ -126,7 +126,7 @@ class Stage(DTStep):
             os.makedirs(roiavg_dir)
 
         DicomRepository.fetch_dicoms(self.code, stage_dir)
-        cmd = 'dcm2nii {}'.format(stage_dir)
+        cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
         self.logger.debug(cmd)
         self._run_cmd(cmd)
 
