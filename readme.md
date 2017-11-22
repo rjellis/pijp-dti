@@ -1,6 +1,6 @@
 # pijp-dti
 
-All the steps necessary to for Diffusion Tensor Imaging.
+All the steps necessary for Diffusion Tensor Imaging.
 
 ## Stage
 
