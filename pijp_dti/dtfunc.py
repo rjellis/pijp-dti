@@ -108,11 +108,11 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
 
     """
     affines = []
-    reg_dat = np.zeros(shape=dat.shape)
+    reg_dat = dat
     for i in range(0, dat.shape[3]):
-        reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
-        reg_dat[..., i] = reg_dir
         if bval[i] != 0:
+            reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
+            reg_dat[..., i] = reg_dir
             affines.append(reg_aff)
 
     gtab = gradients.gradient_table(bval, bvec)
@@ -175,7 +175,6 @@ def roi_stats(dat, overlay, labels):
     for rois in intensities_by_roi.keys():
         npa = np.asarray(intensities_by_roi[rois])
         stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std()])
-
 
     return stats
 
