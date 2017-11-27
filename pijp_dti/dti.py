@@ -66,14 +66,14 @@ class DTStep(Step):
         self.labels = fpath + '/templates/labels.npy'
 
     def _load_nii(self, fname):
-        self.logger.debug('Loading image: {}'.format(fname))
+        self.logger.debug('loading {}'.format(fname))
         img = nib.load(fname)
         dat = img.get_data()
         aff = img.affine
         return dat, aff
 
     def _load_bval_bvec(self, fbval, fbvec):
-        self.logger.debug('Loading bvals and bvecs: {} {}'.format(fbval, fbvec))
+        self.logger.debug('loading {} {}'.format(fbval, fbvec))
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
@@ -84,7 +84,7 @@ class DTStep(Step):
             with gzip.open(fname, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
         os.remove(fname.rstrip('.gz'))
-        self.logger.info('Saving image: {}'.format(fname))
+        self.logger.info('saving {}'.format(fname))
 
     def _run_cmd(self, cmd):
         self.logger.debug(cmd)
@@ -107,23 +107,18 @@ class Stage(DTStep):
         self.next_step = Preregister
 
     def run(self):
-        self.logger.debug('Building directories in {}'.format(self.working_dir))
+        self.logger.info('Building directories in {}'.format(self.working_dir))
 
         stage_dir = os.path.join(self.working_dir, 'stage')
-        if not os.path.isdir(stage_dir):
-            os.makedirs(stage_dir)
         prereg_dir = os.path.join(self.working_dir, 'prereg')
-        if not os.path.isdir(prereg_dir):
-            os.makedirs(prereg_dir)
         reg_dir = os.path.join(self.working_dir, 'reg')
-        if not os.path.isdir(reg_dir):
-            os.makedirs(reg_dir)
         tenfit_dir = os.path.join(self.working_dir, 'tenfit')
-        if not os.path.isdir(tenfit_dir):
-            os.makedirs(tenfit_dir)
         roiavg_dir = os.path.join(self.working_dir, 'roistats')
-        if not os.path.isdir(roiavg_dir):
-            os.makedirs(roiavg_dir)
+
+        dirs = [stage_dir, prereg_dir, reg_dir, tenfit_dir, roiavg_dir]
+        for dir in dirs:
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
 
         DicomRepository.fetch_dicoms(self.code, stage_dir)
         cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
@@ -134,9 +129,9 @@ class Stage(DTStep):
             for entry in it:
                 if entry.name.split('.')[-1] == 'gz':
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.nii.gz'))
-                if entry.name.split('.')[-1] == 'bval':
+                elif entry.name.split('.')[-1] == 'bval':
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.bval'))
-                if entry.name.split('.')[-1] == 'bvec':
+                elif entry.name.split('.')[-1] == 'bvec':
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
                 else:
                     os.remove(entry.path)
@@ -204,7 +199,7 @@ class TensorFit(DTStep):
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
         fa = tenfit.fa
         md = tenfit.md
-        ga = tenfit.ga  # this is geodesic anisotropy, not general
+        ga = tenfit.ga  # this is geodesic anisotropy, not general anisotropy
         ad = tenfit.ad
         rd = tenfit.rd
 
