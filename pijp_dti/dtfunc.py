@@ -12,7 +12,7 @@ def mask(dat):
     """Skull strip using the Median Otsu method.
 
     median_radius is the radius (in voxels) for the median filter
-    num_pass is the number of passes of the median filter
+    num_pass is the number of passes for the median filter
 
     Args:
         dat (ndarray): 3D numpy ndarray.
