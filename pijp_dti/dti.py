@@ -77,7 +77,7 @@ class DTStep(Step):
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
-    def _save_nii(self, dat, aff, fname)  # Expecting fname to end with .nii.gz
+    def _save_nii(self, dat, aff, fname):  # Expecting fname to end with .nii.gz
         img = nib.Nifti1Image(dat, aff)
         nib.nifti1.save(img, fname.rstrip('.gz'))
         with open(fname.rstrip('.gz'), 'rb') as f_in:
