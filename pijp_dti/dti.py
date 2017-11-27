@@ -77,7 +77,7 @@ class DTStep(Step):
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
-    def _save_nii(self, dat, aff, fname):
+    def _save_nii(self, dat, aff, fname)  # Expecting fname to end with .nii.gz
         img = nib.Nifti1Image(dat, aff)
         nib.nifti1.save(img, fname.rstrip('.gz'))
         with open(fname.rstrip('.gz'), 'rb') as f_in:
@@ -116,9 +116,9 @@ class Stage(DTStep):
         roiavg_dir = os.path.join(self.working_dir, 'roistats')
 
         dirs = [stage_dir, prereg_dir, reg_dir, tenfit_dir, roiavg_dir]
-        for dir in dirs:
-            if not os.path.isdir(dir):
-                os.makedirs(dir)
+        for dr in dirs:
+            if not os.path.isdir(dr):
+                os.makedirs(dr)
 
         DicomRepository.fetch_dicoms(self.code, stage_dir)
         cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
@@ -195,7 +195,7 @@ class TensorFit(DTStep):
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         bvec = np.load(self.fbvec_reg)
 
-        self.logger.debug('Fitting the tensor')
+        self.logger.info('Fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
         fa = tenfit.fa
         md = tenfit.md
@@ -203,7 +203,7 @@ class TensorFit(DTStep):
         ad = tenfit.ad
         rd = tenfit.rd
 
-        self.logger.debug('Building nonlinear registration map for FA')
+        self.logger.info('Building nonlinear registration map for FA')
         warped_template, mapping = dtfunc.sym_diff_registration(
             fa, template,
             aff, template_aff)
@@ -258,7 +258,7 @@ class RoiStats(DTStep):
             writer = csv.writer(csv_file)
             for line in array:
                 writer.writerow(line)
-        self.logger.debug("Saving array {}".format(csv_path))
+        self.logger.debug("saving {}".format(csv_path))
 
 
 class StoreInDatabase(DTStep):
