@@ -1,3 +1,4 @@
+import os
 import configparser
 import json
 import numpy as np
@@ -10,7 +11,8 @@ from dipy.reconst import dti
 from dipy.segment import mask as otsu
 
 config = configparser.ConfigParser()
-config.read('config.cfg')
+config_path = os.path.join(os.path.dirname(__file__), 'config.cfg')
+config.read(config_path)
 
 
 def mask(dat):
