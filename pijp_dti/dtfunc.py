@@ -1,6 +1,5 @@
 import numpy as np
-from dipy.align import (imaffine, imwarp,
-                        transforms, metrics)
+from dipy.align import (imaffine, imwarp, transforms, metrics)
 from dipy.core import gradients
 from dipy.denoise import noise_estimate, nlmeans
 from dipy.denoise.localpca import localpca
@@ -64,8 +63,6 @@ def denoise_pca(dat, bval, bvec):
 def b0_avg(dat, aff, bval):
     """Obtain the average b0 image from a 4D DWI image.
 
-    All b0 directions are registered to the first found b0 so they all share an affine.
-
     Args:
         dat (ndarray): 4D ndarray of a diffusion weighted image.
         aff (ndarray): 4 X 4 ndarray of the affine of the image.
@@ -84,6 +81,7 @@ def b0_avg(dat, aff, bval):
         if bval[i] == 0:
             b0_dat[:, :, :, b0_dir] = dat[:, :, :, i]
             b0_dir += 1
+
     b0_sum = np.zeros(shape=b0_dat[..., 0].shape)
     b0_aff = aff
 
@@ -240,7 +238,7 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
         return dat_reg, aff_map.affine
 
 
-def symm_diff_registration(static, moving, static_affine, moving_affine):
+def sym_diff_registration(static, moving, static_affine, moving_affine):
     """Register one 3D array to another using non-linear registration.
 
     Args:

@@ -209,7 +209,7 @@ class TensorFit(DTStep):
         rd = tenfit.rd
 
         self.logger.debug('Building nonlinear registration map for FA')
-        warped_template, mapping = dtfunc.symm_diff_registration(
+        warped_template, mapping = dtfunc.sym_diff_registration(
             fa, template,
             aff, template_aff)
 
