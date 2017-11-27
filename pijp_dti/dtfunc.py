@@ -1,3 +1,5 @@
+import configparser
+import json
 import numpy as np
 from dipy.align import (imaffine, imwarp, transforms, metrics)
 from dipy.core import gradients
@@ -6,6 +8,9 @@ from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
 from dipy.segment import mask as otsu
+
+config = configparser.ConfigParser()
+config.read('config.cfg')
 
 
 def mask(dat):
@@ -21,7 +26,9 @@ def mask(dat):
         mask_dat (ndarray): The masked ndarray.
 
     """
-    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4)
+    median_radius = config.getint('mask', 'median_radius')
+    numpass = config.getint('mask', 'numpass')
+    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius, numpass)
     return mask_dat
 
 
@@ -197,12 +204,13 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
 
     """
     # Mutual information Metric
-    nbins = 32  # Number of bins for computing the histograms
-    sampling_prop = None  # percentage of voxels for computing MI (0, 100]
+    nbins = config.getint('affine_registration', 'nbins')  # Number of bins for computing the histograms
+    sampling_prop = config.getint('affine_registration', 'sampling_prop')  # percentage of voxels (0, 100]
     metric = imaffine.MutualInformationMetric(nbins, sampling_prop)
-    level_iters = [100, 50, 30]  # Iterations at each resolution (coarse to fine)
-    sigmas = [3.0, 1.0, 0.0]
-    factors = [4, 2, 1]  # Factors that determine resolution
+    level_iters = json.loads(config.get('affine_registration', 'level_iters'))  # Iterations at each resolution (coarse
+    #  to fine)
+    sigmas = json.loads(config.get('affine_registration', 'sigmas'))
+    factors = json.loads(config.get('affine_registration', 'factors'))  # Factors that determine resolution
 
     affreg = imaffine.AffineRegistration(metric,
                                          level_iters=level_iters,
@@ -250,7 +258,8 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     """
     moving_reg, pre_align = affine_registration(static, moving, static_affine, moving_affine)
     metric = metrics.CCMetric(3)  # Cross Correlation Metric for 3 dimensions
-    level_iters = [30, 50, 100]  # Iterations at each resolution (fine to coarse)
+    level_iters = json.loads(config.get('sym_diff_registration', 'level_iters'))  # Iterations at each resolution (fine
+    #  to coarse)
 
     sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters)
     mapping = sdr.optimize(static, moving, static_affine, moving_affine, pre_align)
