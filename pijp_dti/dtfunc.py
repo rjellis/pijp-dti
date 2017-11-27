@@ -72,26 +72,23 @@ def b0_avg(dat, aff, bval):
         b0 (ndarray): 3D ndarray of the averaged b0 image.
 
     """
-    x, y, z, d = dat.shape
     b0_dir = 0
-    b0_count = np.count_nonzero(bval == 0)
-    b0_dat = np.ndarray(shape=(x, y, z, b0_count))
+    b0_sum = np.zeros(shape=dat[..., 0].shape)
+    b0_aff = aff
+    b0 = None
 
-    for i in range(0, bval.shape[0]):
+    for i in range(0, len(bval)):
         if bval[i] == 0:
-            b0_dat[:, :, :, b0_dir] = dat[:, :, :, i]
+            if b0 is None:
+                b0 = dat[..., i]
+            b0_reg, b0_aff = affine_registration(b0, dat[i], aff, b0_aff, rigid=True)
+            b0_sum = np.add(b0_sum, b0_reg)
+
             b0_dir += 1
 
-    b0_sum = np.zeros(shape=b0_dat[..., 0].shape)
-    b0_aff = aff
+    avg_b0 = b0_sum / b0_dir
 
-    for i in range(0, b0_dir):
-        b0_dat_reg, b0_aff = affine_registration(b0_dat[..., 0], b0_dat[..., i], aff, b0_aff, rigid=True)
-        b0_sum = np.add(b0_sum, b0_dat_reg)
-
-    b0 = b0_sum / b0_dir
-
-    return b0
+    return avg_b0
 
 
 def register(b0, dat, b0_aff, aff, bval, bvec):
