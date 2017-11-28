@@ -4,7 +4,7 @@ import json
 import numpy as np
 from dipy.align import (imaffine, imwarp, transforms, metrics)
 from dipy.core import gradients
-from dipy.denoise import noise_estimate, nlmeans
+from dipy.denoise import noise_estimate, non_local_means
 from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
@@ -45,7 +45,9 @@ def denoise(dat):
 
     """
     sigma = noise_estimate.estimate_sigma(dat)
-    denoise_dat = nlmeans.nlmeans(dat, sigma)
+    denoise_dat = np.ndarray(shape=dat.shape)
+    for i in range(0, dat.shape[3]):
+        denoise_dat[...,i] = non_local_means.non_local_means(dat[...,i], sigma[i])
     return denoise_dat
 
 
