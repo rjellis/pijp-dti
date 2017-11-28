@@ -9,28 +9,20 @@ from pijp_dti import dtfunc
 
 class Test(unittest.TestCase):
 
-    def test_mask(self):
-        dat_2d_square = np.random.rand(10, 10)
-        dat_2d_not_square = np.random.rand(10, 30)
-        dat_3d_square = np.random.rand(30, 30, 30)
-        dat_3d_not_square = np.random.rand(30, 60, 20)
-
-        self.assertEqual(dtfunc.mask(dat_2d_square).shape, dat_2d_square.shape)
-        self.assertEqual(dtfunc.mask(dat_2d_not_square).shape, dat_2d_not_square.shape)
-        self.assertEqual(dtfunc.mask(dat_3d_square).shape, dat_3d_square.shape)
-        self.assertEqual(dtfunc.mask(dat_3d_not_square).shape, dat_3d_not_square.shape)
-
     def test_denoise(self):
 
-        dat_3d_square = np.random.rand(30, 30, 30)
-        dat_3d_not_square = np.random.rand(30, 30, 31)
+        img = nib.load('/home/vhasfcellisr/Ryan/test/t2/test2.nii.gz')
 
-        self.assertEqual(dtfunc.denoise(dat_3d_square).shape, dat_3d_square.shape)
-        self.assertEqual(dtfunc.denoise(dat_3d_not_square).shape, dat_3d_not_square.shape)
+        dat = img.get_data()
+
+        den = dtfunc.denoise(dat)
+
+        self.assertEqual(den.shape, dat.shape)
+        self.assertLess(den.sum(), dat.sum())
 
     def test_b0_avg(self):
         img = nib.load('/home/vhasfcellisr/Ryan/test/t4/test4.nii.gz')
-        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t4/test4.bval', None)
+        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval', None)
         dat = img.get_data()
         aff = img.affine
         b0 = dtfunc.b0_avg(dat, aff, bval)
@@ -38,9 +30,9 @@ class Test(unittest.TestCase):
 
     def test_register(self):
 
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t4/test4.nii.gz')
-        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t4/test4.bval',
-                                      '/home/vhasfcellisr/Ryan/test/t4/test4.bvec')
+        img = nib.load('/home/vhasfcellisr/Ryan/test/t1/test1.nii.gz')
+        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval',
+                                      '/home/vhasfcellisr/Ryan/test/t1/test1.bvec')
         dat = img.get_data()
         aff = img.affine
 
@@ -51,17 +43,17 @@ class Test(unittest.TestCase):
         self.assertEqual(dat.shape, reg_dat.shape)
 
     def test_fit_dti(self):
-        pass
 
-    def test_roi_stats(self):
-        pass
+        img = nib.load('/home/vhasfcellisr/Ryan/test/t1/test1.nii.gz')
+        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval',
+                                      '/home/vhasfcellisr/Ryan/test/t1/test1.bvec')
+        dat = img.get_data()
 
-    def test_affine_registration(self):
-        pass
+        evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
 
-    def test_sym_diff_registration(self):
-        pass
+        self.assertEqual(dat[...,0].shape, tenfit.fa.shape)
 
+        pass
 
 if __name__ == "__main__":
     unittest.main()
