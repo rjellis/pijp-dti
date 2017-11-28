@@ -152,7 +152,7 @@ class Preregister(DTStep):
         dat, aff = self._load_nii(self.fdwi)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         self.logger.debug('Denoising and Masking the image')
-        denoised = dtfunc.denoise_pca(dat, bval, bvec)
+        denoised = dtfunc.denoise(dat)
         masked = dtfunc.mask(denoised)
         self._save_nii(masked, aff, self.prereg)
 
