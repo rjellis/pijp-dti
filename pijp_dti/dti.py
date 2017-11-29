@@ -6,6 +6,7 @@ import subprocess
 
 import nibabel as nib
 import numpy as np
+import matplotlib.pyplot as plt
 from dipy.io import read_bvals_bvecs
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository
@@ -28,7 +29,7 @@ def get_case_dir(project, code):
     return os.path.join(get_subjects_dir(project), code)
 
 
-class DTStep(Step):
+class DTStep(Step.Step):
     def __init__(self, project, code, args):
         super(DTStep, self).__init__(project, code, args)
         self.subjects_dir = get_subjects_dir(project)
@@ -150,7 +151,6 @@ class Preregister(DTStep):
 
     def run(self):
         dat, aff = self._load_nii(self.fdwi)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         self.logger.debug('Denoising and Masking the image')
         denoised = dtfunc.denoise(dat)
         masked = dtfunc.mask(denoised)
@@ -187,6 +187,7 @@ class TensorFit(DTStep):
 
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
+        self.next_step = RoiStats
 
     def run(self):
         dat, aff = self._load_nii(self.reg)
@@ -272,3 +273,37 @@ class StoreInDatabase(DTStep):
     def run(self):
         # TODO store CSV's to database
         pass
+
+
+class MaskQC(Step):
+    process_name = "DTI"
+    step_name = "MaskQC"
+    step_cli = "qc"
+
+    interactive = True
+
+    def __init__(self, project, code, args):
+        super(MaskQC, self).__init__(project, code, args)
+
+    def run(self):
+        og, og_aff = self._load_nii(self.fdwi)
+        mask, mask_aff = self._load_nii(self.prereg)
+
+        og = og.get_data()
+        mask = mask.get_data()
+        mask = np.where(mask>0, 0, 1)
+        fig, ax = plt.subplot(3, og.shape[3])
+        
+        for i in range(0, og.shape[3]):
+            ax[i, 0].imshow(og[:, :, og.shape[2]//4, i], cmap='nipy_spectral')
+            ax[i, 0].imshow(mask[:, :, mask.shape[2]//4, i], cmap='binary', alpha=0.5)
+            ax[i, 1].imshow(og[:, :, og.shape[2]//2, i], cmap='nipy_spectral')
+            ax[i, 1].imshow(mask[:, :, mask.shape[2]//2, i], cmap='binary', alpha=0.5)
+            ax[i, 2].imshow(og[:, :, og.shape[2]*3//4, i], cmap='nipy_spectral')
+            ax[i, 2].imshow(mask[:, :, mask.shape[2]*3//4, i], cmap='binary', alpha=0.5)
+
+        plt.show()
+
+
+
+
