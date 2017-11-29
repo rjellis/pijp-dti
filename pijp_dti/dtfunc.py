@@ -47,7 +47,7 @@ def denoise(dat):
     sigma = noise_estimate.estimate_sigma(dat)
     denoise_dat = np.ndarray(shape=dat.shape)
     for i in range(0, dat.shape[3]):
-        denoise_dat[...,i] = non_local_means.non_local_means(dat[...,i], sigma[i])
+        denoise_dat[..., i] = non_local_means.non_local_means(dat[..., i], sigma[i])
     return denoise_dat
 
 
