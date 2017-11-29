@@ -291,7 +291,7 @@ class MaskQC(Step):
 
         og = og.get_data()
         mask = mask.get_data()
-        mask = np.where(mask>0, 0, 1)
+        mask = np.where(mask > 0, 0, 1)
         fig, ax = plt.subplot(3, og.shape[3])
         
         for i in range(0, og.shape[3]):
