@@ -9,5 +9,6 @@ setup(
         "numpy",
         "dipy",
         "nibabel",
+        "matplotlib",
     ],
 )

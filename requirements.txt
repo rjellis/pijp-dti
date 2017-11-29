@@ -1,4 +1,5 @@
 numpy>=1.13.3
 dipy>=0.13.0
 nibabel>=2.2.0
+matplotlib
 git+https://github.com/pijp.git@master
