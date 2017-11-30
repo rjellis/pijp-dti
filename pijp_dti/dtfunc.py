@@ -1,6 +1,8 @@
 import os
 import configparser
 import json
+
+import click
 import numpy as np
 from scipy.ndimage.morphology import binary_fill_holes
 from dipy.align import (imaffine, imwarp, transforms, metrics)
@@ -49,10 +51,12 @@ def denoise(dat):
         denoise_dat (ndarray): The denoised ndarray
 
     """
-    sigma = noise_estimate.estimate_sigma(dat)
+    click.echo("Denoising the image")
     denoise_dat = np.ndarray(shape=dat.shape)
-    for i in range(0, dat.shape[3]):
-        denoise_dat[..., i] = non_local_means.non_local_means(dat[..., i], sigma[i])
+    with click.progressbar(range(0, dat.shape[3])) as bar:
+        for i in bar:
+            sigma = noise_estimate.estimate_sigma(dat[:, :, :, i])
+            denoise_dat[:, :, :, i] = non_local_means.non_local_means(dat[:, :, :, i], sigma)
     return denoise_dat
 
 
@@ -93,14 +97,15 @@ def b0_avg(dat, aff, bval):
     b0_aff = aff
     b0 = None
 
-    for i in range(0, len(bval)):
-        if bval[i] == 0:
-            if b0 is None:
-                b0 = dat[..., i]
-            b0_reg, b0_aff = affine_registration(b0, dat[i], aff, b0_aff, rigid=True)
-            b0_sum = np.add(b0_sum, b0_reg)
+    with click.progressbar(range(0, len(bval))) as bar:
+        for i in bar:
+            if bval[i] == 0:
+               if b0 is None:
+                   b0 = dat[..., i]
+               b0_reg, b0_aff = affine_registration(b0, dat[i], aff, b0_aff, rigid=True)
+               b0_sum = np.add(b0_sum, b0_reg)
 
-            b0_dir += 1
+               b0_dir += 1
 
     avg_b0 = b0_sum / b0_dir
 
@@ -124,12 +129,14 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
 
     """
     affines = []
-    reg_dat = dat
-    for i in range(0, dat.shape[3]):
-        if bval[i] != 0:
+    reg_dat = np.zeros(shape=dat.shape)
+    click.echo("Registering to b0 volume")
+    with click.progressbar(range(0, dat.shape[3])) as bar:
+        for i in bar:
             reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
             reg_dat[..., i] = reg_dir
-            affines.append(reg_aff)
+            if bval[i] != 0:
+                affines.append(reg_aff)
 
     gtab = gradients.gradient_table(bval, bvec)
     new_gtab = gradients.reorient_bvecs(gtab, affines)
