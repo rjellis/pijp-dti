@@ -8,8 +8,8 @@ import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
 from dipy.io import read_bvals_bvecs
-from pijp.core import Step, get_project_dir
-from pijp.repositories import DicomRepository
+# from pijp.core import Step, get_project_dir
+# from pijp.repositories import DicomRepository
 
 from pijp_dti import dtfunc
 from pijp_dti import animate
@@ -61,6 +61,8 @@ class DTStep(Step.Step):
         self.ga_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
+
+        self.qc_movie = os.path.join(self.working_dir, 'qc', self.code + '_mask_qc.mp4')
 
         fpath = os.path.dirname(__file__)
         self.template = fpath + '/templates/fa_template.nii'
@@ -116,16 +118,17 @@ class Stage(DTStep):
         reg_dir = os.path.join(self.working_dir, 'reg')
         tenfit_dir = os.path.join(self.working_dir, 'tenfit')
         roiavg_dir = os.path.join(self.working_dir, 'roistats')
+        qc_dir = os.path.join(self.working_dir, 'qc')
 
-        dirs = [stage_dir, prereg_dir, reg_dir, tenfit_dir, roiavg_dir]
+        dirs = [stage_dir, prereg_dir, reg_dir, tenfit_dir, roiavg_dir, qc_dir]
         for dr in dirs:
             if not os.path.isdir(dr):
                 os.makedirs(dr)
 
-        DicomRepository.fetch_dicoms(self.code, stage_dir)
-        cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
-        self.logger.debug(cmd)
-        self._run_cmd(cmd)
+        # DicomRepository.fetch_dicoms(self.code, stage_dir)
+        # cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
+        # self.logger.debug(cmd)
+        # self._run_cmd(cmd)
 
         with os.scandir(stage_dir) as it:
             for entry in it:
@@ -277,7 +280,7 @@ class StoreInDatabase(DTStep):
         pass
 
 
-class MaskQC(Step):
+class MaskQC(DTStep):
     process_name = "DTI"
     step_name = "MaskQC"
     step_cli = "qc"
@@ -291,17 +294,9 @@ class MaskQC(Step):
         og, og_aff = self._load_nii(self.fdwi)
         mask, mask_aff = self._load_nii(self.prereg)
 
-        og = og.get_data()
-        mask = mask.get_data()
-
         masked = animate.mask_image(og, mask)
 
         mov = animate.Nifti_Animator(masked)
-        mov.plot()
-
-
-
-
-
-
+        mov.plot(show=False)
+        mov.save(self.qc_movie)
 
