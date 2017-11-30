@@ -1,6 +1,5 @@
 import os
 import sys
-import subprocess
 
 import click
 
@@ -10,10 +9,9 @@ from pijp_dti import dti
 @click.command()
 @click.option('--step', '-s', multiple=True, help="Specify the step(s) to do")
 @click.option('--verbose', '-v', is_flag=True, help="Show runtime messages")
-@click.option('--convert', '-c', is_flag=True, help="Convert files in input directory from dicom to nifti")
 @click.argument('input_dir', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path())
-def cli(step, verbose, convert, input_dir, output_dir):
+def cli(step, verbose, input_dir, output_dir):
     """
     Diffusion Tensor Pipeline
 
@@ -54,13 +52,20 @@ def pipe(out_path, code, in_path, step):
     steps = {'stage': stage, 'prereg': prereg, 'reg': reg, 'tenfit': tenfit, 'roi': roi_stats, 'qc': qc}
 
     if not step:
+        click.echo("Staging for {}".format(code))
         stage.run()
+        click.echo("Preregistering")
         prereg.run()
+        click.echo("Registering")
         reg.run()
+        click.echo("Fitting to Tensor Model")
+        click.echo("Generating the Diffeomorphic Map")
         block_print()
         tenfit.run()
         enable_print()
+        click.echo("Calculating ROI statistics")
         roi_stats.run()
+        click.echo("Rendering Mask QC video")
         qc.run()
 
     else:
@@ -77,6 +82,3 @@ def enable_print():
     sys.stdout = sys.__stdout__
 
 
-def run_cmd(cmd):
-    args = cmd.split()
-    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
