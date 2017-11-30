@@ -12,7 +12,8 @@ setup(
         "dipy",
         "nibabel",
         "matplotlib",
-        "click"
+        "click",
+        "scipy"
     ],
     entry_points="""
         [console_scripts]
