@@ -1,6 +1,5 @@
 import unittest
 
-import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
@@ -51,9 +50,10 @@ class Test(unittest.TestCase):
 
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
 
-        self.assertEqual(dat[...,0].shape, tenfit.fa.shape)
+        self.assertEqual(dat[..., 0].shape, tenfit.fa.shape)
 
         pass
+
 
 if __name__ == "__main__":
     unittest.main()
