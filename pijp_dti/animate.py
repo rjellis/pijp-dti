@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 
-plt.rcParams['animation.ffmpeg_path'] = os.path.join(os.path.dirname(__file__), '..', 'ffmpeg')  # path to ffmpeg
-# executable
+pardir = os.path.dirname(__file__)
+plt.rcParams['animation.ffmpeg_path'] = os.path.join(os.path.dirname(pardir), '..', 'ffmpeg')  # path to ffmpeg
 
 
 class Nifti_Animator(object):
