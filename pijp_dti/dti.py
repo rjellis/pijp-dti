@@ -12,6 +12,7 @@ from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository
 
 from pijp_dti import dtfunc
+from pijp_dti import animate
 
 
 def get_process_dir(project):
@@ -153,7 +154,8 @@ class Preregister(DTStep):
         dat, aff = self._load_nii(self.fdwi)
         self.logger.debug('Denoising and Masking the image')
         denoised = dtfunc.denoise(dat)
-        masked = dtfunc.mask(denoised)
+        mask = dtfunc.mask(denoised)
+        masked = denoised[mask]
         self._save_nii(masked, aff, self.prereg)
 
 
@@ -291,18 +293,14 @@ class MaskQC(Step):
 
         og = og.get_data()
         mask = mask.get_data()
-        mask = np.where(mask > 0, 0, 1)
-        fig, ax = plt.subplot(3, og.shape[3])
-        
-        for i in range(0, og.shape[3]):
-            ax[i, 0].imshow(og[:, :, og.shape[2]//4, i], cmap='nipy_spectral')
-            ax[i, 0].imshow(mask[:, :, mask.shape[2]//4, i], cmap='binary', alpha=0.5)
-            ax[i, 1].imshow(og[:, :, og.shape[2]//2, i], cmap='nipy_spectral')
-            ax[i, 1].imshow(mask[:, :, mask.shape[2]//2, i], cmap='binary', alpha=0.5)
-            ax[i, 2].imshow(og[:, :, og.shape[2]*3//4, i], cmap='nipy_spectral')
-            ax[i, 2].imshow(mask[:, :, mask.shape[2]*3//4, i], cmap='binary', alpha=0.5)
 
-        plt.show()
+        masked = animate.mask_image(og, mask)
+
+        mov = animate.Nifti_Animator(masked)
+        mov.plot()
+
+
+
 
 
 
