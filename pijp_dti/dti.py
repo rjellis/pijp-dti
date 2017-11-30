@@ -81,9 +81,9 @@ class DTStep(object):
         self.qc_movie = os.path.join(self.working_dir, 'qc', self.code + '_mask_qc.mp4')
 
         fpath = os.path.dirname(__file__)
-        self.template = fpath + '/templates/fa_template.nii'
-        self.template_labels = fpath + '/templates/fa_labels.nii'
-        self.labels = fpath + '/templates/labels.npy'
+        self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
+        self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
+        self.labels = os.path.join(fpath, 'templates', 'labels.npy')
 
     def _load_nii(self, fname):
         self.logger.debug('loading {}'.format(fname))
