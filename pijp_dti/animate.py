@@ -3,7 +3,7 @@ import matplotlib.animation as animation
 import nibabel as nib
 import numpy as np
 
-plt.rcParams['animation.ffmpeg_path'] = '/home/vhasfcellisr/ffmpeg'
+plt.rcParams['animation.ffmpeg_path'] = os.path.join(os.path.dirname(__file__), 'ffmpeg')  # path to ffmpeg executable
 
 class Nifti_Animator(object):
 
@@ -42,7 +42,7 @@ class Nifti_Animator(object):
         self.ani.save(save_path, writer=FFWriter)
 
 
-def mask_image(img, mask, hue=255, alpha=1):
+def mask_image(img, mask, hue=0, alpha=1):
     """
     overlay a binary mask on an image
     Args:

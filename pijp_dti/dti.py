@@ -3,10 +3,10 @@ import gzip
 import os
 import shutil
 import subprocess
+import logging
 
 import nibabel as nib
 import numpy as np
-import matplotlib.pyplot as plt
 from dipy.io import read_bvals_bvecs
 # from pijp.core import Step, get_project_dir
 # from pijp.repositories import DicomRepository
@@ -14,9 +14,15 @@ from dipy.io import read_bvals_bvecs
 from pijp_dti import dtfunc
 from pijp_dti import animate
 
+# def get_process_dir(project):
+#     return os.path.join(get_project_dir(project), 'dti')
 
+# TODO make a separate get_process_dir for cli mode
 def get_process_dir(project):
-    return os.path.join(get_project_dir(project), 'dti')
+    pdir = os.path.join(project)
+    if not os.path.isdir(pdir):
+        os.makedirs(pdir)
+    return pdir
 
 
 def get_subjects_dir(project):
@@ -30,9 +36,19 @@ def get_case_dir(project, code):
     return os.path.join(get_subjects_dir(project), code)
 
 
-class DTStep(Step.Step):
+# Should inherit from pijp.core.Step
+# Temp fix for cli mode
+class DTStep(object):
     def __init__(self, project, code, args):
-        super(DTStep, self).__init__(project, code, args)
+        # super(DTStep, self).__init__(project, code, args)
+
+        ## temp fixes for cli mode ####
+        self.project = project
+        self.code = code
+        self.niis = args
+        self.logger = logging.getLogger(__name__)
+        ##############################
+
         self.subjects_dir = get_subjects_dir(project)
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
@@ -129,6 +145,16 @@ class Stage(DTStep):
         # cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
         # self.logger.debug(cmd)
         # self._run_cmd(cmd)
+
+        ##### temp fixes for cli mode ##################
+        nii_dir = self.niis
+        src = os.listdir(nii_dir)
+
+        for files in src:
+            full_name = os.path.join(nii_dir, files)
+            if os.path.isfile(full_name):
+                shutil.copy(full_name, stage_dir)
+        ################################################
 
         with os.scandir(stage_dir) as it:
             for entry in it:
@@ -294,9 +320,8 @@ class MaskQC(DTStep):
         og, og_aff = self._load_nii(self.fdwi)
         mask, mask_aff = self._load_nii(self.prereg)
 
-        masked = animate.mask_image(og, mask)
+        masked = animate.mask_image(og, mask, alpha=0.9)
 
         mov = animate.Nifti_Animator(masked)
         mov.plot(show=False)
         mov.save(self.qc_movie)
-
