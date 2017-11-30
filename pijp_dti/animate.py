@@ -3,6 +3,7 @@ import matplotlib.animation as animation
 import nibabel as nib
 import numpy as np
 
+plt.rcParams['animation.ffmpeg_path'] = '/home/vhasfcellisr/ffmpeg'
 
 class Nifti_Animator(object):
 
@@ -22,17 +23,23 @@ class Nifti_Animator(object):
             if len(self.img.shape) > 3:
                 for j in range(0, self.img.shape[2]):
                     im = plt.imshow(self.img[:, :, j, i].T, cmap=self.cmap, animated=True, interpolation=None)
-                    t = ax.annotate("Direction {}".format(i+1), (0, 0), (0, -1))
+                    t = ax.annotate("Direction {} Slice {}".format(i+1, j+1), (0, 0), (0, -1))
                     ims.append([im, t])
             else:
                 im = plt.imshow(self.img[:, :, i].T, cmap=self.cmap, animated=True, interpolation=None)
-                ims.append([im])
+                t = ax.annotate("Slice {}".format(i+1), (0, 0), (0, -1))
+                ims.append([im, t])
 
-        self.ani = animation.ArtistAnimation(fig, ims, repeat=True, interval=self.interval)
+        self.ani = animation.ArtistAnimation(fig, ims, repeat=False, interval=self.interval)
 
         if show:
             plt.axis("off")
             plt.show()
+
+    def save(self, save_path, fps=30):
+        FFWriter = animation.FFMpegWriter(fps)
+        plt.axis("off")
+        self.ani.save(save_path, writer=FFWriter)
 
 
 def mask_image(img, mask, hue=255, alpha=1):
@@ -48,5 +55,7 @@ def mask_image(img, mask, hue=255, alpha=1):
     """
     factor = hue*alpha
     img[mask.astype('bool')] = (1 - alpha) * img[mask.astype('bool')] + factor
+
+
 
     return img
