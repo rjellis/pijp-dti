@@ -183,8 +183,7 @@ class Preregister(DTStep):
         dat, aff = self._load_nii(self.fdwi)
         self.logger.debug('Denoising and Masking the image')
         denoised = dtfunc.denoise(dat)
-        mask = dtfunc.mask(denoised)
-        masked = denoised[mask]
+        masked = dtfunc.mask(denoised)
         self._save_nii(masked, aff, self.prereg)
 
 
