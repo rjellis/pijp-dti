@@ -57,7 +57,9 @@ def pipe(out_path, code, in_path, step):
         stage.run()
         prereg.run()
         reg.run()
+        block_print()
         tenfit.run()
+        enable_print()
         roi_stats.run()
         qc.run()
 

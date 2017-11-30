@@ -102,7 +102,7 @@ def b0_avg(dat, aff, bval):
             if bval[i] == 0:
                if b0 is None:
                    b0 = dat[..., i]
-               b0_reg, b0_aff = affine_registration(b0, dat[i], aff, b0_aff, rigid=True)
+               b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
                b0_sum = np.add(b0_sum, b0_reg)
 
                b0_dir += 1
