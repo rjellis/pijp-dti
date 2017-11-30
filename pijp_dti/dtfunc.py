@@ -97,15 +97,16 @@ def b0_avg(dat, aff, bval):
     b0_aff = aff
     b0 = None
 
+    click.echo("Creating an average b0 volume")
     with click.progressbar(range(0, len(bval))) as bar:
         for i in bar:
             if bval[i] == 0:
-               if b0 is None:
-                   b0 = dat[..., i]
-               b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
-               b0_sum = np.add(b0_sum, b0_reg)
+                if b0 is None:
+                    b0 = dat[..., i]
+                b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
+                b0_sum = np.add(b0_sum, b0_reg)
 
-               b0_dir += 1
+                b0_dir += 1
 
     avg_b0 = b0_sum / b0_dir
 
@@ -130,7 +131,7 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     """
     affines = []
     reg_dat = np.zeros(shape=dat.shape)
-    click.echo("Registering to b0 volume")
+    click.echo("Registering to the b0 volume")
     with click.progressbar(range(0, dat.shape[3])) as bar:
         for i in bar:
             reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
