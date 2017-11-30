@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import nibabel as nib
-import numpy as np
+import os
 
 plt.rcParams['animation.ffmpeg_path'] = os.path.join(os.path.dirname(__file__), 'ffmpeg')  # path to ffmpeg executable
+
 
 class Nifti_Animator(object):
 
@@ -11,6 +11,7 @@ class Nifti_Animator(object):
         self.img = img
         self.cmap = 'gray'
         self.interval = 50
+        self.ani = None
 
     def plot(self, show=True):
 
@@ -18,12 +19,11 @@ class Nifti_Animator(object):
         ax = fig.add_subplot(111)
         ims = []
 
-
-        for i in range (0, self.img.shape[-1]):
+        for i in range(0, self.img.shape[-1]):
             if len(self.img.shape) > 3:
                 for j in range(0, self.img.shape[2]):
                     im = plt.imshow(self.img[:, :, j, i].T, cmap=self.cmap, animated=True, interpolation=None)
-                    t = ax.annotate("Direction {} Slice {}".format(i+1, j+1), (0, 0), (0, -1))
+                    t = ax.annotate("Direction {} Slice {}".format(i + 1, j + 1), (0, 0), (0, -1))
                     ims.append([im, t])
             else:
                 im = plt.imshow(self.img[:, :, i].T, cmap=self.cmap, animated=True, interpolation=None)
@@ -37,9 +37,9 @@ class Nifti_Animator(object):
             plt.show()
 
     def save(self, save_path, fps=30):
-        FFWriter = animation.FFMpegWriter(fps)
+        ffwriter = animation.FFMpegWriter(fps)
         plt.axis("off")
-        self.ani.save(save_path, writer=FFWriter)
+        self.ani.save(save_path, writer=ffwriter)
 
 
 def mask_image(img, mask, hue=0, alpha=1):
@@ -48,6 +48,7 @@ def mask_image(img, mask, hue=0, alpha=1):
     Args:
         img (ndarray):
         mask (ndarray): boolean or binary array to overlay on img
+        hue (int): scale the intensity
         alpha (float): alpha level of overlay
 
     Returns:
@@ -55,7 +56,5 @@ def mask_image(img, mask, hue=0, alpha=1):
     """
     factor = hue*alpha
     img[mask.astype('bool')] = (1 - alpha) * img[mask.astype('bool')] + factor
-
-
 
     return img

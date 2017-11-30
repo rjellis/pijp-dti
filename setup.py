@@ -10,5 +10,10 @@ setup(
         "dipy",
         "nibabel",
         "matplotlib",
+        "click"
     ],
+    entry_points="""
+        [console_scripts]
+        dti=pijp_dti.cli:cli
+    """
 )
