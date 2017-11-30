@@ -320,8 +320,3 @@ class MaskQC(DTStep):
         mask, mask_aff = self._load_nii(self.prereg)
 
         masked = animate.mask_image(og, mask, alpha=0.9)
-
-        mov = animate.Nifti_Animator(masked)
-        mov.cmap = "hot"
-        mov.plot(show=False)
-        mov.save(self.qc_movie)

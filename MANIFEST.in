@@ -1,4 +1,3 @@
 include README.md
-include ffmpeg
 include pijp_dti/config.cfg
 include pijp_dti/templates/*
