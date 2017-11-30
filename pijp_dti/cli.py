@@ -21,7 +21,7 @@ def cli(step, verbose, convert, input_dir, output_dir):
         b-value and b-vector files (.bval/.bvec). The input directory may also be a parent directory containing
         subdirectories with these required files.
 
-        Possible steps: stage, prereg, reg, tenfit, roi
+        Possible steps: stage, prereg, reg, tenfit, roi, qc
 
     """
     # load defaults from config file (verbosity, steps , dcm2nii path, etc)
