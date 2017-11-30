@@ -1,4 +1,3 @@
-*.pyc
 .idea/
 pijp_dti/__pycache__/
 dist/
