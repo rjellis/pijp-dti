@@ -5,7 +5,8 @@ setup(
     version='0.1.0',
     author='Ryan Ellis',
     author_email='ellis2012ryan@gmail.com',
-    packages=['pijp_dti'],
+    packages=['pijp_dti',],
+    include_package_data=True,
     install_requires=[
         "numpy",
         "dipy",
