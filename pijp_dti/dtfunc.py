@@ -2,6 +2,7 @@ import os
 import configparser
 import json
 import numpy as np
+from scipy.ndimage.morphology import binary_fill_holes
 from dipy.align import (imaffine, imwarp, transforms, metrics)
 from dipy.core import gradients
 from dipy.denoise import noise_estimate, non_local_means
@@ -9,6 +10,7 @@ from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
 from dipy.segment import mask as otsu
+
 
 config = configparser.ConfigParser()
 config_path = os.path.join(os.path.dirname(__file__), 'config.cfg')
@@ -25,13 +27,16 @@ def mask(dat):
         dat (ndarray): 3D numpy ndarray.
 
     Returns:
-        mask_dat (ndarray): The masked ndarray.
+        bin_mask (ndarray): The binary mask as an ndarray.
 
     """
     median_radius = config.getint('mask', 'median_radius')
     numpass = config.getint('mask', 'numpass')
     mask_dat, bin_dat = otsu.median_otsu(dat, median_radius, numpass)
-    return mask_dat
+    bin_mask = binary_fill_holes(bin_dat)
+    masked = otsu.applymask(dat, bin_mask)
+
+    return masked
 
 
 def denoise(dat):
