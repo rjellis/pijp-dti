@@ -194,7 +194,8 @@ def roi_stats(dat, overlay, labels):
         key = overlay[coord]
         if key in labels:
             roi_name = labels[key]
-            intensities_by_roi[roi_name].append(val)
+            if val != 0:
+                intensities_by_roi[roi_name].append(val)
 
     for rois in intensities_by_roi.keys():
         npa = np.asarray(intensities_by_roi[rois])
