@@ -12,10 +12,10 @@ from dipy.io import read_bvals_bvecs
 # from pijp.repositories import DicomRepository
 
 from pijp_dti import dtfunc
-from pijp_dti import animate
-
+from pijp_dti import visuals
 # def get_process_dir(project):
 #     return os.path.join(get_project_dir(project), 'dti')
+
 
 # TODO make a separate get_process_dir for cli mode
 def get_process_dir(project):
@@ -42,12 +42,12 @@ class DTStep(object):
     def __init__(self, project, code, args):
         # super(DTStep, self).__init__(project, code, args)
 
-        ## temp fixes for cli mode ####
+        # ******** temp fixes for cli mode ****************
         self.project = project
         self.code = code
         self.niis = args
         self.logger = logging.getLogger(__name__)
-        ##############################
+        # *************************************************
 
         self.subjects_dir = get_subjects_dir(project)
         self.working_dir = get_case_dir(project, code)
@@ -78,7 +78,7 @@ class DTStep(object):
         self.ad_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
 
-        self.qc_movie = os.path.join(self.working_dir, 'qc', self.code + '_mask_qc.mp4')
+        self.qc_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
 
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
@@ -146,7 +146,7 @@ class Stage(DTStep):
         # self.logger.debug(cmd)
         # self._run_cmd(cmd)
 
-        ##### temp fixes for cli mode ##################
+        # ***** temp fixes for cli mode *****************
         nii_dir = self.niis
         src = os.listdir(nii_dir)
 
@@ -154,7 +154,7 @@ class Stage(DTStep):
             full_name = os.path.join(nii_dir, files)
             if os.path.isfile(full_name):
                 shutil.copy(full_name, stage_dir)
-        ################################################
+        # ***********************************************
 
         with os.scandir(stage_dir) as it:
             for entry in it:
@@ -272,6 +272,10 @@ class RoiStats(DTStep):
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels).item()
 
+        measures = [fa, md, ga, ad, rd]
+        for idx in measures:
+            idx[fa<0.05] = 0
+
         fa_stats = dtfunc.roi_stats(fa, warped_labels, labels)
         md_stats = dtfunc.roi_stats(md, warped_labels, labels)
         ga_stats = dtfunc.roi_stats(ga, warped_labels, labels)
@@ -319,4 +323,6 @@ class MaskQC(DTStep):
         og, og_aff = self._load_nii(self.fdwi)
         mask, mask_aff = self._load_nii(self.prereg)
 
-        masked = animate.mask_image(og, mask, alpha=0.9)
+        masked = visuals.mask_image(og, mask, alpha=0.9)
+        a = visuals.Mosaic(masked[..., 0])
+        a.plot(show=False, save=True, path=self.qc_mosaic)
