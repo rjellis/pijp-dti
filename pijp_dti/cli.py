@@ -48,7 +48,8 @@ def pipe(out_path, code, in_path, step):
     reg = dti.Register(out_path, code, in_path)
     tenfit = dti.TensorFit(out_path, code, in_path)
     roi_stats = dti.RoiStats(out_path, code, in_path)
-    steps = {'stage': stage, 'prereg': prereg, 'reg': reg, 'tenfit': tenfit, 'roi': roi_stats}
+    qc = dti.MaskQC(out_path, code, in_path)
+    steps = {'stage': stage, 'prereg': prereg, 'reg': reg, 'tenfit': tenfit, 'roi': roi_stats, 'qc': qc}
 
     if not step:
         click.echo("Staging for {}".format(code))
@@ -64,6 +65,8 @@ def pipe(out_path, code, in_path, step):
         enable_print()
         click.echo("Calculating ROI statistics")
         roi_stats.run()
+        click.echo("Saving QC mosaic")
+        qc.run()
 
     else:
         for stp in step:
