@@ -20,6 +20,5 @@ class Test(unittest.TestCase):
         mov = animate.Nifti_Animator(masked)
         mov.cmap = "hot"
         mov.interval = 10
-        mov.plot(show=False)
-        mov.save('/home/vhasfcellisr/Ryan/mov2.mp4')
-        print("Saved")
+        mov.plot()
+
