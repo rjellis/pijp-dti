@@ -10,7 +10,7 @@ class Nifti_Animator(object):
 
     def __init__(self, img):
         self.img = img
-        self.cmap = 'gray'
+        self.cmap = 'hot'
         self.interval = 50
         self.ani = None
 
@@ -36,7 +36,7 @@ class Mosaic(object):
 
     def __init__(self, img):
         self.img = img
-        self.cmap = 'hot'
+        self.cmap = 'gray'
         self.fig = None
 
     def plot(self, show=True, save=False, path=None):
