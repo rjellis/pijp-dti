@@ -36,7 +36,7 @@ class Mosaic(object):
 
     def __init__(self, img):
         self.img = img
-        self.cmap = 'gray'
+        self.cmap = 'hot'
         self.fig = None
 
     def plot(self, show=True, save=False, path=None):
