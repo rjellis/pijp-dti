@@ -13,10 +13,10 @@ from dipy.io import read_bvals_bvecs
 
 from pijp_dti import dtfunc
 from pijp_dti import visuals
+
+
 # def get_process_dir(project):
 #     return os.path.join(get_project_dir(project), 'dti')
-
-
 # TODO make a separate get_process_dir for cli mode
 def get_process_dir(project):
     pdir = os.path.join(project)
@@ -24,16 +24,11 @@ def get_process_dir(project):
         os.makedirs(pdir)
     return pdir
 
-
-def get_subjects_dir(project):
-    sdir = os.path.join(get_process_dir(project), 'subjects')
+def get_case_dir(project, code):
+    sdir = os.path.join(get_process_dir(project), code)
     if not os.path.isdir(sdir):
         os.makedirs(sdir)
     return sdir
-
-
-def get_case_dir(project, code):
-    return os.path.join(get_subjects_dir(project), code)
 
 
 # Should inherit from pijp.core.Step
@@ -274,7 +269,7 @@ class RoiStats(DTStep):
 
         measures = [fa, md, ga, ad, rd]
         for idx in measures:
-            idx[fa<0.05] = 0
+            idx[fa < 0.05] = 0
 
         fa_stats = dtfunc.roi_stats(fa, warped_labels, labels)
         md_stats = dtfunc.roi_stats(md, warped_labels, labels)
