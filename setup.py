@@ -12,7 +12,6 @@ setup(
         "dipy",
         "nibabel",
         "matplotlib",
-        "click",
         "scipy"
     ],
     entry_points="""
