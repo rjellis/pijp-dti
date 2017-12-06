@@ -7,7 +7,7 @@ import numpy as np
 from dipy.segment.mask import applymask
 
 from pijp_dti import dtfunc
-from pijp_dti import visuals
+from pijp_dti import dtiQC
 
 class Test(unittest.TestCase):
 
@@ -15,7 +15,8 @@ class Test(unittest.TestCase):
         og = nib.load('/home/vhasfcellisr/Ryan/t1_dti/subjects/test2/stage/test2.nii.gz').get_data()
         mask = dtfunc.mask(og)
 
-        masked = visuals.mask_image(og, mask, hue = 0, alpha=0.9)
-        mos = visuals.Mosaic(masked[..., 0])
-        mos.cmap = "hot"
-        mos.plot(show=False, save=False, path= '/home/vhasfcellisr/test.png')
+        og = dtiQC.rescale(og)
+        og = np.stack((og, og, og), axis=-1)
+        masked = dtiQC.mask_image(og, mask, hue = [0, 1, 0], alpha=0.5)
+        mos = dtiQC.Mosaic(masked)
+        mos.plot(show=True, save=False, path= '/home/vhasfcellisr/test.png')
