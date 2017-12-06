@@ -1,8 +1,3 @@
-import os
-import configparser
-import json
-
-import click
 import numpy as np
 from scipy.ndimage.morphology import binary_fill_holes
 from dipy.align import (imaffine, imwarp, transforms, metrics)
@@ -12,11 +7,6 @@ from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
 from dipy.segment import mask as otsu
-
-
-config = configparser.ConfigParser()
-config_path = os.path.join(os.path.dirname(__file__), 'config.cfg')
-config.read(config_path)
 
 
 def mask(dat):
@@ -32,9 +22,8 @@ def mask(dat):
         bin_mask (ndarray): The binary mask as an ndarray.
 
     """
-    median_radius = config.getint('mask', 'median_radius')
-    numpass = config.getint('mask', 'numpass')
-    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius, numpass)
+
+    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
     bin_mask = binary_fill_holes(bin_dat)
     masked = otsu.applymask(dat, bin_mask)
 
@@ -51,12 +40,9 @@ def denoise(dat):
         denoise_dat (ndarray): The denoised ndarray
 
     """
-    click.echo("Denoising the image")
-    denoise_dat = np.ndarray(shape=dat.shape)
-    with click.progressbar(range(0, dat.shape[3])) as bar:
-        for i in bar:
-            sigma = noise_estimate.estimate_sigma(dat[:, :, :, i])
-            denoise_dat[:, :, :, i] = non_local_means.non_local_means(dat[:, :, :, i], sigma)
+    sigma = noise_estimate.estimate_sigma(dat)
+    denoise_dat = non_local_means.non_local_means(dat, sigma)
+
     return denoise_dat
 
 
@@ -97,16 +83,13 @@ def b0_avg(dat, aff, bval):
     b0_aff = aff
     b0 = None
 
-    click.echo("Creating an average b0 volume")
-    with click.progressbar(range(0, len(bval))) as bar:
-        for i in bar:
-            if bval[i] == 0:
-                if b0 is None:
-                    b0 = dat[..., i]
-                b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
-                b0_sum = np.add(b0_sum, b0_reg)
-
-                b0_dir += 1
+    for i in range(0, len(bval)):
+        if bval[i] == 0:
+            if b0 is None:
+                b0 = dat[..., i]
+            b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
+            b0_sum = np.add(b0_sum, b0_reg)
+            b0_dir += 1
 
     avg_b0 = b0_sum / b0_dir
 
@@ -131,13 +114,11 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     """
     affines = []
     reg_dat = np.zeros(shape=dat.shape)
-    click.echo("Registering to the b0 volume")
-    with click.progressbar(range(0, dat.shape[3])) as bar:
-        for i in bar:
-            reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
-            reg_dat[..., i] = reg_dir
-            if bval[i] != 0:
-                affines.append(reg_aff)
+    for i in range(0, dat.shape[3]):
+        reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
+        reg_dat[..., i] = reg_dir
+        if bval[i] != 0:
+            affines.append(reg_aff)
 
     gtab = gradients.gradient_table(bval, bvec)
     new_gtab = gradients.reorient_bvecs(gtab, affines)
@@ -222,13 +203,13 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
 
     """
     # Mutual information Metric
-    nbins = config.getint('affine_registration', 'nbins')  # Number of bins for computing the histograms
-    sampling_prop = config.getint('affine_registration', 'sampling_prop')  # percentage of voxels (0, 100]
+    nbins = 32  # Number of bins for computing the histograms
+    sampling_prop = 100  # percentage of voxels (0, 100]
     metric = imaffine.MutualInformationMetric(nbins, sampling_prop)
-    level_iters = json.loads(config.get('affine_registration', 'level_iters'))  # Iterations at each resolution (coarse
+    level_iters = [100, 50, 30]  # Iterations at each resolution (coarse
     #  to fine)
-    sigmas = json.loads(config.get('affine_registration', 'sigmas'))
-    factors = json.loads(config.get('affine_registration', 'factors'))  # Factors that determine resolution
+    sigmas = [3.0, 1.0, 0.0]
+    factors = [4, 2, 1] # Factors that determine resolution
 
     affreg = imaffine.AffineRegistration(metric,
                                          level_iters=level_iters,
@@ -276,7 +257,7 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     """
     moving_reg, pre_align = affine_registration(static, moving, static_affine, moving_affine)
     metric = metrics.CCMetric(3)  # Cross Correlation Metric for 3 dimensions
-    level_iters = json.loads(config.get('sym_diff_registration', 'level_iters'))  # Iterations at each resolution (fine
+    level_iters = [30, 50, 100]  # Iterations at each resolution (fine
     #  to coarse)
 
     sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters)
