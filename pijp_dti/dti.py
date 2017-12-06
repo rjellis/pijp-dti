@@ -1,62 +1,47 @@
 import csv
 import gzip
 import os
+import tempfile
 import shutil
 import subprocess
-import logging
+import datetime
+import getpass
 
 import nibabel as nib
 import numpy as np
 from dipy.io import read_bvals_bvecs
-# from pijp.core import Step, get_project_dir
-# from pijp.repositories import DicomRepository
+from pijp.core import Step, get_project_dir
+from pijp.repositories import DicomRepository, ProcessingLog
+from pijp.exceptions import ProcessingError, NoLogProcessingError
 
 from pijp_dti import dtfunc
-from pijp_dti import visuals
+from pijp_dti import dtiQC
 
 
-# def get_process_dir(project):
-#     return os.path.join(get_project_dir(project), 'dti')
-# TODO make a separate get_process_dir for cli mode
 def get_process_dir(project):
-    pdir = os.path.join(project)
+    return os.path.join(get_project_dir(project), 'dti')
+
+def get_case_dir(project, code):
+    pdir = os.path.join(get_process_dir(project), code)
     if not os.path.isdir(pdir):
         os.makedirs(pdir)
     return pdir
 
-def get_case_dir(project, code):
-    sdir = os.path.join(get_process_dir(project), code)
-    if not os.path.isdir(sdir):
-        os.makedirs(sdir)
-    return sdir
 
+class DTStep(Step):
 
-# Should inherit from pijp.core.Step
-# Temp fix for cli mode
-class DTStep(object):
     def __init__(self, project, code, args):
-        # super(DTStep, self).__init__(project, code, args)
+        super(DTStep, self).__init__(project, code, args)
 
-        # ******** temp fixes for cli mode ****************
-        self.project = project
-        self.code = code
-        self.niis = args
-        self.logger = logging.getLogger(__name__)
-        # *************************************************
-
-        self.subjects_dir = get_subjects_dir(project)
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
 
         self.fdwi = os.path.join(self.working_dir, 'stage', self.code + '.nii.gz')
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
-
         self.prereg = os.path.join(self.working_dir, 'prereg', self.code + '_prereg.nii.gz')
-
         self.reg = os.path.join(self.working_dir, 'reg', self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.working_dir, 'reg', self.code + '_bvec_reg.npy')
-
         self.fa = os.path.join(self.working_dir, 'tenfit', self.code + '_fa.nii.gz')
         self.md = os.path.join(self.working_dir, 'tenfit', self.code + '_md.nii.gz')
         self.ga = os.path.join(self.working_dir, 'tenfit', self.code + '_ga.nii.gz')
@@ -66,14 +51,13 @@ class DTStep(object):
         self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.npy')
         self.warped_fa = os.path.join(self.working_dir, 'tenfit', self.code + '_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.working_dir, 'tenfit', self.code + '_warped_labels.nii.gz')
-
         self.fa_roi = os.path.join(self.working_dir, 'roistats', self.code + '_fa_roi.csv')
         self.md_roi = os.path.join(self.working_dir, 'roistats', self.code + '_md_roi.csv')
         self.ga_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
-
-        self.qc_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
+        self.mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
+        self.review_flag = os.path.join(self.working_dir, "maskqc.inprocess")
 
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
@@ -92,7 +76,7 @@ class DTStep(object):
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
-    def _save_nii(self, dat, aff, fname):  # Expecting fname to end with .nii.gz
+    def _save_nii(self, dat, aff, fname):
         img = nib.Nifti1Image(dat, aff)
         nib.nifti1.save(img, fname.rstrip('.gz'))
         with open(fname.rstrip('.gz'), 'rb') as f_in:
@@ -121,8 +105,16 @@ class Stage(DTStep):
         super(Stage, self).__init__(project, code, args)
         self.next_step = Preregister
 
+    @classmethod
+    def get_queue(cls, project_name):
+        plog = ProcessingLog()
+        available = plog.get_project_images(project_name, "DTI")
+        attempted = plog.get_step_attempted(project_name, cls.process_name, cls.step_name)
+        attempted_codes = [row.Code for row in attempted]
+        todo = [{'ProjectName': project_name, 'Code': row.Code} for row in available if not row.Code in attempted_codes]
+        return todo
+
     def run(self):
-        self.logger.info('Building directories in {}'.format(self.working_dir))
 
         stage_dir = os.path.join(self.working_dir, 'stage')
         prereg_dir = os.path.join(self.working_dir, 'prereg')
@@ -136,21 +128,21 @@ class Stage(DTStep):
             if not os.path.isdir(dr):
                 os.makedirs(dr)
 
-        # DicomRepository.fetch_dicoms(self.code, stage_dir)
-        # cmd = 'dcm2nii -o {} {}'.format(stage_dir, stage_dir)
-        # self.logger.debug(cmd)
-        # self._run_cmd(cmd)
+        source = None
+        image = ProcessingLog().get_project_image(self.project, self.code)
 
-        # ***** temp fixes for cli mode *****************
-        nii_dir = self.niis
-        src = os.listdir(nii_dir)
+        if image.ImageStore == "Dicom":
+            source = DicomRepository().get_series_files(self.code)
 
-        for files in src:
-            full_name = os.path.join(nii_dir, files)
-            if os.path.isfile(full_name):
-                shutil.copy(full_name, stage_dir)
-        # ***********************************************
+        if source is None:
+            raise ProcessingError("Could not find staging data.")
 
+        dcm_dir = self._copy_files(source)
+
+        cmd = 'dcm2nii -g Y -o {} {}'.format(dcm_dir, stage_dir)
+        self._run_cmd(cmd)
+
+        # Hacky solution to not knowing what dcm2nii is going to name files
         with os.scandir(stage_dir) as it:
             for entry in it:
                 if entry.name.split('.')[-1] == 'gz':
@@ -161,6 +153,19 @@ class Stage(DTStep):
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
                 else:
                     os.remove(entry.path)
+
+    def _copy_files(self, source):
+        tmp = tempfile.mkdtemp()
+        self.logger.debug("Copying %s files..." % (len(source)))
+
+        for src in source:
+            dst = os.path.join(tmp, os.path.basename(src))
+            self.logger.debug("Copying file: %s -> %s" % (src, dst))
+            shutil.copyfile(src, dst)
+            if not os.path.exists(dst):
+                raise Exception("Failed to copy file: %s" % dst)
+
+        return os.path.join(tmp, os.path.basename(source[0]))
 
 
 class Preregister(DTStep):
@@ -223,25 +228,20 @@ class TensorFit(DTStep):
 
         self.logger.info('Fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
-        fa = tenfit.fa
-        md = tenfit.md
-        ga = tenfit.ga  # this is geodesic anisotropy, not general anisotropy
-        ad = tenfit.ad
-        rd = tenfit.rd
 
         self.logger.info('Building nonlinear registration map for FA')
         warped_template, mapping = dtfunc.sym_diff_registration(
-            fa, template,
+            tenfit.fa, template,
             aff, template_aff)
 
         warped_labels = mapping.transform(temp_labels, interpolation='nearest')
-        warped_fa = mapping.transform_inverse(fa)
+        warped_fa = mapping.transform_inverse(tenfit.fa)
 
-        self._save_nii(fa, aff, self.fa)
-        self._save_nii(md, aff, self.md)
-        self._save_nii(ga, aff, self.ga)
-        self._save_nii(ad, aff, self.ad)
-        self._save_nii(rd, aff, self.rd)
+        self._save_nii(tenfit.fa, aff, self.fa)
+        self._save_nii(tenfit.md, aff, self.md)
+        self._save_nii(tenfit.ga, aff, self.ga)
+        self._save_nii(tenfit.ad, aff, self.ad)
+        self._save_nii(tenfit.rd, aff, self.rd)
         self._save_nii(warped_fa, template_aff, self.warped_fa)
         self._save_nii(warped_labels, aff, self.warped_labels)
         np.save(self.evals, evals)
@@ -291,33 +291,63 @@ class RoiStats(DTStep):
         self.logger.debug("saving {}".format(csv_path))
 
 
-class StoreInDatabase(DTStep):
-    process_name = "DTI"
-    step_name = "StoreInDatabase"
-    step_cli = "db"
-
-    def __init__(self, project, code, args):
-        super(StoreInDatabase, self).__init__(project, code, args)
-
-    def run(self):
-        # TODO store CSV's to database
-        pass
-
-
 class MaskQC(DTStep):
     process_name = "DTI"
     step_name = "MaskQC"
     step_cli = "qc"
-
     interactive = True
 
     def __init__(self, project, code, args):
         super(MaskQC, self).__init__(project, code, args)
 
-    def run(self):
-        og, og_aff = self._load_nii(self.fdwi)
-        mask, mask_aff = self._load_nii(self.prereg)
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
 
-        masked = visuals.mask_image(og, mask, alpha=0.9)
-        a = visuals.Mosaic(masked[..., 0])
-        a.plot(show=False, save=True, path=self.qc_mosaic)
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+        try:
+
+
+            mos = dtiQC.Mosaic(self.prereg, show=false, save=True, path=self.mosaic)
+
+            result = True
+            comments = None
+            self.outcome = result
+            self.comments = comments
+            if result:
+                self.next_step = Register
+            elif not result:
+                self.next_step = None
+
+        finally:
+            os.remove(self.review_flag)
+
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = GetListToQC(project_name, "xsect")
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["ScanCode"] for x in cases]
+        while True:
+            if len(cases) == 0:
+                break
+            code = choice(cases)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
+            cases.remove(code)
