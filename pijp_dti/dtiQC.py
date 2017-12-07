@@ -1,8 +1,9 @@
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
+import nibabel as nib
 import matplotlib.pyplot as plt
 from matplotlib import animation
+
+from pijp_dti import QCinter
 
 
 class NiftiAnimator(object):
@@ -29,6 +30,7 @@ class NiftiAnimator(object):
             plt.axis("off")
             plt.show()
 
+
 class Mosaic(object):
 
     def __init__(self, img):
@@ -48,16 +50,14 @@ class Mosaic(object):
         for i in range(0, subplot_size):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 0], 1), cmap='gray', interpolation=None)
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 1], 1), cmap='gray', interpolation=None)
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 2], 1), cmap='gray', interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 0], 1), interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 1], 1), interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 2], 1), interpolation=None)
 
                 ax[i, j].axis("off")
                 slc_idx += 1
 
         fig.set_facecolor('black')
-        if save:
-            plt.savefig(path)
 
         return fig
 
@@ -67,24 +67,6 @@ def get_next_square(num):
     while np.mod(np.sqrt(sq), 1) != 0:
         sq = (sq // 1) + 1
     return sq
-
-
-def mask_image(img, mask, hue, alpha=1):
-    """
-    overlay a binary mask on an image
-    Args:
-        img (ndarray):
-        mask (ndarray): boolean or binary array to overlay on img
-        hue (list or tuple or ndarray shape [3]): RBG 3-vector
-        alpha (float): alpha level of overlay
-    Returns:
-        ndarray : masked img
-    """
-    factor = np.multiply(hue, alpha)
-    img[mask.astype('bool'), ..., 0] = (1 - alpha) * img[mask.astype('bool'), ..., 0] + factor[0]
-    img[mask.astype('bool'), ..., 1] = (1 - alpha) * img[mask.astype('bool'), ..., 1] + factor[1]
-    img[mask.astype('bool'), ..., 2] = (1 - alpha) * img[mask.astype('bool'), ..., 2] + factor[2]
-    return img
 
 
 def rescale(array, bins=1000):
@@ -116,6 +98,24 @@ def rescale(array, bins=1000):
     return array / maxval
 
 
+def mask_image(img, mask, hue, alpha=1):
+    """
+    overlay a binary mask on an image
+    Args:
+        img (ndarray):
+        mask (ndarray): boolean or binary array to overlay on img
+        hue (list or tuple or ndarray shape [3]): RBG 3-vector
+        alpha (float): alpha level of overlay
+    Returns:
+        ndarray : masked img
+    """
+    factor = np.multiply(hue, alpha)
+    img[mask.astype('bool'), ..., 0] = (1 - alpha) * img[mask.astype('bool'), ..., 0] + factor[0]
+    img[mask.astype('bool'), ..., 1] = (1 - alpha) * img[mask.astype('bool'), ..., 1] + factor[1]
+    img[mask.astype('bool'), ..., 2] = (1 - alpha) * img[mask.astype('bool'), ..., 2] + factor[2]
+    return img
+
+
 def unmask_image(img, orig, mask):
     """
     replace values of one array with corresponding values of another array, indexed by a third array
@@ -128,3 +128,15 @@ def unmask_image(img, orig, mask):
     """
     img[mask.astype('bool'), :] = orig[mask.astype('bool'), :]
     return img
+
+def run_mask_qc(image_path, mask_path):
+    image = nib.load(image_path).get_data()
+    mask = nib.load(mask_path).get_data()
+    image = rescale(image)
+    image = np.stack((image, image, image), axis=-1)
+    masked = mask_image(image, mask, hue=[1, 0 , 0], alpha=0.5)
+
+    mosaic = Mosaic(masked).plot()
+    result, comment = QCinter.run_qc_interface(mosaic, mask_path)
+
+    return result, comment
