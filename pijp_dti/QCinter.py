@@ -2,17 +2,15 @@ import tkinter as Tk
 
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.backends.tkagg as tkagg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import nibabel as nib
-
-from pijp_dti import dtiQC
 
 
 class Application(Tk.Frame):
     def __init__(self, master=None):
         Tk.Frame.__init__(self, master)
         self.result = None
+        self.comment = ''
+        self.path = ''
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
         self.grid(stick="news")
@@ -50,7 +48,6 @@ class Application(Tk.Frame):
             self.rowconfigure(j, weight=1)
 
     def create_figure(self, fig, col=0, row=0, span=4):
-
         canvas = FigureCanvasTkAgg(fig, self.master)
         canvas.show()
         canvas.get_tk_widget().grid(column=col, row=row, columnspan=span, sticky='news', padx=25, pady=25)
@@ -78,10 +75,14 @@ class Application(Tk.Frame):
 
     def _save_comment(self):
         self.button_comment.config(text='Saved!', bg='green', fg='white')
+        self.comment = self.entry_comment.get()
 
 
-root = Tk.Tk()
-app = Application(master=root)
-app.mainloop()
-app.destroy()
+def run_qc_interface(figure, path):
+   root = Tk.Tk()
+   app = Application(master=root)
+   app.path = path
+   app.create_figure(figure)
+   app.mainloop()
+   app.destroy()
 
