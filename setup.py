@@ -6,7 +6,6 @@ setup(
     author='Ryan Ellis',
     author_email='ellis2012ryan@gmail.com',
     packages=['pijp_dti',],
-    include_package_data=True,
     install_requires=[
         "numpy",
         "dipy",
@@ -14,8 +13,4 @@ setup(
         "matplotlib",
         "scipy"
     ],
-    entry_points="""
-        [console_scripts]
-        dti=pijp_dti.cli:cli
-    """
 )
