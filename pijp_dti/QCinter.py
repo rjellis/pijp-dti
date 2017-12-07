@@ -1,7 +1,6 @@
 import tkinter as Tk
+from tkinter import messagebox
 
-import matplotlib
-matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
@@ -14,23 +13,22 @@ class Application(Tk.Frame):
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
         self.grid(stick="news")
-        self.create_widgets()
 
     def create_widgets(self):
         self.button_quit = Tk.Button(master=self.master, text='Exit', command=self._quit)
         self.button_pass = Tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green')
         self.button_fail = Tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red')
-        self.button_path = Tk.Button(master=self.master, text='Copy Path', command=self._get_path)
+        self.button_path = Tk.Button(master=self.master, text='Copy Path to Clipboard', command=self._get_path)
         self.button_comment = Tk.Button(master=self.master, text='Save Comment', command=self._save_comment)
 
         v = Tk.StringVar()
-        self.entry_comment = Tk.Entry(master=self.master, width=50, textvariable=v)
+        self.entry_comment = Tk.Entry(master=self.master, width=100, textvariable=v)
 
         self.label_comment = Tk.Label(master=self.master, text="Comment: ")
         self.label_path = Tk.Label(master=self.master, text="Path: ")
 
-        self.text_path = Tk.Text(master=self.master, width=50, height=1)
-        self.text_path.insert('1.0', "/home/users/sample/path/to/image.png")
+        self.text_path = Tk.Text(master=self.master, width=100, height=1)
+        self.text_path.insert('1.0', self.path)
 
         self.label_comment.grid(column=0, row=1, sticky='e')
         self.entry_comment.grid(column=1, row=1, columnspan=2, sticky='w')
@@ -53,20 +51,23 @@ class Application(Tk.Frame):
         canvas.get_tk_widget().grid(column=col, row=row, columnspan=span, sticky='news', padx=25, pady=25)
 
     def _quit(self):
-        self.quit()
-        self.destroy()
+
+        if self.result is None:
+            if messagebox.askyesno("Warning!", "Result not selected. Exit anyway?"):
+                self.quit()
+        else:
+            self.quit()
+
 
     def _pass(self):
         self.button_pass.config(bg='green', fg='white')
         self.button_fail.config(bg='#d9d9d9', fg='black')
-        self.result = 0
-        print("Pass! ", self.result)
+        self.result = True
 
     def _fail(self):
         self.button_fail.config(bg='red', fg='white')
         self.button_pass.config(bg='#d9d9d9', fg='black')
-        self.result = 1
-        print("FAIL!", self.result)
+        self.result = False
 
     def _get_path(self):
         self.master.clipboard_clear()
@@ -78,11 +79,15 @@ class Application(Tk.Frame):
         self.comment = self.entry_comment.get()
 
 
-def run_qc_interface(figure, path):
-   root = Tk.Tk()
-   app = Application(master=root)
-   app.path = path
-   app.create_figure(figure)
-   app.mainloop()
-   app.destroy()
+def run_qc_interface(figure, path=None):
+    root = Tk.Tk()
+    app = Application(master=root)
+    app.path = path
+    app.create_widgets()
+    app.create_figure(figure)
+    app.mainloop()
+    result = app.result
+    comment = app.comment
+    app.destroy()
 
+    return result, comment
