@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 
-class Nifti_Animator(object):
+class NiftiAnimator(object):
 
     def __init__(self, img):
         self.img = img
@@ -33,32 +33,33 @@ class Mosaic(object):
 
     def __init__(self, img):
         self.img = img
-        self.fig = None
 
-    def plot(self, show=True, save=False, path=None):
+    def plot(self, save=False, path=None):
 
         slc = self.img.shape[2]
         subplot_size = int(np.sqrt(get_next_square(slc)))
+
         fig, ax = plt.subplots(subplot_size, subplot_size)
+        plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
+                wspace=0, hspace=0)
 
         slc_idx = 0
 
         for i in range(0, subplot_size):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
-                    ax[i, j].imshow(self.img[:, :, slc_idx, 0], interpolation=None)
-                    ax[i, j].imshow(self.img[:, :, slc_idx, 1], interpolation=None)
-                    ax[i, j].imshow(self.img[:, :, slc_idx, 2], interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 0], 1), cmap='gray', interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 1], 1), cmap='gray', interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 2], 1), cmap='gray', interpolation=None)
 
                 ax[i, j].axis("off")
                 slc_idx += 1
 
-        if show:
-            plt.subplots_adjust(wspace=0, hspace=0)
-            plt.show()
-
+        fig.set_facecolor('black')
         if save:
             plt.savefig(path)
+
+        return fig
 
 
 
@@ -67,7 +68,6 @@ def get_next_square(num):
     while np.mod(np.sqrt(sq), 1) != 0:
         sq = (sq // 1) + 1
     return sq
-
 
 
 def mask_image(img, mask, hue, alpha=1):
@@ -87,6 +87,7 @@ def mask_image(img, mask, hue, alpha=1):
     img[mask.astype('bool'), ..., 2] = (1 - alpha) * img[mask.astype('bool'), ..., 2] + factor[2]
     return img
 
+
 def rescale(array, bins=1000):
     """
     Normalizes array by integrating histogram.
@@ -98,7 +99,7 @@ def rescale(array, bins=1000):
     Returns:
         ndarray : normalized array
     """
-    h, bin_edges = np.histogram(array, bins=1000)
+    h, bin_edges = np.histogram(array, bins)
     bin_width = (bin_edges[1] - bin_edges[0])
     h_area = np.sum(h)
     idcs = []
@@ -115,6 +116,7 @@ def rescale(array, bins=1000):
     array[array > maxval] = maxval
     return array / maxval
 
+
 def unmask_image(img, orig, mask):
     """
     replace values of one array with corresponding values of another array, indexed by a third array
@@ -127,5 +129,3 @@ def unmask_image(img, orig, mask):
     """
     img[mask.astype('bool'), :] = orig[mask.astype('bool'), :]
     return img
-
-
