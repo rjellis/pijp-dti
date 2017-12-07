@@ -1,6 +1,9 @@
 import os
 
+
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
@@ -38,7 +41,7 @@ class Mosaic(object):
     def plot(self, show=True, save=False, path=None):
 
         slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(self._get_next_square(slc)))
+        subplot_size = int(np.sqrt(get_next_square(slc)))
         fig, ax = plt.subplots(subplot_size, subplot_size)
 
         slc_idx = 0
@@ -62,11 +65,11 @@ class Mosaic(object):
 
 
 
-    def _get_next_square(self, num):
-        sq = num
-        while np.mod(np.sqrt(sq), 1) != 0:
-            sq = (sq // 1) + 1
-        return sq
+def get_next_square(num):
+    sq = num
+    while np.mod(np.sqrt(sq), 1) != 0:
+        sq = (sq // 1) + 1
+    return sq
 
 
 
