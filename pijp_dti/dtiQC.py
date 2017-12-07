@@ -62,7 +62,6 @@ class Mosaic(object):
         return fig
 
 
-
 def get_next_square(num):
     sq = num
     while np.mod(np.sqrt(sq), 1) != 0:
