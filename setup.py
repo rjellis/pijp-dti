@@ -13,4 +13,8 @@ setup(
         "dipy",
         "nibabel",
     ],
+    entry_points="""
+        [console_scripts]
+        pijp-dti=pijp_dti.dti:run
+    """
 )
