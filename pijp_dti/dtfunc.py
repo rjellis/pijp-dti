@@ -25,9 +25,12 @@ def mask(dat):
 
     mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
     bin_mask = binary_fill_holes(bin_dat)
-    masked = otsu.applymask(dat, bin_mask)
 
-    return masked
+    return bin_mask
+
+
+def apply_mask(dat, bin_mask):
+    return otsu.applymask(dat, bin_mask)
 
 
 def denoise(dat):
