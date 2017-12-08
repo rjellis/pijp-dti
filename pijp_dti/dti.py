@@ -13,6 +13,7 @@ from dipy.io import read_bvals_bvecs
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository, ProcessingLog
 from pijp.exceptions import ProcessingError, NoLogProcessingError
+from pijp.engine import run_module
 
 from pijp_dti import dtfunc
 from pijp_dti import dtiQC
@@ -22,10 +23,10 @@ def get_process_dir(project):
     return os.path.join(get_project_dir(project), 'dti')
 
 def get_case_dir(project, code):
-    pdir = os.path.join(get_process_dir(project), code)
-    if not os.path.isdir(pdir):
-        os.makedirs(pdir)
-    return pdir
+    cdir = os.path.join(get_process_dir(project), code)
+    if not os.path.isdir(cdir):
+        os.makedirs(cdir)
+    return cdir
 
 
 class DTStep(Step):
@@ -39,7 +40,9 @@ class DTStep(Step):
         self.fdwi = os.path.join(self.working_dir, 'stage', self.code + '.nii.gz')
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
-        self.prereg = os.path.join(self.working_dir, 'prereg', self.code + '_prereg.nii.gz')
+        self.denoised = os.path.join(self.working_dir, 'prereg', self.code + '_denoised.nii.gz')
+        self.bin_mask = os.path.join(self.working_dir, 'prereg', self.code + '_binary_mask.nii.gz')
+        self.masked = os.path.join(self.working_dir, 'prereg', self.code + '_masked.nii.gz')
         self.reg = os.path.join(self.working_dir, 'reg', self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.working_dir, 'reg', self.code + '_bvec_reg.npy')
         self.fa = os.path.join(self.working_dir, 'tenfit', self.code + '_fa.nii.gz')
@@ -65,24 +68,25 @@ class DTStep(Step):
         self.labels = os.path.join(fpath, 'templates', 'labels.npy')
 
     def _load_nii(self, fname):
-        self.logger.debug('loading {}'.format(fname))
+        self.logger.info('loading {}'.format(fname))
         img = nib.load(fname)
         dat = img.get_data()
         aff = img.affine
         return dat, aff
 
     def _load_bval_bvec(self, fbval, fbvec):
-        self.logger.debug('loading {} {}'.format(fbval, fbvec))
+        self.logger.info('loading {} {}'.format(fbval, fbvec))
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
     def _save_nii(self, dat, aff, fname):
         img = nib.Nifti1Image(dat, aff)
-        nib.nifti1.save(img, fname.rstrip('.gz'))
-        with open(fname.rstrip('.gz'), 'rb') as f_in:
+        nii = fname.rstrip('.gz')
+        nib.nifti1.save(img, nii)
+        with open(nii, 'rb') as f_in:
             with gzip.open(fname, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(fname.rstrip('.gz'))
+        os.remove(nii)
         self.logger.info('saving {}'.format(fname))
 
     def _run_cmd(self, cmd):
@@ -127,6 +131,7 @@ class Stage(DTStep):
         for dr in dirs:
             if not os.path.isdir(dr):
                 os.makedirs(dr)
+            self.logger.info('building directory {}'.format(dr))
 
         source = None
         image = ProcessingLog().get_project_image(self.project, self.code)
@@ -139,7 +144,7 @@ class Stage(DTStep):
 
         dcm_dir = self._copy_files(source)
 
-        cmd = 'dcm2nii -g Y -o {} {}'.format(dcm_dir, stage_dir)
+        cmd = 'dcm2niix -o {} {}'.format(dcm_dir, stage_dir)
         self._run_cmd(cmd)
 
         # Hacky solution to not knowing what dcm2nii is going to name files
@@ -180,12 +185,14 @@ class Preregister(DTStep):
         self.next_step = Register
 
     def run(self):
-        # TODO save bin_mask from dtfunc.Mask and apply it here
         dat, aff = self._load_nii(self.fdwi)
-        self.logger.debug('Denoising and Masking the image')
+        self.logger.info('denoising and masking the image')
         denoised = dtfunc.denoise(dat)
-        masked = dtfunc.mask(denoised)
-        self._save_nii(masked, aff, self.prereg)
+        bin_mask = dtfunc.mask(denoised)
+        masked = dtfunc.apply_mask(denoised, bin_mask)
+        self._save_nii(denoised, aff, self.denoised)
+        self._save_nii(bin_mask, aff, self.bin_mask)
+        self._save_nii(masked, aff, self.masked)
 
 
 class Register(DTStep):
@@ -200,10 +207,10 @@ class Register(DTStep):
         self.next_step = TensorFit
 
     def run(self):
-        dat, aff = self._load_nii(self.prereg)
+        dat, aff = self._load_nii(self.masked)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
-        self.logger.debug('Registering the image to its averaged b0 image')
+        self.logger.info('registering the image to its averaged b0 image')
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
         self._save_nii(reg_dat, aff, self.reg)
         np.save(self.fbvec_reg, bvec)
@@ -227,10 +234,10 @@ class TensorFit(DTStep):
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         bvec = np.load(self.fbvec_reg)
 
-        self.logger.info('Fitting the tensor')
+        self.logger.info('fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
 
-        self.logger.info('Building nonlinear registration map for FA')
+        self.logger.info('generating nonlinear registration map for FA')
         warped_template, mapping = dtfunc.sym_diff_registration(
             tenfit.fa, template,
             aff, template_aff)
@@ -272,6 +279,7 @@ class RoiStats(DTStep):
         for idx in measures:
             idx[fa < 0.05] = 0
 
+        self.logger.info('calculating roi statistics')
         fa_stats = dtfunc.roi_stats(fa, warped_labels, labels)
         md_stats = dtfunc.roi_stats(md, warped_labels, labels)
         ga_stats = dtfunc.roi_stats(ga, warped_labels, labels)
@@ -329,8 +337,7 @@ class MaskQC(DTStep):
                 self.next_step = Register
             elif not result:
                 self.next_step = None
-
-            if result is None:
+            elif result is None:
                 self.outcome = None
                 self.comments = None
             else:
@@ -340,17 +347,10 @@ class MaskQC(DTStep):
         finally:
             os.remove(self.review_flag)
 
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = GetListToQC(project_name, "xsect")
-        LOGGER.info("%s cases in queue." % len(cases))
+def run():
+    import sys
+    current_module = sys.modules[__name__]
+    run_module(current_module)
 
-        cases = [x["ScanCode"] for x in cases]
-        while True:
-            if len(cases) == 0:
-                break
-            code = choice(cases)
-            next_job = MaskQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
-            cases.remove(code)
+if __name__ == "__main__":
+    run_file(abspath(__file__))
