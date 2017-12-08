@@ -36,14 +36,14 @@ class Mosaic(object):
     def __init__(self, img):
         self.img = img
 
-    def plot(self, save=False, path=None):
+    def plot(self):
 
         slc = self.img.shape[2]
         subplot_size = int(np.sqrt(get_next_square(slc)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
         plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
-                wspace=0, hspace=0)
+                            wspace=0, hspace=0)
 
         slc_idx = 0
 
@@ -129,12 +129,13 @@ def unmask_image(img, orig, mask):
     img[mask.astype('bool'), :] = orig[mask.astype('bool'), :]
     return img
 
+
 def run_mask_qc(image_path, mask_path):
     image = nib.load(image_path).get_data()
     mask = nib.load(mask_path).get_data()
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
-    masked = mask_image(image, mask, hue=[1, 0 , 0], alpha=0.5)
+    masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
 
     mosaic = Mosaic(masked).plot()
     result, comment = QCinter.run_qc_interface(mosaic, mask_path)
