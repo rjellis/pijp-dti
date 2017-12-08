@@ -180,6 +180,7 @@ class Preregister(DTStep):
         self.next_step = Register
 
     def run(self):
+        # TODO save bin_mask from dtfunc.Mask and apply it here
         dat, aff = self._load_nii(self.fdwi)
         self.logger.debug('Denoising and Masking the image')
         denoised = dtfunc.denoise(dat)
@@ -299,6 +300,7 @@ class MaskQC(DTStep):
 
     def __init__(self, project, code, args):
         super(MaskQC, self).__init__(project, code, args)
+        self.next_step = None
 
     def under_review(self):
         if os.path.exists(self.review_flag):
@@ -321,18 +323,19 @@ class MaskQC(DTStep):
 
     def run(self):
         try:
+            result, comment = dtiQC.run_mask_qc(self.stage, self.prereg)
 
-
-            mos = dtiQC.Mosaic(self.prereg, show=false, save=True, path=self.mosaic)
-
-            result = True
-            comments = None
-            self.outcome = result
-            self.comments = comments
             if result:
                 self.next_step = Register
             elif not result:
                 self.next_step = None
+
+            if result is None:
+                self.outcome = None
+                self.comments = None
+            else:
+                self.outcome = result
+                self.comments = comment
 
         finally:
             os.remove(self.review_flag)
