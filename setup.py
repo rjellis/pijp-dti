@@ -8,9 +8,9 @@ setup(
     packages=['pijp_dti',],
     install_requires=[
         "numpy",
+        "scipy",
+        "matplotlib",
         "dipy",
         "nibabel",
-        "matplotlib",
-        "scipy"
     ],
 )
