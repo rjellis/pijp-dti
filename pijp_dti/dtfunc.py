@@ -37,14 +37,17 @@ def denoise(dat):
     """Denoise a data set using Non Local Means.
 
     Args:
-        dat (ndarray): 3D or 4D numpy ndarray
+        dat (ndarray): 3D numpy ndarray
 
     Returns:
         denoise_dat (ndarray): The denoised ndarray
 
     """
     sigma = noise_estimate.estimate_sigma(dat)
-    denoise_dat = non_local_means.non_local_means(dat, sigma)
+    denoise_dat = np.zeros(shape=dat.shape)
+
+    for i in range(0, dat.shape[3]):
+        denoise_dat[..., i] = non_local_means.non_local_means(dat[..., i], sigma[i])
 
     return denoise_dat
 
