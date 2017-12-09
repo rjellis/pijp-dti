@@ -199,7 +199,7 @@ class Preregister(DTStep):
         masked = dtfunc.apply_mask(denoised, bin_mask)
         self._save_nii(denoised, aff, self.denoised)
         self._save_nii(masked, aff, self.masked)
-        np.save(bin_mask, self.bin_mask)
+        np.save(self.bin_mask, bin_mask)
 
 
 class Register(DTStep):
@@ -214,7 +214,7 @@ class Register(DTStep):
         self.next_step = TensorFit
 
     def run(self):
-        denoised, aff = self._load_nii(self.denosed)
+        denoised, aff = self._load_nii(self.denoised)
         bin_mask = np.load(self.bin_mask)
         dat = dtfunc.apply_mask(denoised, bin_mask)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
