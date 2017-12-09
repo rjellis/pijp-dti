@@ -6,18 +6,23 @@ import shutil
 import subprocess
 import datetime
 import getpass
+import logging
 
 import nibabel as nib
 import numpy as np
 from dipy.io import read_bvals_bvecs
+from pijp import util
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository, ProcessingLog
 from pijp.exceptions import ProcessingError, NoLogProcessingError
-from pijp.engine import run_module
+from pijp.engine import run_module, run_file
 
 from pijp_dti import dtfunc
 from pijp_dti import dtiQC
 
+LOGGER = logging.getLogger(__name__)
+PROCESS_TITLE = 'dti'
+VERSION = "0.1.0"
 
 def get_process_dir(project):
     return os.path.join(get_project_dir(project), 'dti')
@@ -27,6 +32,12 @@ def get_case_dir(project, code):
     if not os.path.isdir(cdir):
         os.makedirs(cdir)
     return cdir
+
+def get_dcm2niix_home(version):
+    dcm2niix = util.configuration['dcm2niix'][version]
+    if not os.path.exists(dcm2niix):
+        raise Exception("dcm2niix home not found: %s" % dcm2niix)
+    return dcm2niix
 
 
 class DTStep(Step):
@@ -133,18 +144,14 @@ class Stage(DTStep):
                 os.makedirs(dr)
             self.logger.info('building directory {}'.format(dr))
 
-        source = None
-        image = ProcessingLog().get_project_image(self.project, self.code)
 
-        if image.ImageStore == "Dicom":
-            source = DicomRepository().get_series_files(self.code)
+        source = DicomRepository().get_series_files(self.code)
 
         if source is None:
             raise ProcessingError("Could not find staging data.")
 
         dcm_dir = self._copy_files(source)
-
-        cmd = 'dcm2niix -o {} {}'.format(dcm_dir, stage_dir)
+        cmd = 'dcm2niix -z i -v n -p n -o {} {}'.format(stage_dir, dcm_dir)
         self._run_cmd(cmd)
 
         # Hacky solution to not knowing what dcm2nii is going to name files
@@ -191,8 +198,8 @@ class Preregister(DTStep):
         bin_mask = dtfunc.mask(denoised)
         masked = dtfunc.apply_mask(denoised, bin_mask)
         self._save_nii(denoised, aff, self.denoised)
-        self._save_nii(bin_mask, aff, self.bin_mask)
         self._save_nii(masked, aff, self.masked)
+        np.save(bin_mask, self.bin_mask)
 
 
 class Register(DTStep):
@@ -207,7 +214,9 @@ class Register(DTStep):
         self.next_step = TensorFit
 
     def run(self):
-        dat, aff = self._load_nii(self.masked)
+        denoised, aff = self._load_nii(self.denosed)
+        bin_mask = np.load(self.bin_mask)
+        dat = dtfunc.apply_mask(denoised, bin_mask)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the image to its averaged b0 image')
@@ -331,7 +340,7 @@ class MaskQC(DTStep):
 
     def run(self):
         try:
-            result, comment = dtiQC.run_mask_qc(self.stage, self.prereg)
+            result, comment = dtiQC.run_mask_qc(self.fdwi, self.bin_mask)
 
             if result:
                 self.next_step = Register
@@ -353,4 +362,4 @@ def run():
     run_module(current_module)
 
 if __name__ == "__main__":
-    run_file(abspath(__file__))
+    run_file(os.path.abspath(__file__))
