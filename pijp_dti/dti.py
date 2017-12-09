@@ -52,7 +52,7 @@ class DTStep(Step):
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
         self.denoised = os.path.join(self.working_dir, 'prereg', self.code + '_denoised.nii.gz')
-        self.bin_mask = os.path.join(self.working_dir, 'prereg', self.code + '_binary_mask.nii.gz')
+        self.bin_mask = os.path.join(self.working_dir, 'prereg', self.code + '_binary_mask.npy')
         self.masked = os.path.join(self.working_dir, 'prereg', self.code + '_masked.nii.gz')
         self.reg = os.path.join(self.working_dir, 'reg', self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.working_dir, 'reg', self.code + '_bvec_reg.npy')
@@ -196,9 +196,7 @@ class Preregister(DTStep):
         self.logger.info('denoising and masking the image')
         denoised = dtfunc.denoise(dat)
         bin_mask = dtfunc.mask(denoised)
-        masked = dtfunc.apply_mask(denoised, bin_mask)
         self._save_nii(denoised, aff, self.denoised)
-        self._save_nii(masked, aff, self.masked)
         np.save(self.bin_mask, bin_mask)
 
 
