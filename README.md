@@ -2,63 +2,65 @@
 
 All the steps necessary for Diffusion Tensor Imaging.
 
+
+```
+usage: pijp-dti [-h] [-s STEP] [-c CODE] [-p PROJECT] [-v] [-n NUMBER] [-d DELAY]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s STEP, --step STEP  The step to execute.
+  -c CODE, --code CODE  The code of a particular case.
+  -p PROJECT, --project PROJECT
+                        The name of a project to work with
+  -v, --verbose         Tell me all about it.
+  -n NUMBER, --number NUMBER
+                        The number of jobs to run when using queue mode.
+  -d DELAY, --delay DELAY
+                        Number of seconds to delay between jobs
+
+steps: stage, prereg, reg, tenfit, stats
+```
+
 ## Stage
 
-**Load the Dicoms and set up the pipeline**
+**Convert Dicoms and set up the pipeline**
 
-Copies Dicom files for a particular DWI image code from a database and
+Copies Dicom files for a particular scan code from a database and
 converts them to a singular Nifti file with accompanying .bval and
-.bvec files. Also creates the directories for all of the steps.
-
-File Structure:
-
-* project directory
-    * subjects
-        * image code
-            * stage
-            * prereg
-            * reg
-            * tenfit
-            * roistats
-        * another image code
-            * stage
-            * ...
+.bvec files using dcm2niix. Also creates the directories for all of the steps.
 
 ## Preregister
 
 **Denoise and skull strip the image**
 
-Loads the staged Nifti file, denoises the image using Non Local Means,
-and skull strips the image using a median Otsu thresholding method.
-The denoised and masked image is saved as a compressed Nifti
-(.nii.gz).
+Denoises the image using Non Local Means and skull strips the image using a median Otsu thresholding method.
+The denoised is saved as a compressed Nifti (.nii.gz) and the binary mask is saved as ndarray in a numpy file (.npy).
 
 ## Register
 
 **Rigidly register the diffusion weighted directions to an averaged
 b0 direction**
 
-Loads the preregistered Nifti file, creates an average b0 image from the
-b0 directions in the DWI, and rigidly registers all the diffusion
+Creates an average b0 image from the
+b0 directions in the DWI and rigidly registers all the diffusion
 directions to the average b0 image. The b-vectors are updated to reflect
 the orientation changes due to registration. The registered image is
 saved as a compressed Nifti The updated b-vectors are saved as a
 numpy file (.npy).
 
 The average b0 image is created by rigidly registering all of the found
-b0 directions to the first b0 direction and averaging the voxel
+b0 directions to the first found b0 direction and averaging the voxel
 intensities.
 
 ## TensorFit
 
 **Fit the diffusion tensor model**
 
-Loads the registered Nifti file and calculates the eigenvalues and
-eigenvectors (and more) by fitting the image to the diffusion tensor
-model using Weighted Least Squares.
+Calculates the eigenvalues and eigenvectors (and more) by fitting the
+image to the diffusion tensor model using Weighted Least Squares.
 
 In addition to the eigenvalues and eigenvectors, various measures of
-anisotropy are calculated:
+anisotropy are also calculated:
 
 * Fractional Anisotropy (FA)
 * Mean Diffusivity (MD)
@@ -87,10 +89,8 @@ correspond to regions in the brain
 **Generate CSV files for the statistics of various anisotropy measures in
 certain regions of interest.**
 
-Loads the anisotropy measure, the warped labels, and a dictionary
-relating the integer values in the warped labels to names of regions of
-interest. The values for the anisotropy measure are then found for each
+The values for each anisotropy measure are found voxel-wise for each
 region of interest. The minimum value, maximum value, mean, and standard
 deviation are calculated for each region of interest. A comma separated
 value file (CSV) is generated for each anisotropy measure. CSV
-format: name, min, max, mean, std. dev.
+format: (name, min, max, mean, std. dev).
