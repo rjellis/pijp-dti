@@ -19,19 +19,23 @@ from pijp.engine import run_module, run_file
 
 from pijp_dti import dtfunc
 from pijp_dti import dtiQC
+from pijp_dti.repository import DTIRepository
 
 LOGGER = logging.getLogger(__name__)
 PROCESS_TITLE = 'dti'
 VERSION = "0.1.0"
 
+
 def get_process_dir(project):
     return os.path.join(get_project_dir(project), 'dti')
+
 
 def get_case_dir(project, code):
     cdir = os.path.join(get_process_dir(project), code)
     if not os.path.isdir(cdir):
         os.makedirs(cdir)
     return cdir
+
 
 def get_dcm2niix_home(version):
     dcm2niix = util.configuration['dcm2niix'][version]
@@ -40,10 +44,10 @@ def get_dcm2niix_home(version):
     return dcm2niix
 
 
-class DTStep(Step):
+class DTIStep(Step):
 
     def __init__(self, project, code, args):
-        super(DTStep, self).__init__(project, code, args)
+        super(DTIStep, self).__init__(project, code, args)
 
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
@@ -106,28 +110,21 @@ class DTStep(Step):
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (output, error) = p.communicate()
         if output:
-            self.logger.info(output)
+            self.logger.info(output.decode('utf-8'))
         if error:
-            self.logger.error(error)
+            self.logger.error(error.decode('utf-8'))
 
 
-class Stage(DTStep):
+class Stage(DTIStep):
     process_name = "DTI"
     step_name = "Stage"
     step_cli = "stage"
 
+    prev_step = None
+
     def __init__(self, project, code, args):
         super(Stage, self).__init__(project, code, args)
         self.next_step = Preregister
-
-    @classmethod
-    def get_queue(cls, project_name):
-        plog = ProcessingLog()
-        available = plog.get_project_images(project_name, "DTI")
-        attempted = plog.get_step_attempted(project_name, cls.process_name, cls.step_name)
-        attempted_codes = [row.Code for row in attempted]
-        todo = [{'ProjectName': project_name, 'Code': row.Code} for row in available if not row.Code in attempted_codes]
-        return todo
 
     def run(self):
 
@@ -144,24 +141,22 @@ class Stage(DTStep):
                 os.makedirs(dr)
             self.logger.info('building directory {}'.format(dr))
 
-
         source = DicomRepository().get_series_files(self.code)
 
         if source is None:
             raise ProcessingError("Could not find staging data.")
 
         dcm_dir = self._copy_files(source)
-        cmd = 'dcm2niix -z i -v n -p n -o {} {}'.format(stage_dir, dcm_dir)
+        cmd = 'dcm2niix -z i -m y -o {} {}'.format(stage_dir, dcm_dir)
         self._run_cmd(cmd)
 
-        # Hacky solution to not knowing what dcm2nii is going to name files
         with os.scandir(stage_dir) as it:
             for entry in it:
-                if entry.name.split('.')[-1] == 'gz':
+                if entry.name.endswith('.nii.gz'):
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.nii.gz'))
-                elif entry.name.split('.')[-1] == 'bval':
+                elif entry.name.endswith('.bval'):
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.bval'))
-                elif entry.name.split('.')[-1] == 'bvec':
+                elif entry.name.endswith('.bvec'):
                     os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
                 else:
                     os.remove(entry.path)
@@ -179,8 +174,18 @@ class Stage(DTStep):
 
         return os.path.join(tmp, os.path.basename(source[0]))
 
+    @classmethod
+    def get_queue(cls, project_name):
+        plog = ProcessingLog()
+        attempted = plog.get_step_attempted(project_name, cls.process_name, cls.step_name)
+        attempted_codes = [row['Code'] for row in attempted]
+        dtis = DTIRepository().get_project_dtis(project_name)
+        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis if row['Code'] not in
+                attempted_codes]
+        return todo
 
-class Preregister(DTStep):
+
+class Preregister(DTIStep):
     process_name = "DTI"
     step_name = "Preregister"
     step_cli = "prereg"
@@ -200,7 +205,7 @@ class Preregister(DTStep):
         np.save(self.bin_mask, bin_mask)
 
 
-class Register(DTStep):
+class Register(DTIStep):
     process_name = "DTI"
     step_name = "Register"
     step_cli = "reg"
@@ -223,7 +228,7 @@ class Register(DTStep):
         np.save(self.fbvec_reg, bvec)
 
 
-class TensorFit(DTStep):
+class TensorFit(DTIStep):
     process_name = "DTI"
     step_name = "TensorFit"
     step_cli = "tenfit"
@@ -263,10 +268,10 @@ class TensorFit(DTStep):
         np.save(self.evecs, evecs)
 
 
-class RoiStats(DTStep):
+class RoiStats(DTIStep):
     process_name = "DTI"
     step_name = "RoiStats"
-    step_cli = "roistats"
+    step_cli = "stats"
 
     prev_step = [TensorFit]
 
@@ -282,22 +287,18 @@ class RoiStats(DTStep):
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels).item()
 
-        measures = [fa, md, ga, ad, rd]
-        for idx in measures:
-            idx[fa < 0.05] = 0
-
         self.logger.info('calculating roi statistics')
-        fa_stats = dtfunc.roi_stats(fa, warped_labels, labels)
-        md_stats = dtfunc.roi_stats(md, warped_labels, labels)
-        ga_stats = dtfunc.roi_stats(ga, warped_labels, labels)
-        ad_stats = dtfunc.roi_stats(ad, warped_labels, labels)
-        rd_stats = dtfunc.roi_stats(rd, warped_labels, labels)
 
-        self._write_array(fa_stats, self.fa_roi)
-        self._write_array(md_stats, self.md_roi)
-        self._write_array(ga_stats, self.ga_roi)
-        self._write_array(ad_stats, self.ad_roi)
-        self._write_array(rd_stats, self.rd_roi)
+        measures = {'fa': [fa, self.fa_roi],
+                    'md': [md, self.md_roi],
+                    'ga': [ga, self.ga_roi],
+                    'ad': [ad, self.ad_roi],
+                    'rd': [rd, self.ad_roi]}
+
+        for idx in measures.values():
+            idx[0][fa < 0.05] = 0
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
+            self._write_array(stats, idx[1])
 
     def _write_array(self, array, csv_path):
         with open(csv_path, 'w') as csv_file:
@@ -307,7 +308,7 @@ class RoiStats(DTStep):
         self.logger.debug("saving {}".format(csv_path))
 
 
-class MaskQC(DTStep):
+class MaskQC(DTIStep):
     process_name = "DTI"
     step_name = "MaskQC"
     step_cli = "qc"
@@ -337,27 +338,28 @@ class MaskQC(DTStep):
         flag.close()
 
     def run(self):
-        try:
-            result, comment = dtiQC.run_mask_qc(self.fdwi, self.bin_mask)
+        result, comment = dtiQC.run_mask_qc(self.fdwi, self.bin_mask)
 
-            if result:
-                self.next_step = Register
-            elif not result:
-                self.next_step = None
-            elif result is None:
-                self.outcome = None
-                self.comments = None
-            else:
-                self.outcome = result
-                self.comments = comment
-
-        finally:
+        if result:
+            self.next_step = Register
+            self.outcome = result
+            self.comments = comment
             os.remove(self.review_flag)
+        elif not result:
+            self.next_step = None
+            self.outcome = result
+            self.comments = comment
+            os.remove(self.review_flag)
+        else:
+            self.outcome = None
+            self.comments = None
+
 
 def run():
     import sys
     current_module = sys.modules[__name__]
     run_module(current_module)
+
 
 if __name__ == "__main__":
     run_file(os.path.abspath(__file__))
