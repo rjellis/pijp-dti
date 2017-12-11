@@ -132,7 +132,7 @@ def unmask_image(img, orig, mask):
 
 def run_mask_qc(image_path, mask_path):
     image = nib.load(image_path).get_data()
-    mask = nib.load(mask_path).get_data()
+    mask = np.load(mask_path)
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
