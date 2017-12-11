@@ -57,6 +57,7 @@ class Application(Tk.Frame):
                 self.quit()
         else:
             self.quit()
+            self.destroy()
 
 
     def _pass(self):
