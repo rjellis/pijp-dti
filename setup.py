@@ -16,6 +16,6 @@ setup(
     ],
     entry_points="""
         [console_scripts]
-        pijp-dti=pijp_dti.dti:run
+        dti.py=pijp_dti.dti:run
     """
 )
