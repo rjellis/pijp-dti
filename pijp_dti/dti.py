@@ -115,11 +115,6 @@ class DTIStep(Step):
         if error:
             self.logger.error(error.decode('utf-8'))
 
-    @classmethod
-    def get_queue(cls, project):
-           ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
-           todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
-           return todo
 
 class Stage(DTIStep):
     process_name = "DTI"
@@ -210,6 +205,12 @@ class Preregister(DTIStep):
         self._save_nii(denoised, aff, self.denoised)
         np.save(self.bin_mask, bin_mask)
 
+    @classmethod
+    def get_queue(cls, project):
+        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
+        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
+        return todo
+
 
 class Register(DTIStep):
     process_name = "DTI"
@@ -232,6 +233,12 @@ class Register(DTIStep):
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
         self._save_nii(reg_dat, aff, self.reg)
         np.save(self.fbvec_reg, bvec)
+
+    @classmethod
+    def get_queue(cls, project):
+        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
+        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
+        return todo
 
 
 class TensorFit(DTIStep):
@@ -273,6 +280,12 @@ class TensorFit(DTIStep):
         np.save(self.evals, evals)
         np.save(self.evecs, evecs)
 
+    @classmethod
+    def get_queue(cls, project):
+        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
+        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
+        return todo
+
 
 class RoiStats(DTIStep):
     process_name = "DTI"
@@ -313,6 +326,12 @@ class RoiStats(DTIStep):
                 writer.writerow(line)
         self.logger.debug("saving {}".format(csv_path))
 
+    @classmethod
+    def get_queue(cls, project):
+        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
+        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
+        return todo
+
 
 class MaskQC(DTIStep):
     process_name = "DTI"
@@ -344,21 +363,17 @@ class MaskQC(DTIStep):
         flag.close()
 
     def run(self):
-        result, comment = dtiQC.run_mask_qc(self.fdwi, self.bin_mask)
 
-        if result == 'pass':
-            self.next_step = Register
+        try:
+            (result, comments) = dtiQC.run_mask_qc(self.fdwi, self.bin_mask, self.code)
             self.outcome = result
-            self.comments = comment
+            self.comments = comments
+            if result == 'pass':
+                self.next_step = Register
+            elif result == 'fail':
+                self.next_step = None
+        finally:
             os.remove(self.review_flag)
-        elif result == 'fail':
-            self.next_step = None
-            self.outcome = result
-            self.comments = comment
-            os.remove(self.review_flag)
-        else:
-            self.outcome = None
-            self.comments = None
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -366,12 +381,10 @@ class MaskQC(DTIStep):
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
-        while True:
-            if len(cases) == 0:
-                break
+        while len(cases) != 0:
             code = random.choice(cases)
-            next_job = MaskQC(project_name, code, args)
             cases.remove(code)
+            next_job = MaskQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
 
