@@ -29,7 +29,7 @@ class DTIRepository(BaseRepository):
             """.format(project=dbprocs.format_string_parameter(project),
                        process=dbprocs.format_string_parameter(process),
                        step_name=dbprocs.format_string_parameter(step.step_name),
-                       prev_step_name=dbprocs.format_string_parameter(step.prev_step.step_name))
+                       prev_step_name=dbprocs.format_string_parameter(step.prev_step[0].step_name))
 
             ready = self.connection.fetchall(sql)
             return ready
