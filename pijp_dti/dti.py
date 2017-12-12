@@ -366,9 +366,9 @@ class MaskQC(DTIStep):
                 break
             code = random.choice(cases)
             next_job = MaskQC(project_name, code, args)
+            cases.remove(code)
             if not next_job.under_review():
                 return next_job
-            cases.remove(code)
 
 
 def run():
