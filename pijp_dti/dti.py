@@ -115,6 +115,11 @@ class DTIStep(Step):
         if error:
             self.logger.error(error.decode('utf-8'))
 
+    @classmethod
+    def get_queue(cls, project):
+           ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
+           todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
+           return todo
 
 class Stage(DTIStep):
     process_name = "DTI"
