@@ -130,12 +130,12 @@ def unmask_image(img, orig, mask):
     return img
 
 
-def run_mask_qc(image_path, mask_path):
+def run_mask_qc(image_path, mask_path, code):
     image = nib.load(image_path).get_data()
     mask = np.load(mask_path)
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
     mosaic = Mosaic(masked).plot()
-    result, comment = QCinter.run_qc_interface(mosaic, mask_path)
+    result, comment = QCinter.run_qc_interface(mosaic, code)
     return result, comment
