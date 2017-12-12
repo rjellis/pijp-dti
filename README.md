@@ -4,7 +4,7 @@ All the steps necessary for Diffusion Tensor Imaging.
 
 
 ```
-usage: pijp-dti [-h] [-s STEP] [-c CODE] [-p PROJECT] [-v] [-n NUMBER] [-d DELAY]
+usage: dti.py [-h] [-s STEP] [-c CODE] [-p PROJECT] [-v] [-n NUMBER] [-d DELAY]
 
 optional arguments:
   -h, --help            show this help message and exit
