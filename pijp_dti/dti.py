@@ -7,6 +7,7 @@ import subprocess
 import datetime
 import getpass
 import logging
+import random
 
 import nibabel as nib
 import numpy as np
@@ -340,12 +341,12 @@ class MaskQC(DTIStep):
     def run(self):
         result, comment = dtiQC.run_mask_qc(self.fdwi, self.bin_mask)
 
-        if result:
+        if result == 'pass':
             self.next_step = Register
             self.outcome = result
             self.comments = comment
             os.remove(self.review_flag)
-        elif not result:
+        elif result == 'fail':
             self.next_step = None
             self.outcome = result
             self.comments = comment
@@ -353,6 +354,21 @@ class MaskQC(DTIStep):
         else:
             self.outcome = None
             self.comments = None
+
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_mask_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while True:
+            if len(cases) == 0:
+                break
+            code = random.choice(cases)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
+            cases.remove(code)
 
 
 def run():
