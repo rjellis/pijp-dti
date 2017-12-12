@@ -1,12 +1,12 @@
-import tkinter as Tk
+import tkinter as tk
 from tkinter import messagebox
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-class Application(Tk.Frame):
+class Application(tk.Frame):
     def __init__(self, master=None):
-        Tk.Frame.__init__(self, master)
+        tk.Frame.__init__(self, master)
         self.result = None
         self.comment = ''
         self.path = ''
@@ -15,19 +15,19 @@ class Application(Tk.Frame):
         self.grid(stick="news")
 
     def create_widgets(self):
-        self.button_quit = Tk.Button(master=self.master, text='Exit', command=self._quit)
-        self.button_pass = Tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green')
-        self.button_fail = Tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red')
-        self.button_path = Tk.Button(master=self.master, text='Copy Path to Clipboard', command=self._get_path)
-        self.button_comment = Tk.Button(master=self.master, text='Save Comment', command=self._save_comment)
+        self.winfo_toplevel().title("QC Tool")
+        self.button_quit = tk.Button(master=self.master, text='Exit', command=self._quit)
+        self.button_pass = tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green')
+        self.button_fail = tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red')
+        self.button_path = tk.Button(master=self.master, text='Copy Path to Clipboard', command=self._get_path)
+        self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self._save_comment)
 
-        v = Tk.StringVar()
-        self.entry_comment = Tk.Entry(master=self.master, width=100, textvariable=v)
+        v = tk.StringVar()
+        self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
+        self.label_comment = tk.Label(master=self.master, text="Comment: ")
+        self.label_path = tk.Label(master=self.master, text="Path: ")
 
-        self.label_comment = Tk.Label(master=self.master, text="Comment: ")
-        self.label_path = Tk.Label(master=self.master, text="Path: ")
-
-        self.text_path = Tk.Text(master=self.master, width=100, height=1)
+        self.text_path = tk.Text(master=self.master, width=100, height=1)
         self.text_path.insert('1.0', self.path)
 
         self.label_comment.grid(column=0, row=1, sticky='e')
@@ -59,16 +59,15 @@ class Application(Tk.Frame):
             self.quit()
             self.destroy()
 
-
     def _pass(self):
         self.button_pass.config(bg='green', fg='white')
         self.button_fail.config(bg='#d9d9d9', fg='black')
-        self.result = True
+        self.result = 'pass'
 
     def _fail(self):
         self.button_fail.config(bg='red', fg='white')
         self.button_pass.config(bg='#d9d9d9', fg='black')
-        self.result = False
+        self.result = 'fail'
 
     def _get_path(self):
         self.master.clipboard_clear()
@@ -81,7 +80,7 @@ class Application(Tk.Frame):
 
 
 def run_qc_interface(figure, path=None):
-    root = Tk.Tk()
+    root = tk.Tk()
     app = Application(master=root)
     app.path = path
     app.create_widgets()
