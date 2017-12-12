@@ -136,8 +136,6 @@ def run_mask_qc(image_path, mask_path):
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
-
     mosaic = Mosaic(masked).plot()
     result, comment = QCinter.run_qc_interface(mosaic, mask_path)
-
     return result, comment
