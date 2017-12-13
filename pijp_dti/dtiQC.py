@@ -139,6 +139,7 @@ def get_mosaic(image_path, mask_path):
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
     return Mosaic(masked).plot()
 
+
 def run_mask_qc(image_path, mask_path, code):
     root = tk.Tk()
     root.attributes('-topmost', True)
