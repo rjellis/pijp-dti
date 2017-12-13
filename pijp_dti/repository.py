@@ -62,9 +62,6 @@ class DTIRepository(BaseRepository):
                     Step = 'MaskQC'
                 AND 
                     Outcome = 'pass'
-                AND
-                    CompletedOn = (SELECT MAX(CompletedOn) FROM ProcessingLog WHERE Project = {0} AND Process = 
-                    'dti' AND Step = 'MaskQC')
             )
         """.format(dbprocs.format_string_parameter(project))
 
