@@ -28,14 +28,16 @@ class Application(tk.Frame):
         self.bind("<ButtonPress-1>", self.start_move)
         self.bind("<ButtonRelease-1>", self.stop_move)
         self.bind("<B1-Motion>", self.on_motion)
+        ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
 
-        self.button_quit = tk.Button(master=self.master, text='Exit', bg='white', fg='black', command=self._quit)
+        self.button_quit = tk.Button(master=self.master, text='Exit', bg='white', fg='black',
+                                     relief='flat', command=self._quit)
         self.button_pass = tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green',
-                                     bg='white', fg='black')
+                                     bg='white', fg='black', relief='flat')
         self.button_fail = tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red',
-                                     bg='white', fg='black')
+                                     bg='white', fg='black', relief='flat')
         self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
-                                        bg='white', fg='black')
+                                        bg='white', fg='black', relief='flat')
 
         v = tk.StringVar()
         self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
@@ -45,7 +47,6 @@ class Application(tk.Frame):
         self.label_top.bind("<ButtonRelease-1>", self.stop_move)
         self.label_top.bind("<B1-Motion>", self.on_motion)
         
-        ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
         self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
         self.label_comment.grid(column=0, row=2, sticky='e')
         self.entry_comment.grid(column=1, row=2, columnspan=2, sticky='w', padx=5, pady=2)
@@ -71,6 +72,7 @@ class Application(tk.Frame):
             if messagebox.askyesno("Warning!", "Result not selected. Exit anyway?"):
                 self.master.quit()
         else:
+            self.save_comment()
             self.master.quit()
 
     def _pass(self):
@@ -84,7 +86,7 @@ class Application(tk.Frame):
         self.result = 'fail'
 
     def save_comment(self):
-        self.button_comment.config(text='   Saved!   ', bg='green', fg='white')
+        self.button_comment.config(text='Comment Saved', bg='green', fg='white')
         self.comment = self.entry_comment.get()
 
     def reset_comment_button(self):
@@ -104,18 +106,3 @@ class Application(tk.Frame):
         x = self.master.winfo_x() + deltax
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
-
-
-def run_qc_interface(figure, code):
-    root = tk.Tk()
-    root.attributes('-topmost', True)
-    root.overrideredirect(True)
-    app = Application(master=root)
-    app.code = code
-    app.create_widgets()
-    app.create_figure(figure)
-    app.mainloop()
-    result = app.result
-    comment = app.comment
-    app.destroy()
-    return result, comment
