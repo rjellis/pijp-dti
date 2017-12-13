@@ -368,10 +368,8 @@ class MaskQC(DTIStep):
             (result, comments) = dtiQC.run_mask_qc(self.fdwi, self.bin_mask, self.code)
             self.outcome = result
             self.comments = comments
-            if result == 'pass':
+            if result in ['pass', 'fail']:
                 self.next_step = Register
-            elif result == 'fail':
-                self.next_step = None
         finally:
             os.remove(self.review_flag)
 
