@@ -1,3 +1,4 @@
+import tkinter as tk
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
@@ -130,12 +131,27 @@ def unmask_image(img, orig, mask):
     return img
 
 
-def run_mask_qc(image_path, mask_path, code):
+def get_mosaic(image_path, mask_path):
     image = nib.load(image_path).get_data()
     mask = np.load(mask_path)
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
-    mosaic = Mosaic(masked).plot()
-    result, comment = QCinter.run_qc_interface(mosaic, code)
+    return Mosaic(masked).plot()
+
+def run_mask_qc(image_path, mask_path, code):
+    root = tk.Tk()
+    root.attributes('-topmost', True)
+    root.overrideredirect(True)
+    app = QCinter.Application(master=root)
+    app.code = code
+    app.create_widgets()
+    figure = get_mosaic(image_path, mask_path)
+    app.create_figure(figure)
+    app.mainloop()
+
+    result = app.result
+    comment = app.comment
+    app.destroy()
+
     return result, comment
