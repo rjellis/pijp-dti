@@ -38,7 +38,7 @@ def get_case_dir(project, code):
     return cdir
 
 
-def get_dcm2niix_home(version):
+def get_dcm2niix_home():
     dcm2niix = util.configuration['dcm2niix']
     if not os.path.exists(dcm2niix):
         raise Exception("dcm2niix home not found: %s" % dcm2niix)
