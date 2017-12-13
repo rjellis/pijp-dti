@@ -6,24 +6,28 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 class Application(tk.Frame):
+
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
-        self.result = None
-        self.comment = ''
-        self.code = ''
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
         master.geometry("1280x720")
         master.configure(bg='black')
-        self.config(bg='black')
-        self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
 
+        self.config(bg='black')
+        self.result = None
+        self.comment = ''
+        self.code = ''
+        self.x = None
+        self.y = None
+
+        self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
 
     def create_widgets(self):
         self.winfo_toplevel().title("QC Tool")
-        self.bind("<ButtonPress-1>", self.StartMove)
-        self.bind("<ButtonRelease-1>", self.StopMove)
-        self.bind("<B1-Motion>", self.OnMotion)
+        self.bind("<ButtonPress-1>", self.start_move)
+        self.bind("<ButtonRelease-1>", self.stop_move)
+        self.bind("<B1-Motion>", self.on_motion)
 
         self.button_quit = tk.Button(master=self.master, text='Exit', bg='white', fg='black', command=self._quit)
         self.button_pass = tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green',
@@ -37,9 +41,9 @@ class Application(tk.Frame):
         self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
         self.label_comment = tk.Label(master=self.master, text="Comment: ", bg='black', fg='white')
         self.label_top = tk.Label(master=self.master, text =self.code, bg='black', fg='white', font=16)
-        self.label_top.bind("<ButtonPress-1>", self.StartMove)
-        self.label_top.bind("<ButtonRelease-1>", self.StopMove)
-        self.label_top.bind("<B1-Motion>", self.OnMotion)
+        self.label_top.bind("<ButtonPress-1>", self.start_move)
+        self.label_top.bind("<ButtonRelease-1>", self.stop_move)
+        self.label_top.bind("<B1-Motion>", self.on_motion)
         
         ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
         self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
@@ -50,7 +54,6 @@ class Application(tk.Frame):
         self.button_fail.grid(column=1, row=3, sticky='news', padx=5, pady=2)
         self.button_pass.grid(column=2, row=3, stick='news', padx=5, pady=2)
         self.button_quit.grid(column=3, row=3, sticky='news', padx=5, pady=2)
-
 
         for i in range(0, 3):
             self.columnconfigure(i, weight=1)
@@ -87,20 +90,21 @@ class Application(tk.Frame):
     def reset_comment_button(self):
         self.button_comment.config(text='Save Comment', bg='white', fg='black')
 
-    def StartMove(self, event):
+    def start_move(self, event):
         self.x = event.x
         self.y = event.y
 
-    def StopMove(self, event):
+    def stop_move(self, event):
         self.x = None
         self.y = None
 
-    def OnMotion(self, event):
+    def on_motion(self, event):
         deltax = event.x - self.x
         deltay = event.y - self.y
         x = self.master.winfo_x() + deltax
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
+
 
 def run_qc_interface(figure, code):
     root = tk.Tk()
