@@ -106,3 +106,19 @@ class Application(tk.Frame):
         x = self.master.winfo_x() + deltax
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
+
+def qc_tool(figure, code):
+
+    root = tk.Tk()
+    root.attributes('-topmost', True)
+    root.overrideredirect(True)
+    app = Application(master=root)
+    app.code = code
+    app.create_widgets()
+    app.create_figure(figure)
+    app.mainloop()
+    result = app.result
+    comment = app.comment
+    app.destroy()
+
+    return result, comment
