@@ -57,8 +57,7 @@ class DTIStep(Step):
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
         self.denoised = os.path.join(self.working_dir, 'prereg', self.code + '_denoised.nii.gz')
-        self.bin_mask = os.path.join(self.working_dir, 'prereg', self.code + '_binary_mask.npy')
-        self.masked = os.path.join(self.working_dir, 'prereg', self.code + '_masked.nii.gz')
+        self.auto_mask = os.path.join(self.working_dir, 'prereg', self.code + '_auto_mask.nii.gz')
         self.reg = os.path.join(self.working_dir, 'reg', self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.working_dir, 'reg', self.code + '_bvec_reg.npy')
         self.fa = os.path.join(self.working_dir, 'tenfit', self.code + '_fa.nii.gz')
@@ -68,14 +67,17 @@ class DTIStep(Step):
         self.rd = os.path.join(self.working_dir, 'tenfit', self.code + '_rd.nii.gz')
         self.evals = os.path.join(self.working_dir, 'tenfit', self.code + '_evals.npy')
         self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.npy')
-        self.warped_fa = os.path.join(self.working_dir, 'tenfit', self.code + '_warped_fa.nii.gz')
+        self.warp_map = os.path.join(self.working_dir, 'tenfit', self.code + '_warp_map.npy')
+        self.inverse_warp_map = os.path.join(self.working_dir, 'tenfit', self.code + '_inverse_warp_map.npy')
+        self.warped_fa = os.path.join(self.working_dir, 'tenfit', self.code + '_inverse_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.working_dir, 'tenfit', self.code + '_warped_labels.nii.gz')
         self.fa_roi = os.path.join(self.working_dir, 'roistats', self.code + '_fa_roi.csv')
         self.md_roi = os.path.join(self.working_dir, 'roistats', self.code + '_md_roi.csv')
         self.ga_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
-        self.mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
+        self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
+        self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
         self.review_flag = os.path.join(self.working_dir, "maskqc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -203,7 +205,7 @@ class Preregister(DTIStep):
         denoised = dtfunc.denoise(dat)
         bin_mask = dtfunc.mask(denoised)
         self._save_nii(denoised, aff, self.denoised)
-        np.save(self.bin_mask, bin_mask)
+        self._save_nii(bin_mask, aff, self.auto_mask)
 
     @classmethod
     def get_queue(cls, project):
@@ -224,13 +226,14 @@ class Register(DTIStep):
         self.next_step = TensorFit
 
     def run(self):
-        denoised, aff = self._load_nii(self.denoised)
-        bin_mask = np.load(self.bin_mask)
-        dat = dtfunc.apply_mask(denoised, bin_mask)
+        dat, aff = self._load_nii(self.denoised)
+        mask, mask_aff = self._load_nii(self.final_mask)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the image to its averaged b0 image')
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+        reg_dat = dtfunc.apply_mask(reg_dat, mask)
+
         self._save_nii(reg_dat, aff, self.reg)
         np.save(self.fbvec_reg, bvec)
 
@@ -269,6 +272,8 @@ class TensorFit(DTIStep):
 
         warped_labels = mapping.transform(temp_labels, interpolation='nearest')
         warped_fa = mapping.transform_inverse(tenfit.fa)
+        warp_map = mapping.get_forward_field()
+        inverse_warp_map = mapping.get_backward_field()
 
         self._save_nii(tenfit.fa, aff, self.fa)
         self._save_nii(tenfit.md, aff, self.md)
@@ -279,6 +284,8 @@ class TensorFit(DTIStep):
         self._save_nii(warped_labels, aff, self.warped_labels)
         np.save(self.evals, evals)
         np.save(self.evecs, evecs)
+        np.save(self.warp_map, warp_map)
+        np.save(self.inverse_warp_map, inverse_warp_map)
 
     @classmethod
     def get_queue(cls, project):
@@ -338,6 +345,7 @@ class MaskQC(DTIStep):
     step_name = "MaskQC"
     step_cli = "qc"
     interactive = True
+    prev_step = [Preregister]
 
     def __init__(self, project, code, args):
         super(MaskQC, self).__init__(project, code, args)
@@ -365,10 +373,14 @@ class MaskQC(DTIStep):
     def run(self):
 
         try:
-            (result, comments) = dtiQC.run_mask_qc(self.fdwi, self.bin_mask, self.code)
+            (result, comments) = dtiQC.run_mask_qc(self.fdwi, self.auto_mask, self.code, self.mask_mosaic)
             self.outcome = result
             self.comments = comments
-            if result in ['pass', 'fail']:
+            if result == 'pass':
+                self.final_mask = self.auto_mask
+                self.next_step = Register
+            if result == 'fail':
+                self.final_mask = self.auto_mask
                 self.next_step = Register
         finally:
             os.remove(self.review_flag)
