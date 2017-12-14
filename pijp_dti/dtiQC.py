@@ -37,7 +37,7 @@ class Mosaic(object):
     def __init__(self, img):
         self.img = img
 
-    def plot(self):
+    def plot(self, mosaic_path=None):
 
         slc = self.img.shape[2]
         subplot_size = int(np.sqrt(get_next_square(slc)))
@@ -59,6 +59,9 @@ class Mosaic(object):
                 slc_idx += 1
 
         fig.set_facecolor('black')
+
+        if mosaic_path is not None:
+            plt.savefig(fig, facecolor='black', format='png')
 
         return fig
 
@@ -131,28 +134,15 @@ def unmask_image(img, orig, mask):
     return img
 
 
-def get_mosaic(image_path, mask_path):
+def run_mask_qc(image_path, mask_path, code, mosaic_path):
     image = nib.load(image_path).get_data()
-    mask = np.load(mask_path)
+    mask = nib.load(mask_path).get_data()
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
-    return Mosaic(masked).plot()
-
-
-def run_mask_qc(image_path, mask_path, code):
-    root = tk.Tk()
-    root.attributes('-topmost', True)
-    root.overrideredirect(True)
-    app = QCinter.Application(master=root)
-    app.code = code
-    app.create_widgets()
-    figure = get_mosaic(image_path, mask_path)
-    app.create_figure(figure)
-    app.mainloop()
-
-    result = app.result
-    comment = app.comment
-    app.destroy()
+    figure = Mosaic(masked).plot(mosaic_path)
+    result, comment = QCinter.qc_tool(figure, code)
 
     return result, comment
+
+
