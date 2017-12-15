@@ -149,8 +149,7 @@ def fit_dti(dat, bval, bvec):
     """
     gtab = gradients.gradient_table(bval, bvec)
     tenmodel = dti.TensorModel(gtab)
-    dat, bin_mask = otsu.median_otsu(dat)
-    tenfit = tenmodel.fit(dat, bin_mask)
+    tenfit = tenmodel.fit(dat)
     evals = tenfit.evals
     evecs = tenfit.evecs
 
