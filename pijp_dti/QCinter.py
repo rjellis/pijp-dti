@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from PIL import Image, ImageTk
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -61,6 +62,16 @@ class Application(tk.Frame):
         for j in range(0, 3):
             self.rowconfigure(j, weight=1)
 
+    def create_image(self, path_to_img, col=0, row=0, span=4):
+
+        img = Image.open(path_to_img)
+        photo = ImageTk.PhotoImage(img)
+
+        label_image = tk.Label(self.master, image=photo, bg='black')
+        label_image.photo = photo
+        label_image.grid(column=col, row=row, columnspan=span, sticky='news', padx=25, pady=25,)
+
+
     def create_figure(self, fig, col=0, row=0, span=4):
         canvas = FigureCanvasTkAgg(fig, self.master)
         canvas.show()
@@ -119,6 +130,6 @@ def qc_tool(figure, code):
     app.mainloop()
     result = app.result
     comment = app.comment
-    app.destroy()
+    root.destroy()
 
     return result, comment
