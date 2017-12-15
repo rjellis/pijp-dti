@@ -65,6 +65,33 @@ class Mosaic(object):
 
         return fig
 
+    def two_plot(self, img2, alpha=1, mosaic_path=None):
+
+        slc = self.img.shape[2]
+        subplot_size = int(np.sqrt(get_next_square(slc)))
+
+        fig, ax = plt.subplots(subplot_size, subplot_size)
+        plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
+                            wspace=0, hspace=0)
+
+        slc_idx = 0
+
+        for i in range(0, subplot_size):
+            for j in range(0, subplot_size):
+                if slc_idx < slc:
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx], 1), cmap='gray', interpolation=None)
+                    ax[i, j].imshow(np.rot90(img2[:, :, slc_idx], 1), cmap='spectral', interpolation=None, alpha=alpha)
+
+                ax[i, j].axis("off")
+                slc_idx += 1
+
+        fig.set_facecolor('black')
+
+        if mosaic_path is not None:
+            plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
+
+        return fig
+
 
 def get_next_square(num):
     sq = num
@@ -134,7 +161,7 @@ def unmask_image(img, orig, mask):
     return img
 
 
-def get_mosaic(image_path, mask_path, mosaic_path):
+def get_mask_mosaic(image_path, mask_path, mosaic_path=None):
     image = nib.load(image_path).get_data()
     mask = nib.load(mask_path).get_data()
     image = rescale(image)
@@ -142,3 +169,8 @@ def get_mosaic(image_path, mask_path, mosaic_path):
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
     return Mosaic(masked).plot(mosaic_path)
 
+def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=1):
+    image = nib.load(image_path).get_data()
+    label = nib.load(label_path).get_data()
+
+    return Mosaic(image).two_plot(label, alpha=alpha)
