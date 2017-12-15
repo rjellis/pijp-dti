@@ -211,12 +211,6 @@ class Preregister(DTIStep):
         self._save_nii(mask, aff, self.auto_mask)
         dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
-    @classmethod
-    def get_queue(cls, project):
-        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
-        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
-        return todo
-
 
 class MaskQC(DTIStep):
     process_name = "DTI"
@@ -305,12 +299,6 @@ class Register(DTIStep):
         self._save_nii(reg_dat, aff, self.reg)
         np.save(self.fbvec_reg, bvec)
 
-    @classmethod
-    def get_queue(cls, project):
-        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
-        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
-        return todo
-
 
 class TensorFit(DTIStep):
     process_name = "DTI"
@@ -321,7 +309,7 @@ class TensorFit(DTIStep):
 
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
-        self.next_step = RoiStats
+        self.next_step = WarpQC
 
     def run(self):
         dat, aff = self._load_nii(self.reg)
@@ -350,18 +338,10 @@ class TensorFit(DTIStep):
         self._save_nii(tenfit.rd, aff, self.rd)
         self._save_nii(warped_fa, template_aff, self.warped_fa)
         self._save_nii(warped_labels, aff, self.warped_labels)
-        # np.save(self.evals, evals)
-        # np.save(self.evecs, evecs)
         self._save_nii(evals, aff, self.evals)
         self._save_nii(evecs, aff, self.evecs)
         np.save(self.warp_map, warp_map)
         np.save(self.inverse_warp_map, inverse_warp_map)
-
-    @classmethod
-    def get_queue(cls, project):
-        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
-        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
-        return todo
 
 
 class WarpQC(DTIStep):
@@ -428,7 +408,7 @@ class RoiStats(DTIStep):
     step_name = "RoiStats"
     step_cli = "stats"
 
-    prev_step = [TensorFit]
+    prev_step = [WarpQC]
 
     def __init__(self, project, code, args):
         super(RoiStats, self).__init__(project, code, args)
@@ -461,13 +441,6 @@ class RoiStats(DTIStep):
             for line in array:
                 writer.writerow(line)
         self.logger.debug("saving {}".format(csv_path))
-
-    @classmethod
-    def get_queue(cls, project):
-        ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
-        todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
-        return todo
-
 
 def run():
     import sys
