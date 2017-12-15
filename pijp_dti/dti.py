@@ -19,7 +19,7 @@ from pijp.exceptions import ProcessingError, NoLogProcessingError
 from pijp.engine import run_module, run_file
 
 from pijp_dti import dtfunc
-from pijp_dti import dtiQC
+from pijp_dti import dtiQC, QCinter
 from pijp_dti.repository import DTIRepository
 
 LOGGER = logging.getLogger(__name__)
@@ -65,8 +65,8 @@ class DTIStep(Step):
         self.ga = os.path.join(self.working_dir, 'tenfit', self.code + '_ga.nii.gz')
         self.ad = os.path.join(self.working_dir, 'tenfit', self.code + '_ad.nii.gz')
         self.rd = os.path.join(self.working_dir, 'tenfit', self.code + '_rd.nii.gz')
-        self.evals = os.path.join(self.working_dir, 'tenfit', self.code + '_evals.npy')
-        self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.npy')
+        self.evals = os.path.join(self.working_dir, 'tenfit', self.code + '_evals.nii.gz')
+        self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.nii.gz')
         self.warp_map = os.path.join(self.working_dir, 'tenfit', self.code + '_warp_map.npy')
         self.inverse_warp_map = os.path.join(self.working_dir, 'tenfit', self.code + '_inverse_warp_map.npy')
         self.warped_fa = os.path.join(self.working_dir, 'tenfit', self.code + '_inverse_warped_fa.nii.gz')
@@ -78,12 +78,14 @@ class DTIStep(Step):
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
         self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
         self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
-        self.review_flag = os.path.join(self.working_dir, "maskqc.inprocess")
+        self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
         self.labels = os.path.join(fpath, 'templates', 'labels.npy')
+        self.mask_fig = None
+        self.warp_fig = None
 
     def _load_nii(self, fname):
         self.logger.info('loading {}'.format(fname))
@@ -197,15 +199,16 @@ class Preregister(DTIStep):
 
     def __init__(self, project, code, args):
         super(Preregister, self).__init__(project, code, args)
-        self.next_step = Register
+        self.next_step = MaskQC
 
     def run(self):
         dat, aff = self._load_nii(self.fdwi)
         self.logger.info('denoising and masking the image')
         denoised = dtfunc.denoise(dat)
-        bin_mask = dtfunc.mask(denoised)
+        mask = dtfunc.mask(denoised)
         self._save_nii(denoised, aff, self.denoised)
-        self._save_nii(bin_mask, aff, self.auto_mask)
+        self._save_nii(mask, aff, self.auto_mask)
+        self.mosaic_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
     @classmethod
     def get_queue(cls, project):
@@ -214,12 +217,75 @@ class Preregister(DTIStep):
         return todo
 
 
+class MaskQC(DTIStep):
+    process_name = "DTI"
+    step_name = "MaskQC"
+    step_cli = "qc"
+    interactive = True
+    prev_step = [Preregister]
+
+    def __init__(self, project, code, args):
+        super(MaskQC, self).__init__(project, code, args)
+        self.next_step = None
+
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
+
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+
+        if self.mask_fig is None:
+            self.mask_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
+
+
+        try:
+            (result, comments) = QCinter.qc_tool(self.mask_fig, self.code)
+            self.outcome = result
+            self.comments = comments
+            if result == 'pass':
+                shutil.copyfile(self.auto_mask, self.final_mask)
+                self.next_step = Register
+            if result == 'fail':
+                shutil.copyfile(self.auto_mask, self.final_mask)
+                self.next_step = Register
+        finally:
+            os.remove(self.review_flag)
+
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_mask_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while len(cases) != 0:
+            code = random.choice(cases)
+            cases.remove(code)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
+
+
 class Register(DTIStep):
     process_name = "DTI"
     step_name = "Register"
     step_cli = "reg"
 
-    prev_step = [Preregister]
+    prev_step = [MaskQC]
 
     def __init__(self, project, code, args):
         super(Register, self).__init__(project, code, args)
@@ -232,6 +298,9 @@ class Register(DTIStep):
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the image to its averaged b0 image')
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+        bin_mask = mask
+        bin_mask[mask > 0] = 1
+        bin_mask[bin_mask < 1] = 0
         reg_dat = dtfunc.apply_mask(reg_dat, mask)
 
         self._save_nii(reg_dat, aff, self.reg)
@@ -282,8 +351,10 @@ class TensorFit(DTIStep):
         self._save_nii(tenfit.rd, aff, self.rd)
         self._save_nii(warped_fa, template_aff, self.warped_fa)
         self._save_nii(warped_labels, aff, self.warped_labels)
-        np.save(self.evals, evals)
-        np.save(self.evecs, evecs)
+        # np.save(self.evals, evals)
+        # np.save(self.evecs, evecs)
+        self._save_nii(evals, aff, self.evals)
+        self._save_nii(evecs, aff, self.evecs)
         np.save(self.warp_map, warp_map)
         np.save(self.inverse_warp_map, inverse_warp_map)
 
@@ -293,6 +364,66 @@ class TensorFit(DTIStep):
         todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
         return todo
 
+class WarpQC(DTIStep):
+    process_name = "DTI"
+    step_name = "WarpQC"
+    step_cli = "wqc"
+    interactive = True
+    prev_step = [TensorFit]
+
+    def __init__(self, project, code, args):
+        super(WarpQC, self).__init__(project, code, args)
+        self.next_step = None
+
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
+
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+
+        if self.mosaic_fig is None:
+            self.mosaic_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
+
+        try:
+            (result, comments) = QCinter.qc_tool(self.mosaic_fig, self.code)
+            self.outcome = result
+            self.comments = comments
+            if result == 'pass':
+                shutil.copyfile(self.auto_mask, self.final_mask)
+                self.next_step = Register
+            if result == 'fail':
+                shutil.copyfile(self.auto_mask, self.final_mask)
+                self.next_step = Register
+        finally:
+            os.remove(self.review_flag)
+
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_mask_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while len(cases) != 0:
+            code = random.choice(cases)
+            cases.remove(code)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
 
 class RoiStats(DTIStep):
     process_name = "DTI"
@@ -338,65 +469,6 @@ class RoiStats(DTIStep):
         ready = DTIRepository().get_step_queue(project, cls.process_name, cls)
         todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
         return todo
-
-
-class MaskQC(DTIStep):
-    process_name = "DTI"
-    step_name = "MaskQC"
-    step_cli = "qc"
-    interactive = True
-    prev_step = [Preregister]
-
-    def __init__(self, project, code, args):
-        super(MaskQC, self).__init__(project, code, args)
-        self.next_step = None
-
-    def under_review(self):
-        if os.path.exists(self.review_flag):
-            self._print_review_info()
-            return True
-        return False
-
-    def _print_review_info(self):
-        flag = open(self.review_flag, 'r')
-        lines = flag.readlines()
-        flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
-
-    def initiate(self):
-        if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
-        flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
-        flag.close()
-
-    def run(self):
-
-        try:
-            (result, comments) = dtiQC.run_mask_qc(self.fdwi, self.auto_mask, self.code, self.mask_mosaic)
-            self.outcome = result
-            self.comments = comments
-            if result == 'pass':
-                self.final_mask = self.auto_mask
-                self.next_step = Register
-            if result == 'fail':
-                self.final_mask = self.auto_mask
-                self.next_step = Register
-        finally:
-            os.remove(self.review_flag)
-
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = DTIRepository().get_mask_qc_list(project_name)
-        LOGGER.info("%s cases in queue." % len(cases))
-
-        cases = [x["Code"] for x in cases]
-        while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = MaskQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
 
 
 def run():
