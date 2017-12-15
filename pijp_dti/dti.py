@@ -77,7 +77,8 @@ class DTIStep(Step):
         self.ad_roi = os.path.join(self.working_dir, 'roistats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'roistats', self.code + '_rd_roi.csv')
         self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
-        self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mosaic.png')
+        self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mask_mosaic.png')
+        self.warp_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_warp_mosaic.png')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -208,7 +209,7 @@ class Preregister(DTIStep):
         mask = dtfunc.mask(denoised)
         self._save_nii(denoised, aff, self.denoised)
         self._save_nii(mask, aff, self.auto_mask)
-        self.mosaic_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
+        dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
     @classmethod
     def get_queue(cls, project):
@@ -249,12 +250,10 @@ class MaskQC(DTIStep):
 
     def run(self):
 
-        if self.mask_fig is None:
-            self.mask_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
-
+        mask_fig = dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
         try:
-            (result, comments) = QCinter.qc_tool(self.mask_fig, self.code)
+            (result, comments) = QCinter.qc_tool(mask_fig, self.code)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -364,6 +363,7 @@ class TensorFit(DTIStep):
         todo = [{'ProjectName': project, "Code": row['Code']} for row in ready]
         return todo
 
+
 class WarpQC(DTIStep):
     process_name = "DTI"
     step_name = "WarpQC"
@@ -396,19 +396,16 @@ class WarpQC(DTIStep):
 
     def run(self):
 
-        if self.mosaic_fig is None:
-            self.mosaic_fig = dtiQC.get_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
+        mosaic_fig = dtiQC.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
 
         try:
-            (result, comments) = QCinter.qc_tool(self.mosaic_fig, self.code)
+            (result, comments) = QCinter.qc_tool(mosaic_fig, self.code)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                shutil.copyfile(self.auto_mask, self.final_mask)
-                self.next_step = Register
+                self.next_step = RoiStats
             if result == 'fail':
-                shutil.copyfile(self.auto_mask, self.final_mask)
-                self.next_step = Register
+                self.next_step = RoiStats
         finally:
             os.remove(self.review_flag)
 
@@ -424,6 +421,7 @@ class WarpQC(DTIStep):
             next_job = MaskQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
+
 
 class RoiStats(DTIStep):
     process_name = "DTI"
