@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 
 class Application(tk.Frame):
@@ -21,6 +21,8 @@ class Application(tk.Frame):
         self.code = ''
         self.x = None
         self.y = None
+        self.scale = 1
+        self.canvas = None
 
         self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
 
@@ -76,9 +78,12 @@ class Application(tk.Frame):
         canvas = FigureCanvasTkAgg(fig, self.master)
         canvas.show()
         canvas.get_tk_widget().grid(column=col, row=row, columnspan=span, sticky='news', padx=25, pady=25)
+        self.canvas = canvas._tkcanvas
+        self.canvas.bind("<ButtonPress-1>", self.start_move)
+        self.canvas.bind("<ButtonRelease-1>", self.stop_move)
+        self.canvas.bind("<B1-Motion>", self.on_motion)
 
     def _quit(self):
-
         if self.result is None:
             if messagebox.askyesno("Warning!", "Result not selected. Exit anyway?"):
                 self.master.quit()
