@@ -25,8 +25,8 @@ def mask(dat):
 
     mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
     bin_mask = binary_fill_holes(bin_dat)
-
-    return bin_mask
+    masked = apply_mask(dat, bin_mask)
+    return masked
 
 
 def apply_mask(dat, bin_mask):
@@ -212,10 +212,9 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     nbins = 32  # Number of bins for computing the histograms
     sampling_prop = 100  # percentage of voxels (0, 100]
     metric = imaffine.MutualInformationMetric(nbins, sampling_prop)
-    level_iters = [100, 50, 30]  # Iterations at each resolution (coarse
-    #  to fine)
+    level_iters = [100, 50, 30]  # Iterations at each resolution (coarse to fine)
     sigmas = [3.0, 1.0, 0.0]
-    factors = [4, 2, 1] # Factors that determine resolution
+    factors = [4, 2, 1]  # Factors that determine resolution
 
     affreg = imaffine.AffineRegistration(metric,
                                          level_iters=level_iters,
