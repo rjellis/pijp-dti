@@ -61,7 +61,7 @@ class Mosaic(object):
         fig.set_facecolor('black')
 
         if mosaic_path is not None:
-            plt.savefig(fig, facecolor='black', format='png')
+            plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
 
         return fig
 
@@ -134,15 +134,11 @@ def unmask_image(img, orig, mask):
     return img
 
 
-def run_mask_qc(image_path, mask_path, code, mosaic_path):
+def get_mosaic(image_path, mask_path, mosaic_path):
     image = nib.load(image_path).get_data()
     mask = nib.load(mask_path).get_data()
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
-    figure = Mosaic(masked).plot(mosaic_path)
-    result, comment = QCinter.qc_tool(figure, code)
-
-    return result, comment
-
+    return Mosaic(masked).plot(mosaic_path)
 
