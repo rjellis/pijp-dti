@@ -1,9 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from PIL import Image, ImageTk
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 class Application(tk.Frame):
@@ -53,7 +52,7 @@ class Application(tk.Frame):
         self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
         self.label_comment.grid(column=0, row=2, sticky='e')
         self.entry_comment.grid(column=1, row=2, columnspan=2, sticky='w', padx=5, pady=2)
-        self.entry_comment.bind("<Return>", self.save_comment)
+        self.entry_comment.focus_set()
         self.button_comment.grid(column=3, row=2, sticky='news', padx=5, pady=2)
         self.button_fail.grid(column=1, row=3, sticky='news', padx=5, pady=2)
         self.button_pass.grid(column=2, row=3, stick='news', padx=5, pady=2)
@@ -63,16 +62,6 @@ class Application(tk.Frame):
             self.columnconfigure(i, weight=1)
         for j in range(0, 3):
             self.rowconfigure(j, weight=1)
-
-    def create_image(self, path_to_img, col=0, row=0, span=4):
-
-        img = Image.open(path_to_img)
-        photo = ImageTk.PhotoImage(img)
-
-        label_image = tk.Label(self.master, image=photo, bg='black')
-        label_image.photo = photo
-        label_image.grid(column=col, row=row, columnspan=span, sticky='news', padx=25, pady=25,)
-
 
     def create_figure(self, fig, col=0, row=0, span=4):
         canvas = FigureCanvasTkAgg(fig, self.master)
@@ -92,21 +81,22 @@ class Application(tk.Frame):
             self.master.quit()
 
     def _pass(self):
-        self.button_pass.config(bg='green', fg='white')
+        self.button_pass.config(bg='pale green', fg='dark green')
         self.button_fail.config(bg='white', fg='black')
         self.result = 'pass'
 
     def _fail(self):
-        self.button_fail.config(bg='red', fg='white')
+        self.button_fail.config(bg='indian red', fg='black')
         self.button_pass.config(bg='white', fg='black')
         self.result = 'fail'
 
     def save_comment(self):
-        self.button_comment.config(text='Comment Saved', bg='green', fg='white')
+        self.button_comment.config(text='Comment Saved!', state='disabled')
         self.comment = self.entry_comment.get()
+        self.button_comment.after(750, self.reset_comment_button)
 
     def reset_comment_button(self):
-        self.button_comment.config(text='Save Comment', bg='white', fg='black')
+        self.button_comment.config(text='Save Comment', bg='white', fg='black', state='normal')
 
     def start_move(self, event):
         self.x = event.x
@@ -123,11 +113,13 @@ class Application(tk.Frame):
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
 
+
 def qc_tool(figure, code):
 
     root = tk.Tk()
-    root.attributes('-topmost', True)
     root.overrideredirect(True)
+    root.attributes('-topmost', True)
+    root.minsize(width=854, height=480)
     app = Application(master=root)
     app.code = code
     app.create_widgets()
