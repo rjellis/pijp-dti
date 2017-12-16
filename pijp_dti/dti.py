@@ -428,10 +428,11 @@ class RoiStats(DTIStep):
                     'md': [md, self.md_roi],
                     'ga': [ga, self.ga_roi],
                     'ad': [ad, self.ad_roi],
-                    'rd': [rd, self.ad_roi]}
+                    'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
             idx[0][fa < 0.05] = 0
+            idx[0][fa > 0.85] = 0
             stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
             self._write_array(stats, idx[1])
 
