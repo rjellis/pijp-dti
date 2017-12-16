@@ -1,10 +1,7 @@
-import tkinter as tk
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 from matplotlib import animation
-
-from pijp_dti import QCinter
 
 
 class NiftiAnimator(object):
@@ -65,10 +62,10 @@ class Mosaic(object):
 
         return fig
 
-    def two_plot(self, img2, alpha=1, mosaic_path=None):
+    def two_plot(self, img2, alpha=1.0, mosaic_path=None):
 
         slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(get_next_square(slc)))
+        subplot_size = int(np.sqrt(get_next_square(slc//4)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
         plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
@@ -80,10 +77,11 @@ class Mosaic(object):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
                     ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx], 1), cmap='gray', interpolation=None)
-                    ax[i, j].imshow(np.rot90(img2[:, :, slc_idx], 1), cmap='spectral', interpolation=None, alpha=alpha)
+                    ax[i, j].imshow(np.rot90(img2[:, :, slc_idx], 1), cmap='nipy_spectral', interpolation=None,
+                                    alpha=alpha)
 
                 ax[i, j].axis("off")
-                slc_idx += 1
+                slc_idx += 4
 
         fig.set_facecolor('black')
 
@@ -169,8 +167,9 @@ def get_mask_mosaic(image_path, mask_path, mosaic_path=None):
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
     return Mosaic(masked).plot(mosaic_path)
 
-def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=1):
+
+def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=0.5):
     image = nib.load(image_path).get_data()
     label = nib.load(label_path).get_data()
 
-    return Mosaic(image).two_plot(label, alpha=alpha)
+    return Mosaic(image).two_plot(label, alpha=alpha, mosaic_path=mosaic_path)
