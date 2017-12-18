@@ -18,41 +18,44 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage, prereg, reg, tenfit, stats
+steps: stage, prereg, reg, tenfit, stats, store, maskqc, warpqc
 ```
 
-## Stage
+## 1. Stage
 
 **Convert Dicoms and set up the pipeline**
 
 Copies Dicom files for a particular scan code from a database and
 converts them to a singular Nifti file with accompanying .bval and
-.bvec files using dcm2niix. Also creates the directories for all of the steps.
+.bvec files using dcm2niix. Stage also creates the directories for all of the steps.
 
-## Preregister
+## 2. Preregister
 
 **Denoise and skull strip the image**
 
-Denoises the image using Non Local Means and skull strips the image using a median Otsu thresholding method.
-The denoised is saved as a compressed Nifti (.nii.gz) and the binary mask is saved as ndarray in a numpy file (.npy).
+Denoises each volume in the DWI shell using Non Local Means and generates a
+skull stripped image using a median Otsu thresholding method.
+The denoised image and the masked image are saved as compressed Nifti images (.nii.gz).
 
-## Register
+A mosaic (.png) of slices is created displaying the masked image overlaid
+on the denoised image for the MaskQC step.
+
+## 3. Register
 
 **Rigidly register the diffusion weighted directions to an averaged
 b0 direction**
 
-Creates an average b0 image from the
-b0 directions in the DWI and rigidly registers all the diffusion
-directions to the average b0 image. The b-vectors are updated to reflect
+Creates an average b0 volume and rigidly registers all the diffusion
+directions to the average b0 volume. The b-vectors are updated to reflect
 the orientation changes due to registration. The registered image is
-saved as a compressed Nifti The updated b-vectors are saved as a
+saved as a compressed Nifti and updated b-vectors are saved as a
 numpy file (.npy).
 
 The average b0 image is created by rigidly registering all of the found
 b0 directions to the first found b0 direction and averaging the voxel
 intensities.
 
-## TensorFit
+## 4. TensorFit
 
 **Fit the diffusion tensor model**
 
@@ -70,21 +73,27 @@ anisotropy are also calculated:
 
 Each measure of anisotropy is a 3D volume in the same space as the subject.
 Once the FA is generated, an atlas's FA is non-linearly registered using
-symmetric diffeomorphic registration. While FA is chose for the
+symmetric diffeomorphic registration. While FA is chosen for the
 registration, the generated mapping applies to all the other anisotropy
-measures as well. The mapping from this registration is also
-applied to the atlas's labels [1]. The mapping is also inversely applied
-to the subject FA, warping it into the atlas's space. The atlas FA and
-label templates are stored in the module's 'templates' directory.
+measures as well. Forward mapping warps the template space to the subject space.
+Inverse mapping warps the subject space to the template space.
 
-The anisotropy measures, warped FA, and warped labels are all saved as
-compressed Nifti files. The eigenvalues and eigenvectors are also saved
-as ndarrays in numpy files.
+The forward mapping from this registration is
+applied to the atlas's labels [1] to warp them to the subject's space.
+The inverse mapping is applied to the subject FA, warping it into the atlas's space.
+The atlas FA and label templates are stored in the module's 'templates' directory.
+
+The anisotropy measures, warped FA, warped labels, eigenvectors, and
+eigenvalues are all saved as compressed Nifti files. The forward and
+inverse mappings are saved as numpy files. The eigenvalue nifti image has three volumes
+because every voxel has three eigenvalues. Likewise, the eigenvector nifti image has
+nine volumes because every voxel has three eigenvectors of length 3.
 
 [1] 'labels' refer to an overlay that contains integer values that
 correspond to regions in the brain
 
-## RoiStats
+
+## 5. RoiStats
 
 **Generate CSV files for the statistics of various anisotropy measures in
 certain regions of interest.**
@@ -94,3 +103,6 @@ region of interest. The minimum value, maximum value, mean, and standard
 deviation are calculated for each region of interest. A comma separated
 value file (CSV) is generated for each anisotropy measure. CSV
 format: (name, min, max, mean, std. dev).
+
+Voxels where the FA < 0.05 are set to zero. The ROI statistics are only
+calculated over the non-zero voxels.
