@@ -122,6 +122,8 @@ class DTIStep(Step):
 
 
 class Stage(DTIStep):
+    """Convert Dicoms and set up the pipeline
+    """
     process_name = "DTI"
     step_name = "Stage"
     step_cli = "stage"
@@ -192,6 +194,8 @@ class Stage(DTIStep):
 
 
 class Preregister(DTIStep):
+    """Denoise and skull strip the image
+    """
     process_name = "DTI"
     step_name = "Preregister"
     step_cli = "prereg"
@@ -213,6 +217,8 @@ class Preregister(DTIStep):
 
 
 class Register(DTIStep):
+    """Rigidly register the diffusion weighted directions to an averaged b0 direction
+    """
     process_name = "DTI"
     step_name = "Register"
     step_cli = "reg"
@@ -243,6 +249,8 @@ class Register(DTIStep):
 
 
 class TensorFit(DTIStep):
+    """Fit the diffusion tensor model
+    """
     process_name = "DTI"
     step_name = "TensorFit"
     step_cli = "tenfit"
@@ -287,6 +295,8 @@ class TensorFit(DTIStep):
 
 
 class RoiStats(DTIStep):
+    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
+    """
     process_name = "DTI"
     step_name = "RoiStats"
     step_cli = "stats"
@@ -328,6 +338,8 @@ class RoiStats(DTIStep):
 
 
 class StoreInDatabase(DTIStep):
+    """Store the currently processed information in the database
+    """
     process_name = "DTI"
     step_name = "StoreInDatabase"
     step_cli = "store"
@@ -343,6 +355,8 @@ class StoreInDatabase(DTIStep):
 
 
 class MaskQC(DTIStep):
+    """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
+    """
     process_name = "DTI"
     step_name = "MaskQC"
     step_cli = "maskqc"
@@ -401,6 +415,8 @@ class MaskQC(DTIStep):
 
 
 class WarpQC(DTIStep):
+    """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels overlaid on the FA image.
+    """
     process_name = "DTI"
     step_name = "WarpQC"
     step_cli = "warpqc"
