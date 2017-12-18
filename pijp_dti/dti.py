@@ -85,8 +85,8 @@ class DTIStep(Step):
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
         self.labels = os.path.join(fpath, 'templates', 'labels.npy')
-        self.mask_fig = None
-        self.warp_fig = None
+        self.mask_qc_result = None
+        self.warp_qc_result = None
 
     def _load_nii(self, fname):
         self.logger.info('loading {}'.format(fname))
@@ -200,7 +200,7 @@ class Preregister(DTIStep):
 
     def __init__(self, project, code, args):
         super(Preregister, self).__init__(project, code, args)
-        self.next_step = MaskQC
+        self.next_step = Register
 
     def run(self):
         dat, aff = self._load_nii(self.fdwi)
@@ -212,73 +212,12 @@ class Preregister(DTIStep):
         dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
 
-class MaskQC(DTIStep):
-    process_name = "DTI"
-    step_name = "MaskQC"
-    step_cli = "qc"
-    interactive = True
-    prev_step = [Preregister]
-
-    def __init__(self, project, code, args):
-        super(MaskQC, self).__init__(project, code, args)
-        self.next_step = None
-
-    def under_review(self):
-        if os.path.exists(self.review_flag):
-            self._print_review_info()
-            return True
-        return False
-
-    def _print_review_info(self):
-        flag = open(self.review_flag, 'r')
-        lines = flag.readlines()
-        flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
-
-    def initiate(self):
-        if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
-        flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
-        flag.close()
-
-    def run(self):
-
-        mask_fig = dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
-
-        try:
-            (result, comments) = QCinter.qc_tool(mask_fig, self.code)
-            self.outcome = result
-            self.comments = comments
-            if result == 'pass':
-                shutil.copyfile(self.auto_mask, self.final_mask)
-                self.next_step = Register
-            if result == 'fail':
-                shutil.copyfile(self.auto_mask, self.final_mask)
-                self.next_step = Register
-        finally:
-            os.remove(self.review_flag)
-
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = DTIRepository().get_mask_qc_list(project_name)
-        LOGGER.info("%s cases in queue." % len(cases))
-
-        cases = [x["Code"] for x in cases]
-        while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = MaskQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
-
-
 class Register(DTIStep):
     process_name = "DTI"
     step_name = "Register"
     step_cli = "reg"
 
-    prev_step = [MaskQC]
+    prev_step = [Preregister]
 
     def __init__(self, project, code, args):
         super(Register, self).__init__(project, code, args)
@@ -286,7 +225,10 @@ class Register(DTIStep):
 
     def run(self):
         dat, aff = self._load_nii(self.denoised)
-        mask, mask_aff = self._load_nii(self.final_mask)
+        if os.path.isfile(self.final_mask):
+            mask, mask_aff = self._load_nii(self.final_mask)
+        else:
+            mask, mask_aff = self._load_nii(self.auto_mask)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the image to its averaged b0 image')
@@ -309,7 +251,7 @@ class TensorFit(DTIStep):
 
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
-        self.next_step = WarpQC
+        self.next_step = RoiStats
 
     def run(self):
         dat, aff = self._load_nii(self.reg)
@@ -344,16 +286,128 @@ class TensorFit(DTIStep):
         np.save(self.inverse_warp_map, inverse_warp_map)
 
 
-class WarpQC(DTIStep):
+class RoiStats(DTIStep):
     process_name = "DTI"
-    step_name = "WarpQC"
-    step_cli = "wqc"
-    interactive = True
+    step_name = "RoiStats"
+    step_cli = "stats"
+
     prev_step = [TensorFit]
 
     def __init__(self, project, code, args):
+        super(RoiStats, self).__init__(project, code, args)
+        self.next_step = StoreInDatabase
+
+    def run(self):
+        fa, aff = self._load_nii(self.fa)
+        md, aff = self._load_nii(self.md)
+        ga, aff = self._load_nii(self.ga)
+        ad, aff = self._load_nii(self.ad)
+        rd, aff = self._load_nii(self.rd)
+        warped_labels, aff = self._load_nii(self.warped_labels)
+        labels = np.load(self.labels).item()
+
+        self.logger.info('calculating roi statistics')
+
+        measures = {'fa': [fa, self.fa_roi],
+                    'md': [md, self.md_roi],
+                    'ga': [ga, self.ga_roi],
+                    'ad': [ad, self.ad_roi],
+                    'rd': [rd, self.rd_roi]}
+
+        for idx in measures.values():
+            idx[0][fa < 0.05] = 0
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
+            self._write_array(stats, idx[1])
+
+    def _write_array(self, array, csv_path):
+        with open(csv_path, 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for line in array:
+                writer.writerow(line)
+        self.logger.info("saving {}".format(csv_path))
+
+
+class StoreInDatabase(DTIStep):
+    process_name = "DTI"
+    step_name = "StoreInDatabase"
+    step_cli = "store"
+
+    prev_step = [RoiStats]
+
+    def __init__(self, project, code, args):
+        super(StoreInDatabase, self).__init__(project, code, args)
+
+    def run(self):
+        self.logger.info("storing in database")
+        pass
+
+
+class MaskQC(DTIStep):
+    process_name = "DTI"
+    step_name = "MaskQC"
+    step_cli = "maskqc"
+    interactive = True
+
+    def __init__(self, project, code, args):
+        super(MaskQC, self).__init__(project, code, args)
+
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
+
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+
+        mask_fig = dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
+
+        try:
+            (result, comments) = QCinter.qc_tool(mask_fig, self.code)
+            self.outcome = result
+            self.comments = comments
+            self.mask_qc_result = result
+            if result == 'pass':
+                self.next_step = StoreInDatabase
+            if result == 'fail':
+                self.next_step = Preregister
+        finally:
+            os.remove(self.review_flag)
+
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_mask_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while len(cases) != 0:
+            code = random.choice(cases)
+            cases.remove(code)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
+
+
+class WarpQC(DTIStep):
+    process_name = "DTI"
+    step_name = "WarpQC"
+    step_cli = "warpqc"
+    interactive = True
+
+    def __init__(self, project, code, args):
         super(WarpQC, self).__init__(project, code, args)
-        self.next_step = None
 
     def under_review(self):
         if os.path.exists(self.review_flag):
@@ -382,10 +436,11 @@ class WarpQC(DTIStep):
             (result, comments) = QCinter.qc_tool(mosaic_fig, self.code)
             self.outcome = result
             self.comments = comments
+            self.warp_qc_result = result
             if result == 'pass':
-                self.next_step = RoiStats
+                self.next_step = StoreInDatabase
             if result == 'fail':
-                self.next_step = RoiStats
+                self.next_step = TensorFit
         finally:
             os.remove(self.review_flag)
 
@@ -402,46 +457,6 @@ class WarpQC(DTIStep):
             if not next_job.under_review():
                 return next_job
 
-
-class RoiStats(DTIStep):
-    process_name = "DTI"
-    step_name = "RoiStats"
-    step_cli = "stats"
-
-    prev_step = [WarpQC]
-
-    def __init__(self, project, code, args):
-        super(RoiStats, self).__init__(project, code, args)
-
-    def run(self):
-        fa, aff = self._load_nii(self.fa)
-        md, aff = self._load_nii(self.md)
-        ga, aff = self._load_nii(self.ga)
-        ad, aff = self._load_nii(self.ad)
-        rd, aff = self._load_nii(self.rd)
-        warped_labels, aff = self._load_nii(self.warped_labels)
-        labels = np.load(self.labels).item()
-
-        self.logger.info('calculating roi statistics')
-
-        measures = {'fa': [fa, self.fa_roi],
-                    'md': [md, self.md_roi],
-                    'ga': [ga, self.ga_roi],
-                    'ad': [ad, self.ad_roi],
-                    'rd': [rd, self.rd_roi]}
-
-        for idx in measures.values():
-            idx[0][fa < 0.05] = 0
-            idx[0][fa > 0.85] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
-            self._write_array(stats, idx[1])
-
-    def _write_array(self, array, csv_path):
-        with open(csv_path, 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            for line in array:
-                writer.writerow(line)
-        self.logger.debug("saving {}".format(csv_path))
 
 def run():
     import sys
