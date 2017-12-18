@@ -4,31 +4,6 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 
-class NiftiAnimator(object):
-
-    def __init__(self, img):
-        self.img = img
-        self.interval = 50
-        self.ani = None
-
-    def plot(self, show=True):
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ims = []
-
-        for i in range(0, self.img.shape[2]):
-            im = plt.imshow(self.img[:, :, i, :], animated=True, interpolation=None)
-            t = ax.annotate("Slice {}".format(i+1), (0, 0), (0, -1))
-            ims.append([im, t])
-
-        self.ani = animation.ArtistAnimation(fig, ims, repeat=True, interval=self.interval)
-
-        if show:
-            plt.axis("off")
-            plt.show()
-
-
 class Mosaic(object):
 
     def __init__(self, img):
@@ -62,10 +37,10 @@ class Mosaic(object):
 
         return fig
 
-    def two_plot(self, img2, alpha=1.0, mosaic_path=None):
+    def two_plot(self, img2, alpha=1.0, mosaic_path=None, factor=4):
 
         slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(get_next_square(slc//4)))
+        subplot_size = int(np.sqrt(get_next_square(slc//factor)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
         plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
@@ -81,7 +56,7 @@ class Mosaic(object):
                                     alpha=alpha)
 
                 ax[i, j].axis("off")
-                slc_idx += 4
+                slc_idx += factor
 
         fig.set_facecolor('black')
 
@@ -142,20 +117,6 @@ def mask_image(img, mask, hue, alpha=1):
     img[mask.astype('bool'), ..., 0] = (1 - alpha) * img[mask.astype('bool'), ..., 0] + factor[0]
     img[mask.astype('bool'), ..., 1] = (1 - alpha) * img[mask.astype('bool'), ..., 1] + factor[1]
     img[mask.astype('bool'), ..., 2] = (1 - alpha) * img[mask.astype('bool'), ..., 2] + factor[2]
-    return img
-
-
-def unmask_image(img, orig, mask):
-    """
-    replace values of one array with corresponding values of another array, indexed by a third array
-    Args:
-        img (ndarray): image to be modified
-        orig (ndarray): image with values to replace ones in img
-        mask (ndarray): boolean or binary array specifying which values to replace
-    Returns:
-        ndarray : modified img
-    """
-    img[mask.astype('bool'), :] = orig[mask.astype('bool'), :]
     return img
 
 
