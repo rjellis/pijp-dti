@@ -303,7 +303,6 @@ class RoiStats(DTIStep):
 
     def __init__(self, project, code, args):
         super(RoiStats, self).__init__(project, code, args)
-        self.next_step = StoreInDatabase
 
     def run(self):
         fa, aff = self._load_nii(self.fa)
@@ -341,8 +340,7 @@ class StoreInDatabase(DTIStep):
     process_name = "DTI"
     step_name = "StoreInDatabase"
     step_cli = "store"
-
-    prev_step = [RoiStats]
+    interactive = True
 
     def __init__(self, project, code, args):
         super(StoreInDatabase, self).__init__(project, code, args)
@@ -391,15 +389,15 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = StoreInDatabase
-            if result == 'fail':
+                self.next_step = WarpQC
+            elif result == 'fail':
                 self.next_step = Preregister
         finally:
             os.remove(self.review_flag)
 
     @classmethod
     def get_next(cls, project_name, args):
-        cases = DTIRepository().get_mask_qc_list(project_name)
+        cases = DTIRepository().get_qc_list(project_name)
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
@@ -442,10 +440,8 @@ class WarpQC(DTIStep):
         flag.close()
 
     def run(self):
-
-        mosaic_fig = dtiQC.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
-
         try:
+            mosaic_fig = dtiQC.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
             (result, comments) = QCinter.qc_tool(mosaic_fig, self.code)
             self.outcome = result
             self.comments = comments
@@ -455,19 +451,6 @@ class WarpQC(DTIStep):
                 self.next_step = TensorFit
         finally:
             os.remove(self.review_flag)
-
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = DTIRepository().get_mask_qc_list(project_name)
-        LOGGER.info("%s cases in queue." % len(cases))
-
-        cases = [x["Code"] for x in cases]
-        while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = MaskQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
 
 
 def run():
