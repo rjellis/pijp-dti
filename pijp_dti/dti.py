@@ -85,8 +85,6 @@ class DTIStep(Step):
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
         self.labels = os.path.join(fpath, 'templates', 'labels.npy')
-        self.mask_qc_result = None
-        self.warp_qc_result = None
 
     def _load_nii(self, fname):
         self.logger.info('loading {}'.format(fname))
@@ -392,7 +390,6 @@ class MaskQC(DTIStep):
             (result, comments) = QCinter.qc_tool(mask_fig, self.code)
             self.outcome = result
             self.comments = comments
-            self.mask_qc_result = result
             if result == 'pass':
                 self.next_step = StoreInDatabase
             if result == 'fail':
@@ -452,7 +449,6 @@ class WarpQC(DTIStep):
             (result, comments) = QCinter.qc_tool(mosaic_fig, self.code)
             self.outcome = result
             self.comments = comments
-            self.warp_qc_result = result
             if result == 'pass':
                 self.next_step = StoreInDatabase
             if result == 'fail':
