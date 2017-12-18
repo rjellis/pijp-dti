@@ -44,7 +44,7 @@ class Application(tk.Frame):
         v = tk.StringVar()
         self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
         self.label_comment = tk.Label(master=self.master, text="Comment: ", bg='black', fg='white')
-        self.label_top = tk.Label(master=self.master, text =self.code, bg='black', fg='white', font=16)
+        self.label_top = tk.Label(master=self.master, text=self.code, bg='black', fg='white', font=16)
         self.label_top.bind("<ButtonPress-1>", self.start_move)
         self.label_top.bind("<ButtonRelease-1>", self.stop_move)
         self.label_top.bind("<B1-Motion>", self.on_motion)
