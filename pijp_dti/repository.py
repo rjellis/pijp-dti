@@ -27,7 +27,6 @@ class DTIRepository(BaseRepository):
             AND Process = {process} 
             AND Step = {step_name}
             AND (Outcome = 'Done' OR Outcome = 'pass'))
-            
             """.format(project=dbprocs.format_string_parameter(project),
                        process=dbprocs.format_string_parameter(process),
                        step_name=dbprocs.format_string_parameter(step.step_name),
@@ -191,7 +190,8 @@ class DTIRepository(BaseRepository):
         return todo
 
     def set_roi_stats(self, table, project, code, md, fa, ga, rd, ad):
-        sql = r"""INSERT INTO {table} VALUES ({code}, {project}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
+        sql = r"""INSERT INTO {table} VALUES ({code}, {project}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, 
+        {median}, {sd})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -199,11 +199,17 @@ class DTIRepository(BaseRepository):
                 mreader = csv.reader(csvfile, delimiter=',')
                 msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))
                 for row in mreader:
-                    roi = fsp(str(row[0]))
-                    min = fsp(str(row[1]))
-                    max = fsp(str(row[2]))
-                    mean = fsp(str(row[3]))
-                    sd = fsp(str(row[4]))
-                    formatted_sql = sql.format(table=fsp(table), project=fsp(project), fname =fsp(m), code=fsp(code),
-                                               measure=msr, roi=roi, min=min, max=max, mean=mean, sd=sd)
-                    self.connection.execute_non_query(formatted_sql)
+                    if mreader.line_num == 1:
+                        row.next()
+                    else:
+                        print(mreader.line_num)
+                        roi = fsp(str(row[0]))
+                        minVal = fsp(str(row[1]))
+                        maxVal = fsp(str(row[2]))
+                        meanVal = fsp(str(row[3]))
+                        medianVal = fsp(str(row[4]))
+                        sd = fsp(str(row[5]))
+                        formatted_sql = sql.format(table=fsp(table), project=fsp(project), fname=fsp(m), code=fsp(code),
+                                                   measure=msr, roi=roi, min=minVal, max=maxVal, mean=meanVal,
+                                                   median=medianVal, sd=sd)
+                        self.connection.execute_non_query(formatted_sql)
