@@ -126,8 +126,6 @@ class Stage(DTIStep):
     step_name = "Stage"
     step_cli = "stage"
 
-    prev_step = None
-
     def __init__(self, project, code, args):
         super(Stage, self).__init__(project, code, args)
         self.next_step = Preregister
@@ -202,7 +200,6 @@ class Preregister(DTIStep):
 
     def __init__(self, project, code, args):
         super(Preregister, self).__init__(project, code, args)
-        self.next_step = Register
 
     def run(self):
         dat, aff = self._load_nii(self.fdwi)
@@ -214,148 +211,12 @@ class Preregister(DTIStep):
         dtiQC.get_mask_mosaic(self.denoised, self.auto_mask, self.mask_mosaic)
 
 
-class Register(DTIStep):
-    """Rigidly register the diffusion weighted directions to an averaged b0 direction
-    """
-    process_name = "DTI"
-    step_name = "Register"
-    step_cli = "reg"
-
-    prev_step = [Preregister]
-
-    def __init__(self, project, code, args):
-        super(Register, self).__init__(project, code, args)
-        self.next_step = TensorFit
-
-    def run(self):
-        dat, aff = self._load_nii(self.denoised)
-        if os.path.isfile(self.final_mask):
-            mask, mask_aff = self._load_nii(self.final_mask)
-        else:
-            mask, mask_aff = self._load_nii(self.auto_mask)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        b0 = dtfunc.b0_avg(dat, aff, bval)
-        self.logger.info('registering the image to its averaged b0 image')
-        reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
-        bin_mask = mask
-        bin_mask[mask > 0] = 1
-        bin_mask[bin_mask < 1] = 0
-        reg_dat = dtfunc.apply_mask(reg_dat, mask)
-
-        self._save_nii(reg_dat, aff, self.reg)
-        np.save(self.fbvec_reg, bvec)
-
-
-class TensorFit(DTIStep):
-    """Fit the diffusion tensor model
-    """
-    process_name = "DTI"
-    step_name = "TensorFit"
-    step_cli = "tenfit"
-
-    prev_step = [Register]
-
-    def __init__(self, project, code, args):
-        super(TensorFit, self).__init__(project, code, args)
-        self.next_step = RoiStats
-
-    def run(self):
-        dat, aff = self._load_nii(self.reg)
-        template, template_aff = self._load_nii(self.template)
-        temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        bvec = np.load(self.fbvec_reg)
-
-        self.logger.info('fitting the tensor')
-        evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
-
-        self.logger.info('generating nonlinear registration map for FA')
-        warped_template, mapping = dtfunc.sym_diff_registration(
-            tenfit.fa, template,
-            aff, template_aff)
-
-        warped_labels = mapping.transform(temp_labels, interpolation='nearest')
-        warped_fa = mapping.transform_inverse(tenfit.fa)
-        warp_map = mapping.get_forward_field()
-        inverse_warp_map = mapping.get_backward_field()
-
-        self._save_nii(tenfit.fa, aff, self.fa)
-        self._save_nii(tenfit.md, aff, self.md)
-        self._save_nii(tenfit.ga, aff, self.ga)
-        self._save_nii(tenfit.ad, aff, self.ad)
-        self._save_nii(tenfit.rd, aff, self.rd)
-        self._save_nii(warped_fa, template_aff, self.warped_fa)
-        self._save_nii(warped_labels, aff, self.warped_labels)
-        self._save_nii(evals, aff, self.evals)
-        self._save_nii(evecs, aff, self.evecs)
-        np.save(self.warp_map, warp_map)
-        np.save(self.inverse_warp_map, inverse_warp_map)
-
-
-class RoiStats(DTIStep):
-    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
-    """
-    process_name = "DTI"
-    step_name = "RoiStats"
-    step_cli = "stats"
-
-    prev_step = [TensorFit]
-
-    def __init__(self, project, code, args):
-        super(RoiStats, self).__init__(project, code, args)
-
-    def run(self):
-        fa, aff = self._load_nii(self.fa)
-        md, aff = self._load_nii(self.md)
-        ga, aff = self._load_nii(self.ga)
-        ad, aff = self._load_nii(self.ad)
-        rd, aff = self._load_nii(self.rd)
-        warped_labels, aff = self._load_nii(self.warped_labels)
-        labels = np.load(self.labels).item()
-
-        self.logger.info('calculating roi statistics')
-
-        measures = {'fa': [fa, self.fa_roi],
-                    'md': [md, self.md_roi],
-                    'ga': [ga, self.ga_roi],
-                    'ad': [ad, self.ad_roi],
-                    'rd': [rd, self.rd_roi]}
-
-        for idx in measures.values():
-            idx[0][fa < 0.05] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
-            self._write_array(stats, idx[1])
-
-    def _write_array(self, array, csv_path):
-        with open(csv_path, 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            for line in array:
-                writer.writerow(line)
-        self.logger.info("saving {}".format(csv_path))
-
-
-class StoreInDatabase(DTIStep):
-    """Store the currently processed information in the database
-    """
-    process_name = "DTI"
-    step_name = "StoreInDatabase"
-    step_cli = "store"
-    interactive = True
-
-    def __init__(self, project, code, args):
-        super(StoreInDatabase, self).__init__(project, code, args)
-
-    def run(self):
-        self.logger.info("storing in database")
-        pass
-
-
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
     process_name = "DTI"
     step_name = "MaskQC"
-    step_cli = "qc"
+    step_cli = "maskqc"
     interactive = True
 
     def __init__(self, project, code, args):
@@ -389,7 +250,7 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = WarpQC
+                self.next_step = Register
             elif result == 'fail':
                 self.next_step = Preregister
         finally:
@@ -407,6 +268,89 @@ class MaskQC(DTIStep):
             next_job = MaskQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
+
+
+class Register(DTIStep):
+    """Rigidly register the diffusion weighted directions to an averaged b0 direction
+    """
+    process_name = "DTI"
+    step_name = "Register"
+    step_cli = "reg"
+
+    prev_step = [MaskQC]
+
+    def __init__(self, project, code, args):
+        super(Register, self).__init__(project, code, args)
+        self.next_step = TensorFit
+
+    def run(self):
+        dat, aff = self._load_nii(self.denoised)
+        if os.path.isfile(self.final_mask):
+            mask, mask_aff = self._load_nii(self.final_mask)
+        else:
+            mask, mask_aff = self._load_nii(self.auto_mask)
+        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+        b0 = dtfunc.b0_avg(dat, aff, bval)
+        self.logger.info('registering the image to its averaged b0 image')
+        reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+        bin_mask = mask
+        bin_mask[mask > 0] = 1
+        bin_mask[bin_mask < 1] = 0
+        reg_dat = dtfunc.apply_mask(reg_dat, mask)
+
+        self._save_nii(reg_dat, aff, self.reg)
+        np.save(self.fbvec_reg, bvec)
+
+    @classmethod
+    def get_queue(cls, project_name):
+        dtis = DTIRepository().get_mask_qced_list(project_name)
+        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis]
+        return todo
+
+
+class TensorFit(DTIStep):
+    """Fit the diffusion tensor model
+    """
+    process_name = "DTI"
+    step_name = "TensorFit"
+    step_cli = "tenfit"
+
+    prev_step = [Register]
+
+    def __init__(self, project, code, args):
+        super(TensorFit, self).__init__(project, code, args)
+
+    def run(self):
+        dat, aff = self._load_nii(self.reg)
+        template, template_aff = self._load_nii(self.template)
+        temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
+        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+        bvec = np.load(self.fbvec_reg)
+
+        self.logger.info('fitting the tensor')
+        evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
+
+        self.logger.info('generating nonlinear registration map for FA')
+        warped_template, mapping = dtfunc.sym_diff_registration(
+            tenfit.fa, template,
+            aff, template_aff)
+
+        warped_labels = mapping.transform(temp_labels, interpolation='nearest')
+        warped_fa = mapping.transform_inverse(tenfit.fa)
+        warp_map = mapping.get_forward_field()
+        inverse_warp_map = mapping.get_backward_field()
+
+        self._save_nii(tenfit.fa, aff, self.fa)
+        self._save_nii(tenfit.md, aff, self.md)
+        self._save_nii(tenfit.ga, aff, self.ga)
+        self._save_nii(tenfit.ad, aff, self.ad)
+        self._save_nii(tenfit.rd, aff, self.rd)
+        self._save_nii(warped_fa, template_aff, self.warped_fa)
+        self._save_nii(warped_labels, aff, self.warped_labels)
+        self._save_nii(evals, aff, self.evals)
+        self._save_nii(evecs, aff, self.evecs)
+        np.save(self.warp_map, warp_map)
+        np.save(self.inverse_warp_map, inverse_warp_map)
 
 
 class WarpQC(DTIStep):
@@ -446,11 +390,75 @@ class WarpQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = StoreInDatabase
+                self.next_step = RoiStats
             if result == 'fail':
                 self.next_step = TensorFit
         finally:
             os.remove(self.review_flag)
+
+
+class RoiStats(DTIStep):
+    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
+    """
+    process_name = "DTI"
+    step_name = "RoiStats"
+    step_cli = "stats"
+
+    prev_step = [WarpQC]
+
+    def __init__(self, project, code, args):
+        super(RoiStats, self).__init__(project, code, args)
+        self.next_step = StoreInDatabase
+
+    def run(self):
+        fa, aff = self._load_nii(self.fa)
+        md, aff = self._load_nii(self.md)
+        ga, aff = self._load_nii(self.ga)
+        ad, aff = self._load_nii(self.ad)
+        rd, aff = self._load_nii(self.rd)
+        warped_labels, aff = self._load_nii(self.warped_labels)
+        labels = np.load(self.labels).item()
+
+        self.logger.info('calculating roi statistics')
+
+        measures = {'fa': [fa, self.fa_roi],
+                    'md': [md, self.md_roi],
+                    'ga': [ga, self.ga_roi],
+                    'ad': [ad, self.ad_roi],
+                    'rd': [rd, self.rd_roi]}
+
+        for idx in measures.values():
+            idx[0][fa < 0.05] = 0
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
+            self._write_array(stats, idx[1])
+
+    def _write_array(self, array, csv_path):
+        with open(csv_path, 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for line in array:
+                writer.writerow(line)
+        self.logger.info("saving {}".format(csv_path))
+
+    def get_queue(cls, project_name):
+        dtis = DTIRepository().get_warp_qced_list(project_name)
+        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis]
+        return todo
+
+
+class StoreInDatabase(DTIStep):
+    """Store the currently processed information in the database
+    """
+    process_name = "DTI"
+    step_name = "StoreInDatabase"
+    step_cli = "store"
+    interactive = True
+
+    def __init__(self, project, code, args):
+        super(StoreInDatabase, self).__init__(project, code, args)
+
+    def run(self):
+        self.logger.info("storing in database")
+        pass
 
 
 def run():
