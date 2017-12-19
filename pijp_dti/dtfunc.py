@@ -171,7 +171,7 @@ def roi_stats(dat, overlay, labels):
 
     """
     intensities_by_roi = dict()
-    stats = [['name', 'min', 'max', 'mean', 'std. dev', 'median']]
+    stats = [['name', 'min', 'max', 'mean', 'sd', 'median']]
 
     for roi_labels in labels.values():
         intensities_by_roi[roi_labels] = []
