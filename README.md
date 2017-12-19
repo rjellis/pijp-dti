@@ -104,5 +104,5 @@ deviation are calculated for each region of interest. A comma separated
 value file (CSV) is generated for each anisotropy measure. CSV
 format: (name, min, max, mean, std. dev).
 
-Voxels where the FA < 0.05 are set to zero. The ROI statistics are only
+Voxels where FA < 0.05 are set to zero. The ROI statistics are only
 calculated over the non-zero voxels.
