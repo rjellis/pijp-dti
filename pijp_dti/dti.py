@@ -410,7 +410,6 @@ class WarpQC(DTIStep):
                 return next_job
 
 
-
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
     """
@@ -453,6 +452,7 @@ class RoiStats(DTIStep):
                 writer.writerow(line)
         self.logger.info("saving {}".format(csv_path))
 
+    @classmethod
     def get_queue(cls, project_name):
         dtis = DTIRepository().get_warp_qced_list(project_name)
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis]
@@ -475,6 +475,7 @@ class StoreInDatabase(DTIStep):
         self.logger.info("storing in database")
         DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
                                       self.rd_roi, self.ad_roi)
+
 
 def run():
     import sys
