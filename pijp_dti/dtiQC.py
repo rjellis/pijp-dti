@@ -1,7 +1,6 @@
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
-from matplotlib import animation
 
 
 class Mosaic(object):
@@ -129,7 +128,7 @@ def get_mask_mosaic(image_path, mask_path, mosaic_path=None):
     return Mosaic(masked).plot(mosaic_path)
 
 
-def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=0.5):
+def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=0.2):
     image = nib.load(image_path).get_data()
     label = nib.load(label_path).get_data()
 
