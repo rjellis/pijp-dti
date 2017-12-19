@@ -191,7 +191,7 @@ class DTIRepository(BaseRepository):
 
     def set_roi_stats(self, table, project, code, md, fa, ga, rd, ad):
         sql = r"""INSERT INTO {table} VALUES ({code}, {project}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, 
-        {median}, {sd})
+        {sd}, {median})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -204,12 +204,12 @@ class DTIRepository(BaseRepository):
                     else:
                         print(mreader.line_num)
                         roi = fsp(str(row[0]))
-                        minVal = fsp(str(row[1]))
-                        maxVal = fsp(str(row[2]))
-                        meanVal = fsp(str(row[3]))
-                        medianVal = fsp(str(row[4]))
+                        min_val = fsp(str(row[1]))
+                        max_val = fsp(str(row[2]))
+                        mean_val = fsp(str(row[3]))
+                        median_val = fsp(str(row[4]))
                         sd = fsp(str(row[5]))
                         formatted_sql = sql.format(table=fsp(table), project=fsp(project), fname=fsp(m), code=fsp(code),
-                                                   measure=msr, roi=roi, min=minVal, max=maxVal, mean=meanVal,
-                                                   median=medianVal, sd=sd)
+                                                   measure=msr, roi=roi, min=min_val, max=max_val, mean=mean_val, sd=sd,
+                                                   median=median_val)
                         self.connection.execute_non_query(formatted_sql)
