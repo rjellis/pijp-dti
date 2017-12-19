@@ -355,7 +355,7 @@ class MaskQC(DTIStep):
     """
     process_name = "DTI"
     step_name = "MaskQC"
-    step_cli = "maskqc"
+    step_cli = "qc"
     interactive = True
 
     def __init__(self, project, code, args):
@@ -397,7 +397,7 @@ class MaskQC(DTIStep):
 
     @classmethod
     def get_next(cls, project_name, args):
-        cases = DTIRepository().get_qc_list(project_name)
+        cases = DTIRepository().get_mask_qc_list(project_name)
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
