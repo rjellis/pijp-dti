@@ -396,6 +396,20 @@ class WarpQC(DTIStep):
         finally:
             os.remove(self.review_flag)
 
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_warp_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while len(cases) != 0:
+            code = random.choice(cases)
+            cases.remove(code)
+            next_job = MaskQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
+
+
 
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
@@ -457,9 +471,10 @@ class StoreInDatabase(DTIStep):
         super(StoreInDatabase, self).__init__(project, code, args)
 
     def run(self):
+        table = 'pijp_dti'
         self.logger.info("storing in database")
-        pass
-
+        DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+                                      self.rd_roi, self.ad_roi)
 
 def run():
     import sys
