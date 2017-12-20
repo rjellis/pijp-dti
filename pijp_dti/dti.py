@@ -253,9 +253,10 @@ class MaskQC(DTIStep):
                 shutil.copyfile(self.auto_mask, self.final_mask)
                 self.next_step = Register
             if result == 'fail':
-                self.next_step = Preregister
-            else: # TODO need to figure out what to do when result isn't selected...
+                self.next_step = None
+            if isinstance(result, str) and result not in ['pass', 'fail']:
                 shutil.copyfile(result, self.final_mask)
+                self.outcome = 'edit'
                 self.next_step = Register
         finally:
             os.remove(self.review_flag)
@@ -321,6 +322,7 @@ class TensorFit(DTIStep):
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
         self.next_step = RoiStats
+
     def run(self):
         dat, aff = self._load_nii(self.reg)
         template, template_aff = self._load_nii(self.template)
@@ -395,7 +397,6 @@ class RoiStats(DTIStep):
         self.logger.info("saving {}".format(csv_path))
 
 
-
 class WarpQC(DTIStep):
     """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels overlaid on the FA image.
     """
@@ -429,7 +430,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             mosaic_fig = dtiQC.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
-            (result, comments) = QCinter.qc_tool(mosaic_fig, self.code)
+            (result, comments) = QCinter.qc_tool(mosaic_fig, self.code, edit=False)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -468,7 +469,7 @@ class StoreInDatabase(DTIStep):
         table = 'pijp_dti'
         self.logger.info("storing in database")
         DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
-                                      self.rd_roi, self.ad_roi)
+                                       self.rd_roi, self.ad_roi)
 
 
 def run():
