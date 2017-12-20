@@ -53,7 +53,8 @@ class DTIRepository(BaseRepository):
                 WHERE Project = {0}
                     AND Process = 'dti' 
                     AND Step = 'MaskQC'
-                    AND Outcome = 'pass'
+                    AND (Outcome = 'pass'
+                    OR Outcome = 'edit')
             )
         """.format(dbprocs.format_string_parameter(project))
 
