@@ -23,7 +23,7 @@ class Application(tk.Frame):
         self.y = None
         self.scale = 1
         self.canvas = None
-
+        self.can_edit = True
         self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
 
     def create_widgets(self):
@@ -41,7 +41,7 @@ class Application(tk.Frame):
                                      bg='white', fg='black', relief='flat')
         self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
                                         bg='white', fg='black', relief='flat')
-        self.button_edit = tk.Button(master=self.master, text='Edit', command=self.edit,
+        self.button_edit = tk.Button(master=self.master, text='Edit Mask', command=self.edit,
                                         bg='white', fg='black', relief='flat')
 
         v = tk.StringVar()
@@ -51,7 +51,6 @@ class Application(tk.Frame):
         self.label_top.bind("<ButtonPress-1>", self.start_move)
         self.label_top.bind("<ButtonRelease-1>", self.stop_move)
         self.label_top.bind("<B1-Motion>", self.on_motion)
-        
         self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
         self.label_comment.grid(column=0, row=2, sticky='e')
         self.entry_comment.grid(column=1, row=2, columnspan=2, sticky='w', padx=5, pady=2)
@@ -66,6 +65,9 @@ class Application(tk.Frame):
             self.columnconfigure(i, weight=1)
         for j in range(0, 3):
             self.rowconfigure(j, weight=1)
+
+        if not self.can_edit:
+            self.button_edit.config(state='disabled')
 
     def create_figure(self, fig, col=0, row=0, span=4):
         canvas = FigureCanvasTkAgg(fig, self.master)
@@ -100,14 +102,13 @@ class Application(tk.Frame):
         self.button_edit.config(bg='pale green', fg='dark green')
         self.button_fail.config(bg='white', fg='black')
         self.button_pass.config(bg='white', fg='black')
-        editted = filedialog.askopenfilename(title='Select final mask')
-        self.result = editted
+        edited = filedialog.askopenfilename(title='Select final mask')
+        self.result = edited
 
     def save_comment(self):
         self.button_comment.config(text='Comment Saved!', state='disabled')
         self.comment = self.entry_comment.get()
         self.button_comment.after(750, self.reset_comment_button)
-
 
     def reset_comment_button(self):
         self.button_comment.config(text='Save Comment', bg='white', fg='black', state='normal')
@@ -128,7 +129,7 @@ class Application(tk.Frame):
         self.master.geometry("+%s+%s" % (x, y))
 
 
-def qc_tool(figure, code):
+def qc_tool(figure, code, edit=True):
 
     root = tk.Tk()
     root.overrideredirect(True)
@@ -136,6 +137,7 @@ def qc_tool(figure, code):
     root.minsize(width=854, height=480)
     app = Application(master=root)
     app.code = code
+    app.can_edit = edit
     app.create_widgets()
     app.create_figure(figure)
     app.mainloop()
