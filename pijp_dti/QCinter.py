@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from tkinter import filedialog
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -40,6 +41,8 @@ class Application(tk.Frame):
                                      bg='white', fg='black', relief='flat')
         self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
                                         bg='white', fg='black', relief='flat')
+        self.button_edit = tk.Button(master=self.master, text='Edit', command=self.edit,
+                                        bg='white', fg='black', relief='flat')
 
         v = tk.StringVar()
         self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
@@ -55,6 +58,7 @@ class Application(tk.Frame):
         self.entry_comment.focus_set()
         self.button_comment.grid(column=3, row=2, sticky='news', padx=5, pady=2)
         self.button_fail.grid(column=1, row=3, sticky='news', padx=5, pady=2)
+        self.button_edit.grid(column=0, row=3, sticky='e', padx=5, pady=2)
         self.button_pass.grid(column=2, row=3, stick='news', padx=5, pady=2)
         self.button_quit.grid(column=3, row=3, sticky='news', padx=5, pady=2)
 
@@ -83,17 +87,27 @@ class Application(tk.Frame):
     def _pass(self):
         self.button_pass.config(bg='pale green', fg='dark green')
         self.button_fail.config(bg='white', fg='black')
+        self.button_edit.config(bg='white', fg='black')
         self.result = 'pass'
 
     def _fail(self):
         self.button_fail.config(bg='indian red', fg='black')
         self.button_pass.config(bg='white', fg='black')
+        self.button_edit.config(bg='white', fg='black')
         self.result = 'fail'
+
+    def edit(self):
+        self.button_edit.config(bg='pale green', fg='dark green')
+        self.button_fail.config(bg='white', fg='black')
+        self.button_pass.config(bg='white', fg='black')
+        editted = filedialog.askopenfilename(title='Select final mask')
+        self.result = editted
 
     def save_comment(self):
         self.button_comment.config(text='Comment Saved!', state='disabled')
         self.comment = self.entry_comment.get()
         self.button_comment.after(750, self.reset_comment_button)
+
 
     def reset_comment_button(self):
         self.button_comment.config(text='Save Comment', bg='white', fg='black', state='normal')
