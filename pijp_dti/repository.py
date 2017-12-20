@@ -69,7 +69,7 @@ class DTIRepository(BaseRepository):
         WHERE 
             Project = {0}
             AND Process = 'dti' 
-            AND Step = 'TensorFit'
+            AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
                 SELECT 
@@ -111,30 +111,6 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def get_warp_qced_list(self, project):
-
-        sql = r"""
-        SELECT 
-            ScanCode AS Code
-        FROM 
-            ProcessingLog pl 
-        WHERE Project = {0}
-            AND Process = 'dti' 
-            AND Step = 'WarpQC'
-            AND Outcome = 'Pass'
-            AND ScanCode NOT IN (
-                SELECT 
-                    ScanCode
-                FROM 
-                    ProcessingLog
-                WHERE Project = {0}
-                    AND Step = 'RoiStats'
-                    AND Outcome = 'Done'
-            )
-        """.format(dbprocs.format_string_parameter(project))
-
-        todo = self.connection.fetchall(sql)
-        return todo
 
     def get_project_dtis(self, project):
 
