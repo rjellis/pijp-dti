@@ -250,9 +250,13 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
+                shutil.copyfile(self.auto_mask, self.final_mask)
                 self.next_step = Register
-            elif result == 'fail':
+            if result == 'fail':
                 self.next_step = Preregister
+            else: # TODO need to figure out what to do when result isn't selected...
+                shutil.copyfile(result, self.final_mask)
+                self.next_step = Register
         finally:
             os.remove(self.review_flag)
 
@@ -285,10 +289,7 @@ class Register(DTIStep):
 
     def run(self):
         dat, aff = self._load_nii(self.denoised)
-        if os.path.isfile(self.final_mask):
-            mask, mask_aff = self._load_nii(self.final_mask)
-        else:
-            mask, mask_aff = self._load_nii(self.auto_mask)
+        mask, mask_aff = self._load_nii(self.final_mask)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the image to its averaged b0 image')
@@ -319,7 +320,7 @@ class TensorFit(DTIStep):
 
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
-
+        self.next_step = RoiStats
     def run(self):
         dat, aff = self._load_nii(self.reg)
         template, template_aff = self._load_nii(self.template)
@@ -351,6 +352,48 @@ class TensorFit(DTIStep):
         self._save_nii(evecs, aff, self.evecs)
         np.save(self.warp_map, warp_map)
         np.save(self.inverse_warp_map, inverse_warp_map)
+
+
+class RoiStats(DTIStep):
+    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
+    """
+    process_name = "DTI"
+    step_name = "RoiStats"
+    step_cli = "stats"
+    prev_step = [TensorFit]
+
+    def __init__(self, project, code, args):
+        super(RoiStats, self).__init__(project, code, args)
+
+    def run(self):
+        fa, aff = self._load_nii(self.fa)
+        md, aff = self._load_nii(self.md)
+        ga, aff = self._load_nii(self.ga)
+        ad, aff = self._load_nii(self.ad)
+        rd, aff = self._load_nii(self.rd)
+        warped_labels, aff = self._load_nii(self.warped_labels)
+        labels = np.load(self.labels).item()
+
+        self.logger.info('calculating roi statistics')
+
+        measures = {'fa': [fa, self.fa_roi],
+                    'md': [md, self.md_roi],
+                    'ga': [ga, self.ga_roi],
+                    'ad': [ad, self.ad_roi],
+                    'rd': [rd, self.rd_roi]}
+
+        for idx in measures.values():
+            idx[0][fa < 0.05] = 0
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
+            self._write_array(stats, idx[1])
+
+    def _write_array(self, array, csv_path):
+        with open(csv_path, 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for line in array:
+                writer.writerow(line)
+        self.logger.info("saving {}".format(csv_path))
+
 
 
 class WarpQC(DTIStep):
@@ -390,7 +433,7 @@ class WarpQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = RoiStats
+                self.next_step = StoreInDatabase
             if result == 'fail':
                 self.next_step = TensorFit
         finally:
@@ -408,55 +451,6 @@ class WarpQC(DTIStep):
             next_job = MaskQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
-
-
-class RoiStats(DTIStep):
-    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
-    """
-    process_name = "DTI"
-    step_name = "RoiStats"
-    step_cli = "stats"
-
-    prev_step = [WarpQC]
-
-    def __init__(self, project, code, args):
-        super(RoiStats, self).__init__(project, code, args)
-        self.next_step = StoreInDatabase
-
-    def run(self):
-        fa, aff = self._load_nii(self.fa)
-        md, aff = self._load_nii(self.md)
-        ga, aff = self._load_nii(self.ga)
-        ad, aff = self._load_nii(self.ad)
-        rd, aff = self._load_nii(self.rd)
-        warped_labels, aff = self._load_nii(self.warped_labels)
-        labels = np.load(self.labels).item()
-
-        self.logger.info('calculating roi statistics')
-
-        measures = {'fa': [fa, self.fa_roi],
-                    'md': [md, self.md_roi],
-                    'ga': [ga, self.ga_roi],
-                    'ad': [ad, self.ad_roi],
-                    'rd': [rd, self.rd_roi]}
-
-        for idx in measures.values():
-            idx[0][fa < 0.05] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
-            self._write_array(stats, idx[1])
-
-    def _write_array(self, array, csv_path):
-        with open(csv_path, 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            for line in array:
-                writer.writerow(line)
-        self.logger.info("saving {}".format(csv_path))
-
-    @classmethod
-    def get_queue(cls, project_name):
-        dtis = DTIRepository().get_warp_qced_list(project_name)
-        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis]
-        return todo
 
 
 class StoreInDatabase(DTIStep):
