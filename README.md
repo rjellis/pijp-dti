@@ -96,7 +96,7 @@ correspond to regions in the brain
 ## 5. RoiStats
 
 **Generate CSV files for the statistics of various anisotropy measures in
-certain regions of interest.**
+certain regions of interest**
 
 The values for each anisotropy measure are found voxel-wise for each
 region of interest. The minimum value, maximum value, mean, and standard
@@ -106,3 +106,21 @@ format: (name, min, max, mean, std. dev).
 
 Voxels where FA < 0.05 are set to zero. The ROI statistics are only
 calculated over the non-zero voxels.
+
+## Interactive Steps
+
+### MaskQC
+
+**Launch a GUI to QC the automated skull stripping**
+
+MaskQC must be ran before the pipeline can continue to Register.
+
+### WarpQC
+
+**Launch a GUI to QC the nonlinear registration**
+
+WarpQC must be ran before the pipeline can contine to StoreInDatabase.
+
+### StoreInDatabase
+
+Store the CSV's from RoiStats in the database after passing WarpQC.
