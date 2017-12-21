@@ -316,7 +316,6 @@ class TensorFit(DTIStep):
     process_name = "DTI"
     step_name = "TensorFit"
     step_cli = "tenfit"
-
     prev_step = [Register]
 
     def __init__(self, project, code, args):
@@ -332,7 +331,6 @@ class TensorFit(DTIStep):
 
         self.logger.info('fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
-
         self.logger.info('generating nonlinear registration map for FA')
         warped_template, mapping = dtfunc.sym_diff_registration(
             tenfit.fa, template,
@@ -449,7 +447,7 @@ class WarpQC(DTIStep):
         while len(cases) != 0:
             code = random.choice(cases)
             cases.remove(code)
-            next_job = MaskQC(project_name, code, args)
+            next_job = WarpQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
 
@@ -468,8 +466,8 @@ class StoreInDatabase(DTIStep):
     def run(self):
         table = 'pijp_dti'
         self.logger.info("storing in database")
-        DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
-                                       self.rd_roi, self.ad_roi)
+        # DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+        #                               self.rd_roi, self.ad_roi)
 
 
 def run():
