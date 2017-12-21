@@ -20,7 +20,7 @@ from pijp.engine import run_module, run_file
 
 from pijp_dti import dtfunc
 from pijp_dti import dtiQC, QCinter
-from pijp_dti.repository import DTIRepository
+from pijp_dti.repo import DTIRepository
 
 LOGGER = logging.getLogger(__name__)
 PROCESS_TITLE = 'dti'
