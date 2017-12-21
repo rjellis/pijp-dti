@@ -44,7 +44,7 @@ class DTIRepository(BaseRepository):
             ProcessingLog pl 
         WHERE Project = {0}
             AND Process = 'dti' 
-            AND Step = 'Preregister'
+            AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
                 SELECT 
@@ -62,34 +62,7 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def get_warp_qc_list(self, project):
-        sql = r"""
-        SELECT 
-            ScanCode AS Code
-        FROM 
-            ProcessingLog pl 
-        WHERE 
-            Project = {0}
-            AND Process = 'dti' 
-            AND Step = 'RoiStats'
-            AND Outcome = 'Done'
-            AND ScanCode NOT IN(
-                SELECT 
-                    ScanCode
-                FROM 
-                    ProcessingLog pl 
-                WHERE Project = {0}
-                    AND Process = 'dti' 
-                    AND Step = 'WarpQC'
-                    AND (Outcome = 'pass' OR Outcome = 'fail')
-            )
-        """.format(dbprocs.format_string_parameter(project))
-
-        todo = self.connection.fetchall(sql)
-        return todo
-
-    def get_mask_qced_list(self, project):
-
+    def get_final_mask(self, project):
         sql = r"""
         SELECT 
             ScanCode AS Code
@@ -98,15 +71,7 @@ class DTIRepository(BaseRepository):
         WHERE Project = {0}
             AND Process = 'dti' 
             AND Step = 'MaskQC'
-            AND Outcome = 'Pass'
-            AND ScanCode NOT IN (
-                SELECT 
-                    ScanCode
-                FROM 
-                    ProcessingLog
-                WHERE Project = {0}
-                    AND Step = 'Register'
-                    AND Outcome = 'Done'
+            AND Outcome = 'edit'
             )
         """.format(dbprocs.format_string_parameter(project))
 
