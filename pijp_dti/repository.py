@@ -80,7 +80,7 @@ class DTIRepository(BaseRepository):
                 WHERE Project = {0}
                     AND Process = 'dti' 
                     AND Step = 'WarpQC'
-                    AND Outcome = 'pass'
+                    AND (Outcome = 'pass' OR Outcome = 'fail')
             )
         """.format(dbprocs.format_string_parameter(project))
 
@@ -112,7 +112,6 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-
     def get_project_dtis(self, project):
 
         sql = r"""
@@ -142,7 +141,7 @@ class DTIRepository(BaseRepository):
                 msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))
                 for row in mreader:
                     if mreader.line_num == 1:
-                        row.next()
+                        row.pop()
                     else:
                         print(mreader.line_num)
                         roi = fsp(str(row[0]))
