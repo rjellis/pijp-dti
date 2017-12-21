@@ -19,7 +19,7 @@ def mask(dat):
         dat (ndarray): 3D numpy ndarray.
 
     Returns:
-        bin_mask (ndarray): The binary mask as an ndarray.
+        dat (ndarray): The skull stripped image as an ndarray.
 
     """
 
@@ -67,8 +67,8 @@ def denoise_pca(dat, bval, bvec):
 
     """
     gtab = gradients.gradient_table(bval, bvec)
-    sigma = pca_noise_estimate(dat, gtab, correct_bias=True, smooth=3)
-    denoise_dat = localpca(dat, sigma=sigma, patch_radius=2)
+    sigma = pca_noise_estimate(dat, gtab)
+    denoise_dat = localpca(dat, sigma=sigma)
     return denoise_dat
 
 
@@ -163,7 +163,7 @@ def roi_stats(dat, overlay, labels):
         dat (ndarray): 3D ndarray of an diffusion tensor measurement such as: Fractional Anisotropy,
                        Mean Diffusivity, etc.
         overlay (ndarray): 3D ndarray with the same dimension of dat.
-        labels (Union): A dictionary of overlay values as keys that correspond to region labels as dictionary values.
+        labels (Union): A dictionary of overlay values as keys that correspond to region labels_lookup as dictionary values.
 
     Returns:
         stats (list): Array of the list of stats for all regions of interests. Lists are in the format: [name, min, max,
