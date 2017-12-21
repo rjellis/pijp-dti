@@ -33,16 +33,20 @@ class Application(tk.Frame):
         self.bind("<B1-Motion>", self.on_motion)
         ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
 
-        self.button_quit = tk.Button(master=self.master, text='Exit', bg='white', fg='black',
+        fg = 'black'
+        bg = 'white'
+        relief = 'flat'
+
+        self.button_quit = tk.Button(master=self.master, text='Exit', bg=bg, fg=fg,
                                      relief='flat', command=self._quit)
         self.button_pass = tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green',
-                                     bg='white', fg='black', relief='flat')
+                                     bg=bg, fg=fg, relief=relief)
         self.button_fail = tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red',
-                                     bg='white', fg='black', relief='flat')
+                                     bg=bg, fg=fg, relief=relief)
         self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
-                                        bg='white', fg='black', relief='flat')
+                                        bg=bg, fg=fg, relief=relief)
         self.button_edit = tk.Button(master=self.master, text='Edit Mask', command=self.edit,
-                                        bg='white', fg='black', relief='flat')
+                                     bg=bg, fg=fg, relief=relief)
 
         v = tk.StringVar()
         self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
