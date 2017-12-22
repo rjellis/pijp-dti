@@ -93,17 +93,17 @@ class DTIStep(Step):
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
-        self.labels_lookup = os.path.join(fpath, 'templates', 'labels_lookup.npy')
+        self.labels_lookup = os.path.join(fpath, 'templates', 'labels.npy')
 
     def _load_nii(self, fname):
-        self.logger.info('loading {}'.format(fname))
+        self.logger.info('loading {}'.format(fname.split('/')[-1]))
         img = nib.load(fname)
         dat = img.get_data()
         aff = img.affine
         return dat, aff
 
     def _load_bval_bvec(self, fbval, fbvec):
-        self.logger.info('loading {} {}'.format(fbval, fbvec))
+        self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
         return bval, bvec
 
@@ -115,7 +115,7 @@ class DTIStep(Step):
             with gzip.open(fname, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
         os.remove(nii)
-        self.logger.info('saving {}'.format(fname))
+        self.logger.info('saving {}'.format(fname.split('/')[-1]))
 
     def _run_cmd(self, cmd):
         self.logger.debug(cmd)
@@ -137,7 +137,7 @@ class Stage(DTIStep):
 
     def __init__(self, project, code, args):
         super(Stage, self).__init__(project, code, args)
-        self.next_step = Register
+        self.next_step = Denoise
 
     def run(self):
 
@@ -239,7 +239,7 @@ class Register(DTIStep):
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         self.logger.info('averaging the b0 volume')
         b0 = dtfunc.b0_avg(dat, aff, bval)
-        self.logger.info('registering the image to its averaged b0 image')
+        self.logger.info('registering the DWI to its averaged b0 volume')
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
 
         self._save_nii(b0, aff, self.b0)
@@ -283,14 +283,22 @@ class ApplyMask(DTIStep):
         reg, reg_aff = self._load_nii(self.reg)
         if os.path.isfile(self.final_mask):
             mask, mask_aff = self._load_nii(self.final_mask)
+            self.logger.info('applying the edited mask')
         else:
             mask, mask_aff = self._load_nii(self.auto_mask)
+            self.logger.info('applying the auto mask')
         bin_mask = mask
         bin_mask[mask > 0] = 1
         bin_mask[bin_mask < 1] = 0
         masked = dtfunc.apply_mask(reg, bin_mask)
 
         self._save_nii(masked, mask_aff, self.masked)
+
+    @classmethod
+    def get_queue(cls, project_name):
+        masks = DTIRepository().get_project_masks(project_name)
+        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in masks]
+        return todo
 
 
 class TensorFit(DTIStep):
@@ -303,7 +311,7 @@ class TensorFit(DTIStep):
 
     def __init__(self, project, code, args):
         super(TensorFit, self).__init__(project, code, args)
-        self.next_step = RoiStats
+        self.next_step = Warp
 
     def run(self):
         dat, aff = self._load_nii(self.masked)
@@ -432,7 +440,6 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                shutil.copyfile(self.auto_mask, self.final_mask)
                 self.next_step = WarpQC
             if result == 'fail':
                 self.next_step = None
