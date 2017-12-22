@@ -287,6 +287,7 @@ class ApplyMask(DTIStep):
         else:
             mask, mask_aff = self._load_nii(self.auto_mask)
             self.logger.info('applying the auto mask')
+
         bin_mask = mask
         bin_mask[mask > 0] = 1
         bin_mask[bin_mask < 1] = 0
@@ -523,7 +524,9 @@ class StoreInDatabase(DTIStep):
     def run(self):
         table = 'pijp_dti'
         self.logger.info("storing in database")
-        DTIRepository().set_roi_stats(table, self.project, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+        projectID = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': projectID}
+        projectID = projectID['ProjectID']
+        DTIRepository().set_roi_stats(table, projectID, self.code, self.md_roi, self.fa_roi, self.ga_roi,
                                       self.rd_roi, self.ad_roi)
 
 
