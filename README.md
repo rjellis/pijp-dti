@@ -1,6 +1,6 @@
 # pijp-dti
 
-All the steps necessary for Diffusion Tensor Imaging.
+All the steps necessary to process Diffusion Tensor Images.
 
 
 ```
@@ -25,7 +25,7 @@ steps: stage, denoise, register, mask, tenfit, warp, stats, store, maskqc, warpq
 
 **Convert Dicoms and set up the pipeline**
 
-Copies Dicom files for a particular scan code from a database and
+Copies Dicom files for a particular DWI scan code from a database and
 converts them to a singular Nifti file with accompanying .bval and
 .bvec files using dcm2niix. Stage also creates the directories for all of the steps.
 
@@ -33,7 +33,7 @@ converts them to a singular Nifti file with accompanying .bval and
 
 **Denoise the DWI using Local PCA**
 
-Denoises the entire 4D volume using Local PCA.
+Denoises the entire 4D shell using Local PCA.
 
 
 ## 3. Register
@@ -42,10 +42,10 @@ Denoises the entire 4D volume using Local PCA.
 b0 direction**
 
 Creates an average b0 volume and rigidly registers all the diffusion
-directions to the average b0 volume. The b-vectors are updated to reflect
-the orientation changes due to registration. The average volume and
-the registered image are saved as a compressed Niftis and updated b-vectors are saved as a
-numpy file (.npy).
+directions to the average b0 volume to correct for subject motion.
+The b-vectors are updated to reflect the orientation changes due to registration.
+The average volume and the registered image are saved as a compressed
+Niftis and updated b-vectors are saved as a numpy file (.npy).
 
 The average b0 volume is created by rigidly registering all of the found
 b0 directions to the first found b0 direction and averaging the voxel
@@ -60,6 +60,10 @@ Masks the average b0 volume using median Otsu thresholding.
 ## 5. ApplyMask
 
 **Applies the generated or edited b0 mask to the DWI**
+
+First tries to apply the edited mask if it exists. If there is no
+edited mask saved, then the auto mask is applied to the denoised DWI
+and saved in the 'mask' directory.
 
 ## 6. TensorFit
 
@@ -122,6 +126,8 @@ a file dialog opens to get the path of the edited mask.
 ### WarpQC
 
 **Launch a GUI to QC the nonlinear registration**
+
+If 'pass' is selected, the results from RoiStats are stored in the Database.
 
 ### StoreInDatabase
 
