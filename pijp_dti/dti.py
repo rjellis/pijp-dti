@@ -87,7 +87,7 @@ class DTIStep(Step):
 
         self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
         self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mask_mosaic.png')
-        self.warp_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_warp_mosaic.png')
+        self.warp_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_warp.png')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
