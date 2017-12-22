@@ -36,7 +36,7 @@ class Mosaic(object):
 
         return fig
 
-    def two_plot(self, img2, alpha=1.0, mosaic_path=None, factor=4):
+    def two_plot(self, img2, alpha=1.0, mosaic_path=None):
 
         fig = plt.figure()
         fig.set_facecolor('black')
