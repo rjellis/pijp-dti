@@ -62,7 +62,7 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def get_final_mask(self, project):
+    def get_project_masks(self, project):
         sql = r"""
         SELECT 
             ScanCode AS Code
@@ -70,9 +70,11 @@ class DTIRepository(BaseRepository):
             ProcessingLog pl 
         WHERE Project = {0}
             AND Process = 'dti' 
-            AND Step = 'MaskQC'
-            AND Outcome = 'edit'
-            )
+            AND ((Step = 'MaskQC'
+                  AND Outcome = 'edit')
+            OR
+                (Step = 'Mask'
+                 AND Outcome = 'Done'))
         """.format(dbprocs.format_string_parameter(project))
 
         todo = self.connection.fetchall(sql)
