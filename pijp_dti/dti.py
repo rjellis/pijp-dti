@@ -269,6 +269,9 @@ class Mask(DTIStep):
 
 
 class ApplyMask(DTIStep):
+    """Apply the auto mask (or the edited one if it exists)
+    """
+
     process_name = "DTI"
     step_name = "ApplyMask"
     step_cli = "apply"
@@ -522,11 +525,10 @@ class StoreInDatabase(DTIStep):
         super(StoreInDatabase, self).__init__(project, code, args)
 
     def run(self):
-        table = 'pijp_dti'
         self.logger.info("storing in database")
         projectID = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': projectID}
         projectID = projectID['ProjectID']
-        DTIRepository().set_roi_stats(table, projectID, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+        DTIRepository().set_roi_stats(projectID, self.code, self.md_roi, self.fa_roi, self.ga_roi,
                                       self.rd_roi, self.ad_roi)
 
 

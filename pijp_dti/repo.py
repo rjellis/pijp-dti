@@ -98,7 +98,7 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def set_roi_stats(self, table, projectID, code, md, fa, ga, rd, ad):
+    def set_roi_stats(self, projectID, code, md, fa, ga, rd, ad):
         sql = r"""
         INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev)
         VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
