@@ -45,7 +45,7 @@ class Application(tk.Frame):
                                      bg=bg, fg=fg, relief=relief)
         self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
                                         bg=bg, fg=fg, relief=relief)
-        self.button_edit = tk.Button(master=self.master, text='Edit Mask', command=self.edit,
+        self.button_edit = tk.Button(master=self.master, text='Save Edited Mask', command=self.edit,
                                      bg=bg, fg=fg, relief=relief)
 
         v = tk.StringVar()
