@@ -38,26 +38,11 @@ class Mosaic(object):
 
     def two_plot(self, img2, alpha=1.0, mosaic_path=None, factor=4):
 
-        slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(get_next_square(slc//factor)))
-
-        fig, ax = plt.subplots(subplot_size, subplot_size)
-        plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
-                            wspace=0, hspace=0)
-
-        slc_idx = 0
-
-        for i in range(0, subplot_size):
-            for j in range(0, subplot_size):
-                if slc_idx < slc:
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx], 1), cmap='gray', interpolation=None)
-                    ax[i, j].imshow(np.rot90(img2[:, :, slc_idx], 1), cmap='nipy_spectral', interpolation=None,
-                                    alpha=alpha)
-
-                ax[i, j].axis("off")
-                slc_idx += factor
-
+        fig = plt.figure()
         fig.set_facecolor('black')
+        plt.axes(frameon=False)
+        plt.imshow(np.rot90(self.img[:, :, self.img.shape[2]//2], 1), cmap='gray', interpolation=None)
+        plt.imshow(np.rot90(img2[:, :,  img2.shape[2]//2], 1), cmap='nipy_spectral', interpolation=None, alpha=alpha)
 
         if mosaic_path is not None:
             plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
