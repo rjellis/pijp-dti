@@ -98,10 +98,10 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def set_roi_stats(self, table, project, code, md, fa, ga, rd, ad):
-        sql = r"""INSERT INTO {table} (Code, Project, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, 
-        StdDev, MedianVal, RecordTime) VALUES ({code}, {project}, {fname}, {measure}, {roi}, {min}, {max}, 
-        {mean}, {sd}, {median}, {time})
+    def set_roi_stats(self, table, projectID, code, md, fa, ga, rd, ad):
+        sql = r"""
+        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev)
+        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -112,7 +112,6 @@ class DTIRepository(BaseRepository):
                     if mreader.line_num == 1:
                         row.pop()
                     else:
-                        print(mreader.line_num)
                         roi = fsp(str(row[0]))
                         min_val = fsp(str(row[1]))
                         max_val = fsp(str(row[2]))
@@ -120,7 +119,15 @@ class DTIRepository(BaseRepository):
                         median_val = fsp(str(row[4]))
                         sd = fsp(str(row[5]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        formatted_sql = sql.format(table=fsp(table), project=fsp(project), fname=fsp(m),
-                                                   time=time, code=fsp(code), measure=msr, roi=roi, min=min_val,
-                                                   max=max_val, mean=mean_val, sd=sd, median=median_val)
+                        formatted_sql = sql.format(code=fsp(code), projectID=projectID, fname=fsp(m),
+                                                   measure=msr, roi=roi, min=min_val,
+                                                   max=max_val, mean=mean_val, sd=sd)
                         self.connection.execute_non_query(formatted_sql)
+
+    def get_project_id(self, project):
+        sql = r"""
+        SELECT ProjectID FROM Projects WHERE ProjectName = {0}
+        """.format(fsp(project))
+
+        projectID = self.connection.fetchone(sql)
+        return projectID
