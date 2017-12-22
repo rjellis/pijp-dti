@@ -18,7 +18,7 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage, prereg, reg, tenfit, stats, store, maskqc, warpqc
+steps: stage, denoise, register, mask, tenfit, warp, stats, store, maskqc, warpqc
 ```
 
 ## 1. Stage
@@ -29,16 +29,12 @@ Copies Dicom files for a particular scan code from a database and
 converts them to a singular Nifti file with accompanying .bval and
 .bvec files using dcm2niix. Stage also creates the directories for all of the steps.
 
-## 2. Preregister
+## 2. Denoise
 
-**Denoise and skull strip the image**
+**Denoise the DWI using Local PCA**
 
-Denoises each volume in the DWI shell using Non Local Means and generates a
-skull stripped image using a median Otsu thresholding method.
-The denoised image and the masked image are saved as compressed Nifti images (.nii.gz).
+Denoises the entire 4D volume using Local PCA.
 
-A mosaic (.png) of slices is created displaying the masked image overlaid
-on the denoised image for the MaskQC step.
 
 ## 3. Register
 
@@ -47,15 +43,25 @@ b0 direction**
 
 Creates an average b0 volume and rigidly registers all the diffusion
 directions to the average b0 volume. The b-vectors are updated to reflect
-the orientation changes due to registration. The registered image is
-saved as a compressed Nifti and updated b-vectors are saved as a
+the orientation changes due to registration. The average volume and
+the registered image are saved as a compressed Niftis and updated b-vectors are saved as a
 numpy file (.npy).
 
-The average b0 image is created by rigidly registering all of the found
+The average b0 volume is created by rigidly registering all of the found
 b0 directions to the first found b0 direction and averaging the voxel
 intensities.
 
-## 4. TensorFit
+## 4. Mask
+
+**Skull Strip the b0 volume**
+
+Masks the average b0 volume using median Otsu thresholding.
+
+## 5. ApplyMask
+
+**Applies the generated or edited b0 mask to the DWI**
+
+## 6. TensorFit
 
 **Fit the diffusion tensor model**
 
@@ -72,28 +78,25 @@ anisotropy are also calculated:
 * Radial Diffusivity (RD)
 
 Each measure of anisotropy is a 3D volume in the same space as the subject.
-Once the FA is generated, an atlas's FA is non-linearly registered using
-symmetric diffeomorphic registration. While FA is chosen for the
-registration, the generated mapping applies to all the other anisotropy
-measures as well. Forward mapping warps the template space to the subject space.
-Inverse mapping warps the subject space to the template space.
 
-The forward mapping from this registration is
-applied to the atlas's labels [1] to warp them to the subject's space.
-The inverse mapping is applied to the subject FA, warping it into the atlas's space.
-The atlas FA and label templates are stored in the module's 'templates' directory.
-
-The anisotropy measures, warped FA, warped labels, eigenvectors, and
+The anisotropy measures, warped FA, warped labels_lookup, eigenvectors, and
 eigenvalues are all saved as compressed Nifti files. The forward and
 inverse mappings are saved as numpy files. The eigenvalue nifti image has three volumes
 because every voxel has three eigenvalues. Likewise, the eigenvector nifti image has
 nine volumes because every voxel has three eigenvectors of length 3.
 
-[1] 'labels' refer to an overlay that contains integer values that
-correspond to regions in the brain
 
 
-## 5. RoiStats
+## 7. Warp
+
+An Atlas's FA is non-linearly registered to the subject FA using
+symmetric diffeomorphic registration. While FA is chosen for the
+registration, the generated mapping applies to all the other anisotropy
+measures as well. Forward mapping warps the template space to the subject space.
+Inverse mapping warps the subject space to the template space.
+
+
+## 8. RoiStats
 
 **Generate CSV files for the statistics of various anisotropy measures in
 certain regions of interest**
@@ -113,13 +116,12 @@ calculated over the non-zero voxels.
 
 **Launch a GUI to QC the automated skull stripping**
 
-MaskQC must be ran before the pipeline can continue to Register.
+Runs WarpQC if 'pass' is selected. If 'Save Edited Mask' is selected,
+a file dialog opens to get the path of the edited mask.
 
 ### WarpQC
 
 **Launch a GUI to QC the nonlinear registration**
-
-WarpQC must be ran before the pipeline can contine to StoreInDatabase.
 
 ### StoreInDatabase
 
