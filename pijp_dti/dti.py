@@ -56,16 +56,12 @@ class DTIStep(Step):
         self.fdwi = os.path.join(self.working_dir, 'stage', self.code + '.nii.gz')
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
-
         self.b0 = os.path.join(self.working_dir, 'register', self.code + '_b0.nii.gz')
         self.reg = os.path.join(self.working_dir, 'register', self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.working_dir, 'register', self.code + '_bvec_reg.npy')
-
         self.denoised = os.path.join(self.working_dir, 'denoise', self.code + '_denoised.nii.gz')
-
         self.auto_mask = os.path.join(self.working_dir, 'mask', self.code + '_auto_mask.nii.gz')
         self.masked = os.path.join(self.working_dir, 'mask', self.code + '_masked.nii.gz')
-
         self.fa = os.path.join(self.working_dir, 'tenfit', self.code + '_fa.nii.gz')
         self.md = os.path.join(self.working_dir, 'tenfit', self.code + '_md.nii.gz')
         self.ga = os.path.join(self.working_dir, 'tenfit', self.code + '_ga.nii.gz')
@@ -73,18 +69,15 @@ class DTIStep(Step):
         self.rd = os.path.join(self.working_dir, 'tenfit', self.code + '_rd.nii.gz')
         self.evals = os.path.join(self.working_dir, 'tenfit', self.code + '_evals.nii.gz')
         self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.nii.gz')
-
         self.warp_map = os.path.join(self.working_dir, 'warp', self.code + '_warp_map.npy')
         self.inverse_warp_map = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warp_map.npy')
         self.warped_fa = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.working_dir, 'warp', self.code + '_warped_labels.nii.gz')
-
         self.fa_roi = os.path.join(self.working_dir, 'stats', self.code + '_fa_roi.csv')
         self.md_roi = os.path.join(self.working_dir, 'stats', self.code + '_md_roi.csv')
         self.ga_roi = os.path.join(self.working_dir, 'stats', self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.working_dir, 'stats', self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.working_dir, 'stats', self.code + '_rd_roi.csv')
-
         self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
         self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mask_mosaic.png')
         self.warp_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_warp.png')
