@@ -89,8 +89,6 @@ inverse mappings are saved as numpy files. The eigenvalue nifti image has three 
 because every voxel has three eigenvalues. Likewise, the eigenvector nifti image has
 nine volumes because every voxel has three eigenvectors of length 3.
 
-
-
 ## 7. Warp
 
 An Atlas's FA is non-linearly registered to the subject FA using
