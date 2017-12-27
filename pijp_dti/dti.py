@@ -377,6 +377,9 @@ class RoiStats(DTIStep):
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels_lookup).item()
 
+        original, original_aff = self._load_nii(self.fdwi)
+        zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
+
         self.logger.info('calculating roi statistics')
 
         measures = {'fa': [fa, self.fa_roi],
@@ -386,8 +389,8 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            idx[0][fa < 0.05] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels)
+            idx[0][fa < 0.2] = 0
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
             self._write_array(stats, idx[1])
 
     def _write_array(self, array, csv_path):
