@@ -38,11 +38,18 @@ def get_case_dir(project, code):
     return cdir
 
 
-def get_dcm2niix_home():
+def get_dcm2niix():
     dcm2niix = util.configuration['dcm2niix']
     if not os.path.exists(dcm2niix):
-        raise Exception("dcm2niix home not found: %s" % dcm2niix)
+        raise Exception("dcm2niix not found: %s" % dcm2niix)
     return dcm2niix
+
+
+def get_mask_editor():
+    mask_editor = util.configuration['what']
+    if not os.path.exists(mask_editor):
+        raise Exception("what not found")
+    return mask_editor
 
 
 class DTIStep(Step):
@@ -154,8 +161,9 @@ class Stage(DTIStep):
         if source is None:
             raise ProcessingError("Could not find staging data.")
 
+        dcm2niix = get_dcm2niix()
         dcm_dir = self._copy_files(source)
-        cmd = 'dcm2niix -z i -m y -o {} {}'.format(stage_dir, dcm_dir)
+        cmd = '{} -z i -m y -o {} {}'.format(dcm2niix, stage_dir, dcm_dir)
         self._run_cmd(cmd)
 
         with os.scandir(stage_dir) as it:
@@ -377,7 +385,7 @@ class RoiStats(DTIStep):
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels_lookup).item()
 
-        original, original_aff = self._load_nii(self.fdwi)
+        original = nib.load(self.fdwi)
         zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
 
         self.logger.info('calculating roi statistics')
@@ -508,6 +516,18 @@ class WarpQC(DTIStep):
         finally:
             os.remove(self.review_flag)
 
+    @classmethod
+    def get_next(cls, project_name, args):
+        cases = DTIRepository().get_warp_qc_list(project_name)
+        LOGGER.info("%s cases in queue." % len(cases))
+
+        cases = [x["Code"] for x in cases]
+        while len(cases) != 0:
+            code = random.choice(cases)
+            cases.remove(code)
+            next_job = WarpQC(project_name, code, args)
+            if not next_job.under_review():
+                return next_job
 
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
