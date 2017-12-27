@@ -102,7 +102,7 @@ class DTIRepository(BaseRepository):
         sql = r"""
         INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
         RecordTime)
-        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd}, {median}, {time})
+        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -119,10 +119,11 @@ class DTIRepository(BaseRepository):
                         mean_val = fsp(str(row[3]))
                         sd = fsp(str(row[5]))
                         median_val = fsp(str(row[4]))
+                        volume = fsp(str(row[5]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         formatted_sql = sql.format(code=fsp(code), projectID=projectID, fname=fsp(m),
                                                    measure=msr, roi=roi, min=min_val,
-                                                   max=max_val, mean=mean_val, sd=sd, median=median_val, time=time)
+                                                   max=max_val, mean=mean_val, sd=sd)
                         self.connection.execute_non_query(formatted_sql)
 
     def get_project_id(self, project):
