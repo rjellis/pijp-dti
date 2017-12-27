@@ -100,8 +100,9 @@ class DTIRepository(BaseRepository):
 
     def set_roi_stats(self, projectID, code, md, fa, ga, rd, ad):
         sql = r"""
-        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev)
-        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
+        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
+        RecordTime)
+        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd}, {median}, {time})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -116,12 +117,12 @@ class DTIRepository(BaseRepository):
                         min_val = fsp(str(row[1]))
                         max_val = fsp(str(row[2]))
                         mean_val = fsp(str(row[3]))
-                        median_val = fsp(str(row[4]))
                         sd = fsp(str(row[5]))
+                        median_val = fsp(str(row[4]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         formatted_sql = sql.format(code=fsp(code), projectID=projectID, fname=fsp(m),
                                                    measure=msr, roi=roi, min=min_val,
-                                                   max=max_val, mean=mean_val, sd=sd)
+                                                   max=max_val, mean=mean_val, sd=sd, median=median_val, time=time)
                         self.connection.execute_non_query(formatted_sql)
 
     def get_project_id(self, project):
