@@ -451,10 +451,13 @@ class MaskQC(DTIStep):
                 self.next_step = WarpQC
             if result == 'fail':
                 self.next_step = None
-            if isinstance(result, str) and result not in ['pass', 'fail']:
-                shutil.copyfile(result, self.final_mask)
+            if result == 'edit':
+                # TODO run the mask editing tool!
+                # mask_editor = get_mask_editor()
+                # cmd = ''
+                # self._run_cmd()
                 self.outcome = 'edit'
-                self.next_step = None
+                self.next_step = WarpQC
         finally:
             os.remove(self.review_flag)
 
