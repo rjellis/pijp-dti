@@ -18,8 +18,12 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage, denoise, register, mask, tenfit, warp, stats, store, maskqc, warpqc
+steps: stage*, denoise, register, mask, apply*, tenfit, warp, stats, store, maskqc*, warpqc*
+
+* denoes steps with queue modes
+
 ```
+
 
 ## 1. Stage
 
@@ -104,12 +108,12 @@ Inverse mapping warps the subject space to the template space.
 certain regions of interest**
 
 The values for each anisotropy measure are found voxel-wise for each
-region of interest. The minimum value, maximum value, mean, and standard
-deviation are calculated for each region of interest. A comma separated
-value file (CSV) is generated for each anisotropy measure. CSV
-format: (name, min, max, mean, std. dev).
+region of interest. The minimum value, maximum value, mean, standard
+deviation, median and volume are calculated for each region of interest.
+A comma separated value file (CSV) is generated for each anisotropy measure.
+CSV format: (name, min, max, mean, std. dev, median, volume).
 
-Voxels where FA < 0.05 are set to zero. The ROI statistics are only
+Voxels where FA < 0.2 are set to zero. The ROI statistics are only
 calculated over the non-zero voxels.
 
 ## Interactive Steps
