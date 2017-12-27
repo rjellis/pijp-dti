@@ -156,7 +156,7 @@ def fit_dti(dat, bval, bvec):
     return evals, evecs, tenfit
 
 
-def roi_stats(dat, overlay, labels):
+def roi_stats(dat, overlay, labels, zooms):
     """Get statistics on a diffusion tensor measure in specific regions of interest.
 
     Args:
@@ -171,7 +171,8 @@ def roi_stats(dat, overlay, labels):
 
     """
     intensities_by_roi = dict()
-    stats = [['name', 'min', 'max', 'mean', 'sd', 'median']]
+    stats = [['name', 'min', 'max', 'mean', 'sd', 'median', 'volume']]
+    vox_size = zooms[0] * zooms[1] * zooms[2]
 
     for roi_labels in labels.values():
         intensities_by_roi[roi_labels] = []
@@ -185,7 +186,7 @@ def roi_stats(dat, overlay, labels):
 
     for rois in intensities_by_roi.keys():
         npa = np.asarray(intensities_by_roi[rois])
-        stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa)])
+        stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa), (np.sum(npa)*vox_size)])
 
     return stats
 
