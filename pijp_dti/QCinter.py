@@ -106,8 +106,7 @@ class Application(tk.Frame):
         self.button_edit.config(bg='pale green', fg='dark green')
         self.button_fail.config(bg='white', fg='black')
         self.button_pass.config(bg='white', fg='black')
-        edited = filedialog.askopenfilename(title='Select final mask')
-        self.result = edited
+        self.result = 'edit'
 
     def save_comment(self):
         self.button_comment.config(text='Comment Saved!', state='disabled')
