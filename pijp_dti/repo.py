@@ -62,7 +62,6 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-
     def get_warp_qc_list(self, project):
         sql = r"""
         SELECT 
@@ -87,7 +86,6 @@ class DTIRepository(BaseRepository):
 
         todo = self.connection.fetchall(sql)
         return todo
-
 
     def get_project_masks(self, project):
         sql = r"""
