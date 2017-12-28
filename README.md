@@ -1,6 +1,6 @@
 # pijp-dti
 
-All the steps necessary to process Diffusion Tensor Images.
+All the steps necessary to process diffusion weighted images.
 
 
 ```
