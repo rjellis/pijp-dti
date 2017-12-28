@@ -178,9 +178,8 @@ class Stage(DTIStep):
                     os.remove(entry.path)
 
         try:
-            os.path.isfile(self.fbval)
-            os.path.isfile(self.fbvec)
-            os.path.isfile(self.fdwi)
+            self._load_bval_bvec(self.fbval, self.fbvec)
+            nib.load(self.fdwi)
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
