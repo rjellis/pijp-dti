@@ -177,6 +177,21 @@ class Stage(DTIStep):
                 else:
                     os.remove(entry.path)
 
+        try:
+            os.path.isfile(self.fbval)
+            os.path.isfile(self.fbvec)
+            os.path.isfile(self.fdwi)
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = e
+            self.next_step = None
+
+        if len(nib.load(self.fdwi).get_data().shape) != 4:
+            self.outcome = 'Error'
+            self.comments = 'DWI must have 4 dimensions'
+            self.next_step = None
+
     def _copy_files(self, source):
         tmp = tempfile.mkdtemp()
         self.logger.debug("Copying %s files..." % (len(source)))
@@ -531,6 +546,7 @@ class WarpQC(DTIStep):
             next_job = WarpQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
+
 
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
