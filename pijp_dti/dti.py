@@ -152,45 +152,47 @@ class Stage(DTIStep):
         roiavg_dir = os.path.join(self.working_dir, 'stats')
         qc_dir = os.path.join(self.working_dir, 'qc')
 
-        dirs = [stage_dir, mask_dir, reg_dir, den_dir, tenfit_dir, warp_dir, roiavg_dir, qc_dir]
-        for dr in dirs:
-            if not os.path.isdir(dr):
-                os.makedirs(dr)
-            self.logger.info('building directory {}'.format(dr))
-
         source = DicomRepository().get_series_files(self.code)
 
         if source is None:
             raise ProcessingError("Could not find staging data.")
 
-        dcm2niix = get_dcm2niix()
-        dcm_dir = self._copy_files(source)
-        cmd = '{} -z i -m y -o {} {}'.format(dcm2niix, stage_dir, dcm_dir)
-        self._run_cmd(cmd)
+        try:
+            np.load(self.fbval)
+            np.load(self.fbvec)
 
-        with os.scandir(stage_dir) as it:
-            for entry in it:
-                if entry.name.endswith('.nii.gz'):
-                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.nii.gz'))
-                elif entry.name.endswith('.bval'):
-                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.bval'))
-                elif entry.name.endswith('.bvec'):
-                    os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
-                else:
-                    os.remove(entry.path)
+            dirs = [stage_dir, mask_dir, reg_dir, den_dir, tenfit_dir, warp_dir, roiavg_dir, qc_dir]
+            for dr in dirs:
+                if not os.path.isdir(dr):
+                    os.makedirs(dr)
+                self.logger.info('building directory {}'.format(dr))
+
+            dcm2niix = get_dcm2niix()
+            dcm_dir = self._copy_files(source)
+            cmd = '{} -z i -m y -o {} {}'.format(dcm2niix, stage_dir, dcm_dir)
+            self._run_cmd(cmd)
+
+            with os.scandir(stage_dir) as it:
+                for entry in it:
+                    if entry.name.endswith('.nii.gz'):
+                        os.rename(entry.path, os.path.join(stage_dir, self.code + '.nii.gz'))
+                    elif entry.name.endswith('.bval'):
+                        os.rename(entry.path, os.path.join(stage_dir, self.code + '.bval'))
+                    elif entry.name.endswith('.bvec'):
+                        os.rename(entry.path, os.path.join(stage_dir, self.code + '.bvec'))
+                    else:
+                        os.remove(entry.path)
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.logger.info('failed to find .bval or .bvec')
+            self.next_step = None
+            os.rmdir(get_case_dir(self.project, self.code))
 
         if len(nib.load(self.fdwi).get_data().shape) != 4:
             self.outcome = 'Error'
             self.comments = 'DWI must have 4 dimensions'
-            self.next_step = None
-
-        try:
-            np.load(self.fbval)
-            np.load(self.fbvec)
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
-            self.logger.info('failed to load .bval or .bvec')
             self.next_step = None
 
     def _copy_files(self, source):
