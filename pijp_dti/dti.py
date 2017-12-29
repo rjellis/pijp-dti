@@ -182,9 +182,7 @@ class Stage(DTIStep):
             self.comments = str(e)
             self.logger.info('failed to find .bval or .bvec')
             self.next_step = None
-            os.rmdir(get_case_dir(self.project, self.code))
-
-
+            shutil.rmtree(get_case_dir(self.project, self.code))
 
     def _copy_files(self, source):
         tmp = tempfile.mkdtemp()
@@ -555,9 +553,9 @@ class StoreInDatabase(DTIStep):
 
     def run(self):
         self.logger.info("storing in database")
-        projectID = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': projectID}
-        projectID = projectID['ProjectID']
-        DTIRepository().set_roi_stats(projectID, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+        proj_id = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
+        proj_id = proj_id['ProjectID']
+        DTIRepository().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
                                       self.rd_roi, self.ad_roi)
 
 
