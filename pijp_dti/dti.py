@@ -100,11 +100,13 @@ class DTIStep(Step):
         img = nib.load(fname)
         dat = img.get_data()
         aff = img.affine
+
         return dat, aff
 
     def _load_bval_bvec(self, fbval, fbvec):
         self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
+
         return bval, bvec
 
     def _save_nii(self, dat, aff, fname):
@@ -177,18 +179,18 @@ class Stage(DTIStep):
                 else:
                     os.remove(entry.path)
 
-        try:
-            self._load_bval_bvec(self.fbval, self.fbvec)
-            nib.load(self.fdwi)
-
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = e
-            self.next_step = None
-
         if len(nib.load(self.fdwi).get_data().shape) != 4:
             self.outcome = 'Error'
             self.comments = 'DWI must have 4 dimensions'
+            self.next_step = None
+
+        try:
+            np.load(self.fbval)
+            np.load(self.fbvec)
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.logger.info('failed to load .bval or .bvec')
             self.next_step = None
 
     def _copy_files(self, source):
