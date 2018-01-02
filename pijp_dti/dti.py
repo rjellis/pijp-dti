@@ -46,7 +46,7 @@ def get_dcm2niix():
 
 
 def get_mask_editor():
-    mask_editor = util.configuration['what']
+    mask_editor = util.configuration['QC-DTI-Masks']
     if not os.path.exists(mask_editor):
         raise Exception("what not found")
     return mask_editor
@@ -59,7 +59,6 @@ class DTIStep(Step):
 
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
-
         self.fdwi = os.path.join(self.working_dir, 'stage', self.code + '.nii.gz')
         self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
         self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
@@ -456,15 +455,14 @@ class MaskQC(DTIStep):
             self.comments = comments
             if result == 'pass':
                 self.next_step = WarpQC
-            if result == 'fail':
+            elif result == 'fail':
                 self.next_step = None
-            if result == 'edit':
-                # TODO run the mask editing tool!
-                # mask_editor = get_mask_editor()
-                # cmd = ''
-                # self._run_cmd()
+            elif result == 'edit':
                 self.outcome = 'edit'
                 self.next_step = WarpQC
+            else:
+                self.outcome = 'Error'
+                self.comments = 'result not recognized'
         finally:
             os.remove(self.review_flag)
 
