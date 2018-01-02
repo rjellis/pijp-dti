@@ -1,77 +1,81 @@
 import unittest
+import os
 
-import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
 from pijp_dti import dtfunc
-from pijp_dti import dtiQC
 
 
 class Test(unittest.TestCase):
 
+    img1 = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.nii.gz'
+    fbval = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.bval'
+    fbvec = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.bvec'
+
+    fpath = os.path.dirname(__file__).rstrip('/tests') + '/pijp_dti'
+    template = os.path.join(fpath, 'templates', 'fa_template.nii')
+    template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
+    labels_lookup = os.path.join(fpath, 'templates', 'labels.npy')
+
     def test_mask(self):
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t2/test2.nii.gz')
-        dat = img.get_data()
-        # dat = dtfunc.denoise(dat)
-        b0 = dat[..., 0]
-        b0 = dtiQC.rescale(b0)
-        b0 = np.stack((b0, b0, b0), axis=-1)
+        dat = nib.load(self.img1).get_data()
+        masked = dtfunc.mask(dat)
 
-        mask = dtfunc.mask(dat)
-        mask = mask[..., 0]
-
-        masked = dtiQC.mask_image(b0.astype(float), mask, hue=[0, 1, 0], alpha=0.7)
-
-        fig = dtiQC.Nifti_Animator(masked)
-        fig.plot()
-
+        self.assertEqual(masked.shape, dat.shape)
 
     def test_denoise(self):
+        dat = nib.load(self.img1).get_data()
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
+        denoised = dtfunc.denoise_pca(dat, bval, bvec)
 
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t1/test1.nii.gz')
-
-        dat = img.get_data()
-
-        den = dtfunc.denoise(dat)
-
-        self.assertEqual(den.shape, dat.shape)
-        self.assertLess(den.sum(), dat.sum())
+        self.assertEqual(denoised.shape, dat.shape)
 
     def test_b0_avg(self):
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t4/test4.nii.gz')
-        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval', None)
-        dat = img.get_data()
-        aff = img.affine
+
+        dat = nib.load(self.img1).get_data()
+        aff = nib.load(self.img1).affine
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
+
         self.assertEqual(b0.shape, dat[..., 0].shape)
 
     def test_register(self):
 
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t1/test1.nii.gz')
-        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval',
-                                      '/home/vhasfcellisr/Ryan/test/t1/test1.bvec')
-        dat = img.get_data()
-        aff = img.affine
+        dat = nib.load(self.img1).get_data()
+        aff = nib.load(self.img1).affine
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
+        dat_b0 = dtfunc.b0_avg(dat, aff, bval)
+        reg, bvecs = dtfunc.register(dat_b0, dat, aff, aff, bval, bvec)
 
-        b0 = dtfunc.b0_avg(dat, aff, bval)
-
-        reg_dat, reg_bvecs = dtfunc.register(b0, dat, aff, aff, bval, bvec)
-
-        self.assertEqual(dat.shape, reg_dat.shape)
+        self.assertEqual(reg.shape, dat.shape)
 
     def test_fit_dti(self):
 
-        img = nib.load('/home/vhasfcellisr/Ryan/test/t1/test1.nii.gz')
-        bval, bvec = read_bvals_bvecs('/home/vhasfcellisr/Ryan/test/t1/test1.bval',
-                                      '/home/vhasfcellisr/Ryan/test/t1/test1.bvec')
-        dat = img.get_data()
-
+        dat = nib.load(self.img1).get_data()
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
 
-        self.assertEqual(dat[..., 0].shape, tenfit.fa.shape)
+        self.assertEqual(len(tenfit.fa), len(dat[..., 0]))
+        print(len(tenfit.fa), len(dat[..., 0]))
+        self.assertEqual(len(tenfit.md), len(dat[..., 0]))
 
-        pass
+    def test_sym_diff_reg(self):
+
+        dat = nib.load(self.img1).get_data()
+        aff = nib.load(self.img1).affine
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
+
+        a, b, tenfit = dtfunc.fit_dti(dat, bval, bvec)
+        fa = tenfit.fa
+
+        dat2 = nib.load(self.template).get_data()
+        aff2 = nib.load(self.template).affine
+
+        warp, map = dtfunc.sym_diff_registration(fa, dat2, aff, aff2)
+
+        self.assertEqual(dat.shape, warp.shape)
+        self.assertEqual(map.transform_inverse(dat).shape, dat2.shape)
 
 
 if __name__ == "__main__":
