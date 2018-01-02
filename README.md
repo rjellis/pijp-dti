@@ -2,7 +2,6 @@
 
 All the steps necessary to process diffusion weighted images.
 
-
 ```
 usage: dti.py [-h] [-s STEP] [-c CODE] [-p PROJECT] [-v] [-n NUMBER] [-d DELAY]
 
@@ -20,7 +19,7 @@ optional arguments:
 
 steps: stage*, denoise, register, mask, apply*, tenfit, warp, stats, store, maskqc*, warpqc*
 
-* denoes steps with queue modes
+* steps with queue modes
 
 ```
 
