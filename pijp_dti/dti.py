@@ -458,6 +458,13 @@ class MaskQC(DTIStep):
             elif result == 'fail':
                 self.next_step = None
             elif result == 'edit':
+                if not os.path.isfile(self.final_mask):
+                    with open(self.final_mask, 'a'):
+                        os.utime(self.final_mask, None)
+                mask_editor = get_mask_editor()
+                cmd = "python {mask_editor} -p {project} -c {code}".format(mask_editor=mask_editor,
+                                                                           project=self.project, code=self.code)
+                self._run_cmd(cmd)
                 self.outcome = 'edit'
                 self.next_step = WarpQC
             else:
