@@ -160,6 +160,7 @@ class DTIRepository(BaseRepository):
         return project_id
 
     def get_project_settings(self, project_id):
+        # TODO fix this. Actually make a table, think of other possible settings
         sql = r"""
         SELECT
             Threshold
@@ -168,6 +169,12 @@ class DTIRepository(BaseRepository):
         WHERE 
             ProjectId = {}
         """.format(fsp(project_id))
+
+        # affine registration level iterations
+        # symmetric diffeomorphic level iterations
+        # Otsu thresholding parameters
+        # Local PCA vs. Non-Local-Means denoising
+        #
 
         settings = self.connection.fetchone(sql)
         return settings
