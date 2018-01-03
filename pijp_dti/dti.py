@@ -404,7 +404,10 @@ class RoiStats(DTIStep):
 
         for idx in measures.values():
             idx[0][fa < 0.2] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
+            try:
+                stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
+            except ValueError as e:
+                print("Statistics failed. Found an empty row.")
             self._write_array(stats, idx[1])
 
     def _write_array(self, array, csv_path):
