@@ -172,21 +172,25 @@ def roi_stats(dat, overlay, labels, zooms):
     """
     intensities_by_roi = dict()
     stats = [['name', 'min', 'max', 'mean', 'sd', 'median', 'volume']]
-    vox_size = zooms[0] * zooms[1] * zooms[2]
+    vox_size = zooms[0] * zooms[1] * zooms[2]  # The size of voxels in mm
 
     for roi_labels in labels.values():
-        intensities_by_roi[roi_labels] = []
+        intensities_by_roi[roi_labels] = [] # A list of ROI lists containing voxel intensities
 
     for coord, val in np.ndenumerate(dat):
-        key = overlay[coord]
-        if key in labels:
+        key = overlay[coord] #  Get the integer value from the overlay image
+        if key in labels:  # Find the label name for that integer value
             roi_name = labels[key]
             if val != 0:
-                intensities_by_roi[roi_name].append(val)
+                intensities_by_roi[roi_name].append(val)  # Add the intensity of the voxel to the list for the ROI
 
     for rois in intensities_by_roi.keys():
         npa = np.asarray(intensities_by_roi[rois])
-        stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa), (np.sum(npa)*vox_size)])
+        if len(npa) == 0:
+            stats.append([None, None, None, None, None, None])
+        else:
+            stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
+                          (np.sum(npa)*vox_size)])
 
     return stats
 
