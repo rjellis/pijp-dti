@@ -123,11 +123,11 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def set_roi_stats(self, projectID, code, md, fa, ga, rd, ad):
+    def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
         sql = r"""
         INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
         RecordTime)
-        VALUES ({code}, {projectID}, {fname}, {measure}, {roi}, {min}, {max}, {mean})
+        VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
@@ -146,7 +146,7 @@ class DTIRepository(BaseRepository):
                         median_val = fsp(str(row[4]))
                         volume = fsp(str(row[5]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        formatted_sql = sql.format(code=fsp(code), projectID=projectID, fname=fsp(m),
+                        formatted_sql = sql.format(code=fsp(code), projectID=project_id, fname=fsp(m),
                                                    measure=msr, roi=roi, min=min_val,
                                                    max=max_val, mean=mean_val, sd=sd)
                         self.connection.execute_non_query(formatted_sql)
@@ -156,5 +156,18 @@ class DTIRepository(BaseRepository):
         SELECT ProjectID FROM Projects WHERE ProjectName = {0}
         """.format(fsp(project))
 
-        projectID = self.connection.fetchone(sql)
-        return projectID
+        project_id = self.connection.fetchone(sql)
+        return project_id
+
+    def get_project_settings(self, project_id):
+        sql = r"""
+        SELECT
+            Threshold
+        FROM
+            pijp_dti
+        WHERE 
+            ProjectId = {}
+        """.format(fsp(project_id))
+
+        settings = self.connection.fetchone(sql)
+        return settings
