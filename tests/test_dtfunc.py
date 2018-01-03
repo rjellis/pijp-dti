@@ -1,6 +1,7 @@
-import unittest
 import os
+import unittest
 
+import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
@@ -77,6 +78,22 @@ class Test(unittest.TestCase):
         self.assertEqual(dat.shape, warp.shape)
         self.assertEqual(mapping.transform_inverse(dat).shape, dat2.shape)
 
+    def test_roi_stats(self):
+
+        dat = nib.load(self.img1).get_data()
+        aff = nib.load(self.img1).affine
+        labels = nib.load(self.template_labels).get_data()
+        zooms = nib.load(self.img1).header.get_zooms()
+        lookup = np.load(self.labels_lookup).item()
+        bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
+        a, b, tenfit = dtfunc.fit_dti(dat, bval, bvec)
+        fa = tenfit.fa
+        fa[fa < 0.2] = 0
+        warp, mapping = dtfunc.sym_diff_registration(fa, labels, aff, aff)
+        print(fa.shape)
+        print(warp.shape)
+        stats = dtfunc.roi_stats(fa, warp, lookup, zooms)
+        print(stats)
 
 if __name__ == "__main__":
     unittest.main()
