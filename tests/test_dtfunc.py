@@ -72,10 +72,10 @@ class Test(unittest.TestCase):
         dat2 = nib.load(self.template).get_data()
         aff2 = nib.load(self.template).affine
 
-        warp, map = dtfunc.sym_diff_registration(fa, dat2, aff, aff2)
+        warp, mapping = dtfunc.sym_diff_registration(fa, dat2, aff, aff2)
 
         self.assertEqual(dat.shape, warp.shape)
-        self.assertEqual(map.transform_inverse(dat).shape, dat2.shape)
+        self.assertEqual(mapping.transform_inverse(dat).shape, dat2.shape)
 
 
 if __name__ == "__main__":
