@@ -79,6 +79,7 @@ class DTIStep(Step):
         self.inverse_warp_map = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warp_map.npy')
         self.warped_fa = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.working_dir, 'warp', self.code + '_warped_labels.nii.gz')
+        self.segmented = os.path.join(self.working_dir, 'segment', self.code + '_segmented.nii.gz')
         self.fa_roi = os.path.join(self.working_dir, 'stats', self.code + '_fa_roi.csv')
         self.md_roi = os.path.join(self.working_dir, 'stats', self.code + '_md_roi.csv')
         self.ga_roi = os.path.join(self.working_dir, 'stats', self.code + '_ga_roi.csv')
@@ -148,6 +149,7 @@ class Stage(DTIStep):
         mask_dir = os.path.join(self.working_dir, 'mask')
         tenfit_dir = os.path.join(self.working_dir, 'tenfit')
         warp_dir = os.path.join(self.working_dir, 'warp')
+        seg_dir = os.path.join(self.working_dir, 'segment')
         roiavg_dir = os.path.join(self.working_dir, 'stats')
         qc_dir = os.path.join(self.working_dir, 'qc')
 
@@ -158,7 +160,7 @@ class Stage(DTIStep):
 
         try:
 
-            dirs = [stage_dir, mask_dir, reg_dir, den_dir, tenfit_dir, warp_dir, roiavg_dir, qc_dir]
+            dirs = [stage_dir, mask_dir, reg_dir, den_dir, tenfit_dir, warp_dir,seg_dir, roiavg_dir, qc_dir]
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
@@ -221,9 +223,9 @@ class Denoise(DTIStep):
         self.next_step = Register
 
     def run(self):
+        self.logger.info("denoising the DWI")
         dat, aff = self._load_nii(self.fdwi)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        self.logger.info("denoising the DWI")
         denoised = dtfunc.denoise_pca(dat, bval, bvec)
 
         self._save_nii(denoised, aff, self.denoised)
@@ -242,9 +244,9 @@ class Register(DTIStep):
         self.next_step = Mask
 
     def run(self):
+        self.logger.info('averaging the b0 volume')
         dat, aff = self._load_nii(self.denoised)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        self.logger.info('averaging the b0 volume')
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the DWI to its averaged b0 volume')
         reg_dat, bvec = dtfunc.register(b0, dat, aff, aff, bval, bvec)
@@ -351,14 +353,14 @@ class Warp(DTIStep):
 
     def __init__(self, project, code, args):
         super(Warp, self).__init__(project, code, args)
-        self.next_step = RoiStats
+        self.next_step = Segment
 
     def run(self):
+        self.logger.info('generating nonlinear registration map for FA')
         fa, fa_aff = self._load_nii(self.fa)
         template, template_aff = self._load_nii(self.template)
         temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
 
-        self.logger.info('generating nonlinear registration map for FA')
         warped_template, mapping = dtfunc.sym_diff_registration(
             fa, template,
             fa_aff, template_aff)
@@ -371,30 +373,51 @@ class Warp(DTIStep):
         self._save_nii(warped_labels, fa_aff, self.warped_labels)
 
 
+class Segment(DTIStep):
+
+    process_name = "DTI"
+    step_name = "Segment"
+    step_cli = "seg"
+    prev_step = Warp
+
+    def __init__(self, project, code, args):
+        super(Segment, self).__init__(project, code, args)
+        self.next_step = RoiStats
+
+    def run(self):
+        self.logger.info('segmenting tissue for the masked average b0 volume')
+        masked, maff = self._load_nii(self.masked)
+        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+        masked_b0 = dtfunc.b0_avg(masked, maff, bval)
+        segmented = dtfunc.segment_tissue(masked_b0)
+
+        self._save_nii(segmented, maff, self.segmented)
+
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
     """
     process_name = "DTI"
     step_name = "RoiStats"
     step_cli = "stats"
-    prev_step = [Warp]
+    prev_step = [Segment]
 
     def __init__(self, project, code, args):
         super(RoiStats, self).__init__(project, code, args)
 
     def run(self):
+        self.logger.info('calculating roi statistics')
         fa, aff = self._load_nii(self.fa)
         md, aff = self._load_nii(self.md)
         ga, aff = self._load_nii(self.ga)
         ad, aff = self._load_nii(self.ad)
         rd, aff = self._load_nii(self.rd)
+        segmented, aff = self._load_nii(self.segmented)
         warped_labels, aff = self._load_nii(self.warped_labels)
         labels = np.load(self.labels_lookup).item()
 
         original = nib.load(self.fdwi)
         zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
 
-        self.logger.info('calculating roi statistics')
 
         measures = {'fa': [fa, self.fa_roi],
                     'md': [md, self.md_roi],
@@ -403,8 +426,8 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            idx[0][fa < 0.2] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
+            wm_masked = dtfunc.apply_mask(idx[0], segmented[..., 1])  # using the second segmented volume (white matter)
+            stats = dtfunc.roi_stats(wm_masked, warped_labels, labels, zooms)
             self._write_array(stats, idx[1])
 
     def _write_array(self, array, csv_path):
