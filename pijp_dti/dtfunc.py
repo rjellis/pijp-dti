@@ -189,7 +189,7 @@ def roi_stats(dat, overlay, labels, zooms):
         try:
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
                           (np.sum(npa)*vox_size)])
-        except ValueError:
+        except ValueError:  # Catches rows with empty ROIs
             stats.append([rois, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     return stats
