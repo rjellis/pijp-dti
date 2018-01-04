@@ -23,12 +23,12 @@ from pijp_dti import dtiQC, QCinter
 from pijp_dti.repo import DTIRepository
 
 LOGGER = logging.getLogger(__name__)
-PROCESS_TITLE = 'dti'
-VERSION = "0.1.0"
+PROCESS_TITLE = 'pijp_dti'
+VERSION = "0.2.0"
 
 
 def get_process_dir(project):
-    return os.path.join(get_project_dir(project), 'dti')
+    return os.path.join(get_project_dir(project), 'pijp_dti')
 
 
 def get_case_dir(project, code):
@@ -59,35 +59,45 @@ class DTIStep(Step):
 
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
-        self.fdwi = os.path.join(self.working_dir, 'stage', self.code + '.nii.gz')
-        self.fbval = os.path.join(self.working_dir, 'stage', self.code + '.bval')
-        self.fbvec = os.path.join(self.working_dir, 'stage', self.code + '.bvec')
-        self.b0 = os.path.join(self.working_dir, 'register', self.code + '_b0.nii.gz')
-        self.reg = os.path.join(self.working_dir, 'register', self.code + '_reg.nii.gz')
-        self.fbvec_reg = os.path.join(self.working_dir, 'register', self.code + '_bvec_reg.npy')
-        self.denoised = os.path.join(self.working_dir, 'denoise', self.code + '_denoised.nii.gz')
-        self.auto_mask = os.path.join(self.working_dir, 'mask', self.code + '_auto_mask.nii.gz')
-        self.masked = os.path.join(self.working_dir, 'mask', self.code + '_masked.nii.gz')
-        self.fa = os.path.join(self.working_dir, 'tenfit', self.code + '_fa.nii.gz')
-        self.md = os.path.join(self.working_dir, 'tenfit', self.code + '_md.nii.gz')
-        self.ga = os.path.join(self.working_dir, 'tenfit', self.code + '_ga.nii.gz')
-        self.ad = os.path.join(self.working_dir, 'tenfit', self.code + '_ad.nii.gz')
-        self.rd = os.path.join(self.working_dir, 'tenfit', self.code + '_rd.nii.gz')
-        self.evals = os.path.join(self.working_dir, 'tenfit', self.code + '_evals.nii.gz')
-        self.evecs = os.path.join(self.working_dir, 'tenfit', self.code + '_evecs.nii.gz')
-        self.warp_map = os.path.join(self.working_dir, 'warp', self.code + '_warp_map.npy')
-        self.inverse_warp_map = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warp_map.npy')
-        self.warped_fa = os.path.join(self.working_dir, 'warp', self.code + '_inverse_warped_fa.nii.gz')
-        self.warped_labels = os.path.join(self.working_dir, 'warp', self.code + '_warped_labels.nii.gz')
-        self.segmented = os.path.join(self.working_dir, 'segment', self.code + '_segmented.nii.gz')
-        self.fa_roi = os.path.join(self.working_dir, 'stats', self.code + '_fa_roi.csv')
-        self.md_roi = os.path.join(self.working_dir, 'stats', self.code + '_md_roi.csv')
-        self.ga_roi = os.path.join(self.working_dir, 'stats', self.code + '_ga_roi.csv')
-        self.ad_roi = os.path.join(self.working_dir, 'stats', self.code + '_ad_roi.csv')
-        self.rd_roi = os.path.join(self.working_dir, 'stats', self.code + '_rd_roi.csv')
-        self.final_mask = os.path.join(self.working_dir, 'qc', self.code + '_final_mask.nii.gz')
-        self.mask_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_mask_mosaic.png')
-        self.warp_mosaic = os.path.join(self.working_dir, 'qc', self.code + '_warp.png')
+        self.stage_dir = os.path.join(self.working_dir, '0Stage')
+        self.den_dir = os.path.join(self.working_dir, '1Denoise')
+        self.reg_dir = os.path.join(self.working_dir, '2Register')
+        self.mask_dir = os.path.join(self.working_dir, '3Mask')
+        self.tenfit_dir = os.path.join(self.working_dir, '4Tenfit')
+        self.warp_dir = os.path.join(self.working_dir, '5Warp')
+        self.seg_dir = os.path.join(self.working_dir, '6Segment')
+        self.roiavg_dir = os.path.join(self.working_dir, '7Stats')
+        self.qc_dir = os.path.join(self.working_dir, '8QC')
+        self.fdwi = os.path.join(self.stage_dir, self.code + '.nii.gz')
+        self.fbval = os.path.join(self.stage_dir, self.code + '.bval')
+        self.fbvec = os.path.join(self.stage_dir, self.code + '.bvec')
+        self.b0 = os.path.join(self.reg_dir, self.code + '_b0.nii.gz')
+        self.reg = os.path.join(self.reg_dir, self.code + '_reg.nii.gz')
+        self.fbvec_reg = os.path.join(self.reg_dir, self.code + '_bvec_reg.npy')
+        self.denoised = os.path.join(self.den_dir, self.code + '_denoised.nii.gz')
+        self.auto_mask = os.path.join(self.mask_dir, self.code + '_auto_mask.nii.gz')
+        self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
+        self.fa = os.path.join(self.tenfit_dir, self.code + '_fa.nii.gz')
+        self.md = os.path.join(self.tenfit_dir, self.code + '_md.nii.gz')
+        self.ga = os.path.join(self.tenfit_dir, self.code + '_ga.nii.gz')
+        self.ad = os.path.join(self.tenfit_dir, self.code + '_ad.nii.gz')
+        self.rd = os.path.join(self.tenfit_dir, self.code + '_rd.nii.gz')
+        self.evals = os.path.join(self.tenfit_dir, self.code + '_evals.nii.gz')
+        self.evecs = os.path.join(self.tenfit_dir, self.code + '_evecs.nii.gz')
+        self.warp_map = os.path.join(self.warp_dir, self.code + '_warp_map.npy')
+        self.inverse_warp_map = os.path.join(self.warp_dir, self.code + '_inverse_warp_map.npy')
+        self.warped_fa = os.path.join(self.warp_dir, self.code + '_inverse_warped_fa.nii.gz')
+        self.warped_labels = os.path.join(self.warp_dir, self.code + '_warped_labels.nii.gz')
+        self.segmented = os.path.join(self.seg_dir, self.code + '_segmented.nii.gz')
+        self.fa_roi = os.path.join(self.roiavg_dir, self.code + '_fa_roi.csv')
+        self.md_roi = os.path.join(self.roiavg_dir, self.code + '_md_roi.csv')
+        self.ga_roi = os.path.join(self.roiavg_dir, self.code + '_ga_roi.csv')
+        self.ad_roi = os.path.join(self.roiavg_dir, self.code + '_ad_roi.csv')
+        self.rd_roi = os.path.join(self.roiavg_dir, self.code + '_rd_roi.csv')
+        self.final_mask = os.path.join(self.qc_dir, self.code + '_final_mask.nii.gz')
+        self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
+        self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
+        self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -133,7 +143,7 @@ class DTIStep(Step):
 class Stage(DTIStep):
     """Convert Dicoms and set up the pipeline
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Stage"
     step_cli = "stage"
 
@@ -143,16 +153,6 @@ class Stage(DTIStep):
 
     def run(self):
 
-        stage_dir = os.path.join(self.working_dir, 'stage')
-        reg_dir = os.path.join(self.working_dir, 'register')
-        den_dir = os.path.join(self.working_dir, 'denoise')
-        mask_dir = os.path.join(self.working_dir, 'mask')
-        tenfit_dir = os.path.join(self.working_dir, 'tenfit')
-        warp_dir = os.path.join(self.working_dir, 'warp')
-        seg_dir = os.path.join(self.working_dir, 'segment')
-        roiavg_dir = os.path.join(self.working_dir, 'stats')
-        qc_dir = os.path.join(self.working_dir, 'qc')
-
         source = DicomRepository().get_series_files(self.code)
 
         if source is None:
@@ -160,7 +160,8 @@ class Stage(DTIStep):
 
         try:
 
-            dirs = [stage_dir, mask_dir, reg_dir, den_dir, tenfit_dir, warp_dir,seg_dir, roiavg_dir, qc_dir]
+            dirs = [self.stage_dir, self.mask_dir, self.reg_dir, self.den_dir, self.tenfit_dir, self.warp_dir,
+                    self.seg_dir, self.roiavg_dir, self.qc_dir]
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
@@ -168,7 +169,7 @@ class Stage(DTIStep):
 
             dcm2niix = get_dcm2niix()
             dcm_dir = self._copy_files(source)
-            cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, stage_dir, self.code, dcm_dir)
+            cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
             self._run_cmd(cmd)
 
             read_bvals_bvecs(self.fbval, self.fbvec)
@@ -212,7 +213,7 @@ class Stage(DTIStep):
 class Denoise(DTIStep):
     """Denoise the DWI using Local PCA
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Denoise"
     step_cli = "denoise"
 
@@ -234,7 +235,7 @@ class Denoise(DTIStep):
 class Register(DTIStep):
     """Rigidly register the diffusion weighted directions to an averaged b0 volume
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Register"
     step_cli = "register"
     prev_step = [Denoise]
@@ -259,7 +260,7 @@ class Register(DTIStep):
 class Mask(DTIStep):
     """Skull strip the average b0 volume
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Mask"
     step_cli = "mask"
 
@@ -281,7 +282,7 @@ class ApplyMask(DTIStep):
     """Apply the auto mask (or the edited one if it exists)
     """
 
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "ApplyMask"
     step_cli = "apply"
 
@@ -317,7 +318,7 @@ class ApplyMask(DTIStep):
 class TensorFit(DTIStep):
     """Fit the diffusion tensor model
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "TensorFit"
     step_cli = "tenfit"
     prev_step = [ApplyMask]
@@ -346,7 +347,7 @@ class TensorFit(DTIStep):
 class Warp(DTIStep):
     """Warp the template FA and labels_lookup to the subject space
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Warp"
     step_cli = "warp"
     prev_step = [TensorFit]
@@ -371,11 +372,12 @@ class Warp(DTIStep):
         np.save(self.inverse_warp_map, mapping.get_backward_field())
         self._save_nii(warped_fa, template_aff, self.warped_fa)
         self._save_nii(warped_labels, fa_aff, self.warped_labels)
+        dtiQC.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
 
 
 class Segment(DTIStep):
 
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "Segment"
     step_cli = "seg"
     prev_step = Warp
@@ -392,11 +394,12 @@ class Segment(DTIStep):
         segmented = dtfunc.segment_tissue(masked_b0)
 
         self._save_nii(segmented, maff, self.segmented)
+        dtiQC.get_warp_mosaic(self.fa, self.segmented, self.seg_mosaic)
 
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "RoiStats"
     step_cli = "stats"
     prev_step = [Segment]
@@ -441,7 +444,7 @@ class RoiStats(DTIStep):
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "MaskQC"
     step_cli = "maskqc"
     interactive = True
@@ -513,7 +516,7 @@ class MaskQC(DTIStep):
 class WarpQC(DTIStep):
     """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels_lookup overlaid on the FA image.
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "WarpQC"
     step_cli = "warpqc"
     interactive = True
@@ -571,7 +574,7 @@ class WarpQC(DTIStep):
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
     """
-    process_name = "DTI"
+    process_name = "pijp dti"
     step_name = "StoreInDatabase"
     step_cli = "store"
     interactive = True
