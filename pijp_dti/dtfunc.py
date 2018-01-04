@@ -7,6 +7,7 @@ from dipy.denoise.localpca import localpca
 from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
 from dipy.segment import mask as otsu
+from dipy.segment.tissue import TissueClassifierHMRF
 
 
 def mask(dat):
@@ -156,6 +157,17 @@ def fit_dti(dat, bval, bvec):
     return evals, evecs, tenfit
 
 
+def segment_tissue(dat):
+
+    nclass = 3
+    beta = 0.1
+
+    hmrf = TissueClassifierHMRF()
+    initial_segmentation, final_segmentation, pve = hmrf.classify(dat, nclass, beta)
+
+    return pve
+
+
 def roi_stats(dat, overlay, labels, zooms):
     """Get statistics on a diffusion tensor measure in specific regions of interest.
 
@@ -175,10 +187,10 @@ def roi_stats(dat, overlay, labels, zooms):
     vox_size = zooms[0] * zooms[1] * zooms[2]  # The size of voxels in mm
 
     for roi_labels in labels.values():
-        intensities_by_roi[roi_labels] = [] # A list of ROI lists containing voxel intensities
+        intensities_by_roi[roi_labels] = []  # A list of ROI lists containing voxel intensities
 
     for coord, val in np.ndenumerate(dat):
-        key = overlay[coord] #  Get the integer value from the overlay image
+        key = overlay[coord]  # Get the integer value from the overlay image
         if key in labels:  # Find the label name for that integer value
             roi_name = labels[key]
             if val != 0:
