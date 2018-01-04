@@ -90,10 +90,11 @@ class Test(unittest.TestCase):
         fa = tenfit.fa
         fa[fa < 0.2] = 0
         warp, mapping = dtfunc.sym_diff_registration(fa, labels, aff, aff)
-        print(fa.shape)
-        print(warp.shape)
         stats = dtfunc.roi_stats(fa, warp, lookup, zooms)
-        print(stats)
+
+        for stat in stats:
+            self.assertIsNotNone(stat)
+
 
 if __name__ == "__main__":
     unittest.main()
