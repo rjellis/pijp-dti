@@ -78,6 +78,23 @@ class Test(unittest.TestCase):
         self.assertEqual(dat.shape, warp.shape)
         self.assertEqual(mapping.transform_inverse(dat).shape, dat2.shape)
 
+    def test_segment_tissue(self):
+
+        dat = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/register/NRC-FRA018-0003-V0-a1001_b0'
+                       '.nii.gz').get_data()
+
+        mask = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/mask/NRC-FRA018-0003-V0-a1001_auto_mask'
+                       '.nii.gz').get_data()
+        aff = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/register/NRC-FRA018-0003-V0-a1001_b0'
+                       '.nii.gz').affine
+
+        dat = dtfunc.apply_mask(dat, mask)
+
+        seg = dtfunc.segment_tissue(dat)
+
+        img = nib.Nifti1Image(seg, aff)
+        nib.save(img, '/home/vhasfcellisr/seg.nii')
+
     def test_roi_stats(self):
 
         dat = nib.load(self.img1).get_data()
