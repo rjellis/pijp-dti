@@ -186,11 +186,11 @@ def roi_stats(dat, overlay, labels, zooms):
 
     for rois in intensities_by_roi.keys():
         npa = np.asarray(intensities_by_roi[rois])
-        if len(npa) == 0:
-            stats.append([None, None, None, None, None, None])
-        else:
+        try:
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
                           (np.sum(npa)*vox_size)])
+        except ValueError:
+            stats.append([rois, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     return stats
 
