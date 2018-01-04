@@ -125,9 +125,8 @@ class DTIRepository(BaseRepository):
 
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
         sql = r"""
-        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
-        Volume, RecordTime)
-        VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd}, {median}, {vol}, {time})
+        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev)
+        VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
