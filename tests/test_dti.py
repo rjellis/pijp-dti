@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
     logdir = '/home/vhasfcellisr/tests'
     comments = 'testing'
 
-    def test_Stage(self):
+    def test_stage(self):
 
         stage = dti.Stage(self.project, self.code, self.args)
         stage.working_dir = self.working_dir
@@ -97,6 +97,15 @@ class Test(unittest.TestCase):
         self.assertTrue(os.path.isfile(warp.warped_labels))
         self.assertTrue(os.path.isfile(warp.warp_map))
         self.assertTrue(os.path.isfile(warp.inverse_warp_map))
+
+    def test_segment(self):
+
+        seg = dti.Segment(self.project, self.code, self.args)
+        seg.working_dir = self.working_dir
+        seg.logdir = self.logdir
+        seg.run()
+
+        self.assertTrue(os.path.isfile(seg.segmented))
 
     def test_roistats(self):
 
