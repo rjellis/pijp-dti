@@ -159,7 +159,7 @@ def fit_dti(dat, bval, bvec):
 
 def segment_tissue(dat):
 
-    nclass = 3
+    nclass = 4
     beta = 0.1
 
     hmrf = TissueClassifierHMRF()
