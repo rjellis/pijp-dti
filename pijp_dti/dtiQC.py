@@ -24,9 +24,7 @@ class Mosaic(object):
         for i in range(0, subplot_size):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 0], 1), interpolation=None)
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 1], 1), interpolation=None)
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, 2], 1), interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx], 1), interpolation=None)
 
                 ax[i, j].axis("off")
                 slc_idx += 1
@@ -112,6 +110,18 @@ def get_mask_mosaic(image_path, mask_path, mosaic_path=None):
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
+    return Mosaic(masked).plot(mosaic_path)
+
+
+def get_seg_mosaic(image_path, seg_path, mosaic_path=None):
+    image = nib.load(image_path).get_data()
+    seg = nib.load(seg_path).get_data()
+    seg = seg[..., 1]
+    seg[seg > 1] = 1
+    seg[seg < 0.001] = 0
+    image = rescale(image)
+    image = np.stack((image, image, image), axis=-1)
+    masked = mask_image(image, seg, hue=[1, 0, 0], alpha=0.5)
     return Mosaic(masked).plot(mosaic_path)
 
 
