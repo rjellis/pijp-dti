@@ -137,6 +137,7 @@ class DTIRepository(BaseRepository):
                     if mreader.line_num == 1:
                         row.pop()
                     else:
+                        fname = fsp(m)
                         roi = fsp(str(row[0]))
                         min_val = fsp(str(row[1]))
                         max_val = fsp(str(row[2]))
@@ -145,9 +146,9 @@ class DTIRepository(BaseRepository):
                         median_val = fsp(str(row[4]))
                         volume = fsp(str(row[5]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        formatted_sql = sql.format(code=fsp(code), projectID=project_id, measure=msr, roi=roi,
-                                                   min=min_val, max=max_val, mean=mean_val, sd=sd, median=median_val,
-                                                   vol=volume, time=time)
+                        formatted_sql = sql.format(code=fsp(code), project_id=project_id, fname=fname, measure=msr,
+                                                   roi=roi, min=min_val, max=max_val, mean=mean_val, sd=sd,
+                                                   median=median_val, vol=volume, time=time)
                         self.connection.execute_non_query(formatted_sql)
 
     def get_project_id(self, project):
