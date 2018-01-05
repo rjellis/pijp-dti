@@ -66,10 +66,8 @@ class Test(unittest.TestCase):
         dat = nib.load(self.img1).get_data()
         aff = nib.load(self.img1).affine
         bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
-
         a, b, tenfit = dtfunc.fit_dti(dat, bval, bvec)
         fa = tenfit.fa
-
         dat2 = nib.load(self.template).get_data()
         aff2 = nib.load(self.template).affine
 
@@ -78,20 +76,12 @@ class Test(unittest.TestCase):
         self.assertEqual(dat.shape, warp.shape)
         self.assertEqual(mapping.transform_inverse(dat).shape, dat2.shape)
 
-    def test_segment_tissue(self): # More of a proof of concept right now...
+    def test_segment_tissue(self):
 
-        dat = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/register/NRC-FRA018-0003-V0-a1001_b0'
-                       '.nii.gz').get_data()
+        dat = nib.load(self.img1).get_data()
+        seg = dtfunc.segment_tissue(dat[..., 0])
 
-        mask = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/mask/NRC-FRA018-0003-V0-a1001_auto_mask'
-                       '.nii.gz').get_data()
-        aff = nib.load('/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/register/NRC-FRA018-0003-V0-a1001_b0'
-                       '.nii.gz').affine
-
-        dat = dtfunc.apply_mask(dat, mask)
-
-        seg = dtfunc.segment_tissue(dat)
-
+        self.assertEqual(len(seg.shape), len(dat.shape))  # both should be 4 dimensional
 
     def test_roi_stats(self):
 
