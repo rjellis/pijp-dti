@@ -99,3 +99,18 @@ class Test(unittest.TestCase):
         self.assertTrue(os.path.isfile(stats.ga_roi))
         self.assertTrue(os.path.isfile(stats.rd_roi))
         self.assertTrue(os.path.isfile(stats.ad_roi))
+
+    def test_maskqc(self):
+
+        maskqc = dti.MaskQC(self.project, self.code, self.args)
+        maskqc.run()
+
+        self.assertIsNotNone(maskqc.outcome)
+
+    def test_warpqc(self):
+
+        warpqc = dti.WarpQC(self.project, self.code, self.args)
+        warpqc.run()
+
+        self.assertIsNotNone(warpqc.outcome)
+
