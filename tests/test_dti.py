@@ -1,8 +1,8 @@
 import unittest
 import os
-import shutil
 
 from pijp_dti import dti
+
 
 class Test(unittest.TestCase):
 
