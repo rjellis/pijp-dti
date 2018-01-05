@@ -163,6 +163,7 @@ def segment_tissue(dat):
     beta = 0.1
 
     hmrf = TissueClassifierHMRF()
+    hmrf.verbose = False
     initial_segmentation, final_segmentation, pve = hmrf.classify(dat, nclass, beta)
 
     return pve
