@@ -160,7 +160,7 @@ class Stage(DTIStep):
 
         try:
 
-            dirs = [self.stage_dir, self.mask_dir, self.reg_dir, self.den_dir, self.tenfit_dir, self.warp_dir,
+            dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.qc_dir]
             for dr in dirs:
                 if not os.path.isdir(dr):
@@ -275,7 +275,7 @@ class Mask(DTIStep):
         self.logger.info('masking the average b0 volume')
         mask = dtfunc.mask(dat)
         self._save_nii(mask, aff, self.auto_mask)
-        dtiQC.get_mask_mosaic(self.reg, self.auto_mask, self.mask_mosaic)
+        dtiQC.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
 
 
 class ApplyMask(DTIStep):
@@ -387,14 +387,14 @@ class Segment(DTIStep):
         self.next_step = RoiStats
 
     def run(self):
-        self.logger.info('segmenting tissue for the masked average b0 volume')
+        self.logger.info('segmenting tissue for the average b0 of the masked volume')
         masked, maff = self._load_nii(self.masked)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         masked_b0 = dtfunc.b0_avg(masked, maff, bval)
         segmented = dtfunc.segment_tissue(masked_b0)
-
         self._save_nii(segmented, maff, self.segmented)
-        dtiQC.get_warp_mosaic(self.fa, self.segmented, self.seg_mosaic)
+        dtiQC.get_seg_mosaic(self.b0, self.segmented, self.seg_mosaic)
+
 
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
@@ -420,7 +420,6 @@ class RoiStats(DTIStep):
 
         original = nib.load(self.fdwi)
         zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
-
 
         measures = {'fa': [fa, self.fa_roi],
                     'md': [md, self.md_roi],
@@ -473,7 +472,7 @@ class MaskQC(DTIStep):
 
     def run(self):
 
-        mask_fig = dtiQC.get_mask_mosaic(self.denoised, self.masked, self.mask_mosaic)
+        mask_fig = dtiQC.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
 
         try:
             (result, comments) = QCinter.qc_tool(mask_fig, self.code)
