@@ -17,7 +17,7 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage*, denoise, register, mask, apply*, tenfit, warp, stats, store, maskqc*, warpqc*
+steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, store, maskqc*, warpqc*
 
 * steps with queue modes
 
@@ -100,8 +100,12 @@ registration, the generated mapping applies to all the other anisotropy
 measures as well. Forward mapping warps the template space to the subject space.
 Inverse mapping warps the subject space to the template space.
 
+## 8. Segment
 
-## 8. RoiStats
+The registered b0 image is segmented into 4 tissue classes: background, white matter,
+gray matter, and CSF.
+
+## 9. RoiStats
 
 **Generate CSV files for the statistics of various anisotropy measures in
 certain regions of interest**
@@ -111,9 +115,8 @@ region of interest. The minimum value, maximum value, mean, standard
 deviation, median and volume are calculated for each region of interest.
 A comma separated value file (CSV) is generated for each anisotropy measure.
 CSV format: (name, min, max, mean, std. dev, median, volume).
-
-Voxels where FA < 0.2 are set to zero. The ROI statistics are only
-calculated over the non-zero voxels.
+The white matter segmentation is applied before caluclation.
+The ROI statistics are only calculated over the non-zero voxels.
 
 ## Interactive Steps
 
@@ -121,8 +124,7 @@ calculated over the non-zero voxels.
 
 **Launch a GUI to QC the automated skull stripping**
 
-Runs WarpQC if 'pass' is selected. If 'Save Edited Mask' is selected,
-a file dialog opens to get the path of the edited mask.
+Runs WarpQC if 'pass' is selected.
 
 ### WarpQC
 
