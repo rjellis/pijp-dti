@@ -432,8 +432,8 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            wm_masked = dtfunc.apply_mask(idx[0], segmented[..., 1])  # using the second segmented volume (white matter)
-            stats = dtfunc.roi_stats(wm_masked, warped_labels, labels, zooms)
+            idx[0][segmented[..., 1]==0] = 0  # using the second segmented volume (white # matter)
+            stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
             self._write_array(stats, idx[1])
 
     def _write_array(self, array, csv_path):
