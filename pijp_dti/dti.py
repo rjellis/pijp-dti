@@ -296,7 +296,6 @@ class ApplyMask(DTIStep):
         try:
             reg, reg_aff = self._load_nii(self.reg)
 
-
             if os.path.isfile(self.final_mask):
                 mask, mask_aff = self._load_nii(self.final_mask)
                 self.logger.info('applying the edited mask')
@@ -457,7 +456,7 @@ class MaskQC(DTIStep):
     """
     process_name = "pijp dti"
     step_name = "MaskQC"
-    step_cli = "maskqc"
+    step_cli = "qc"
     interactive = True
 
     def __init__(self, project, code, args):
@@ -497,7 +496,6 @@ class MaskQC(DTIStep):
             elif result == 'fail':
                 self.next_step = None
             elif result == 'edit':
-
                 self.outcome = 'edit'
                 self.next_step = None
             else:
@@ -572,19 +570,6 @@ class WarpQC(DTIStep):
                 self.next_step = None
         finally:
             os.remove(self.review_flag)
-
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = DTIRepository().get_warp_qc_list(project_name)
-        LOGGER.info("%s cases in queue." % len(cases))
-
-        cases = [x["Code"] for x in cases]
-        while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = WarpQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
 
 
 class StoreInDatabase(DTIStep):
