@@ -10,11 +10,10 @@ class Mosaic(object):
     def __init__(self, img):
         self.img = img
 
-    def plot(self, subplot_size=None, mosaic_path=None):
+    def plot(self, mosaic_path=None):
 
         slc = self.img.shape[2]
-        if not subplot_size:
-            subplot_size = int(np.sqrt(get_next_square(slc)))
+        subplot_size = int(np.sqrt(get_next_square(slc)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
         fig.set_facecolor('black')
@@ -40,7 +39,7 @@ class Mosaic(object):
         fig = plt.figure()
         fig.set_facecolor('black')
         plt.axes(frameon=False)
-        plt.imshow(np.rot90(self.img[:, :, self.img.shape[2]//2], 1), cmao=cmap_img, interpolation=None)
+        plt.imshow(np.rot90(self.img[:, :, self.img.shape[2]//2], 1), cmap=cmap_img, interpolation=None)
         plt.imshow(np.rot90(overlay[:, :, overlay.shape[2] // 2], 1), cmap=cmap_overlay, interpolation=None,
                    alpha=alpha)
 
