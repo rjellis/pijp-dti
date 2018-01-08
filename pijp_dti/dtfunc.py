@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.ndimage.morphology import binary_fill_holes
 from dipy.align import (imaffine, imwarp, transforms, metrics)
 from dipy.core import gradients
 from dipy.denoise import noise_estimate, non_local_means
@@ -8,6 +7,8 @@ from dipy.denoise.pca_noise_estimate import pca_noise_estimate
 from dipy.reconst import dti
 from dipy.segment import mask as otsu
 from dipy.segment.tissue import TissueClassifierHMRF
+
+from pijp_dti.nifti_io import fill_holes, extract_largest_component
 
 
 def mask(dat):
@@ -25,8 +26,10 @@ def mask(dat):
     """
 
     mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
-    bin_mask = binary_fill_holes(bin_dat)
+    bin_mask = fill_holes(bin_dat)
+    bin_mask = extract_largest_component(bin_mask)
     masked = apply_mask(dat, bin_mask)
+
     return masked
 
 
@@ -287,3 +290,4 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     warped_moving = mapping.transform(moving)
 
     return warped_moving, mapping
+
