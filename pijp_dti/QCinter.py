@@ -14,6 +14,7 @@ class Application(tk.Frame):
         master.geometry("1280x720")
         master.configure(bg='black')
 
+        # Base Frame Settings
         self.config(bg='black')
         self.result = None
         self.comment = ''
@@ -23,46 +24,55 @@ class Application(tk.Frame):
         self.scale = 1
         self.canvas = None
         self.can_edit = True
-        self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
+
+        self.button_quit = tk.Button()
+        self.button_save_quit = tk.Button()
+        self.button_pass = tk.Button()
+        self.button_edit = tk.Button()
+        self.button_fail = tk.Button()
+        self.entry_comment = tk.Entry()
+        self.label_comment = tk.Label()
+        self.label_top = tk.Label()
 
     def create_widgets(self):
-        self.winfo_toplevel().title("QC Tool")
-        self.bind("<ButtonPress-1>", self.start_move)
-        self.bind("<ButtonRelease-1>", self.stop_move)
-        self.bind("<B1-Motion>", self.on_motion)
-        ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
+
 
         fg = 'black'
         bg = 'white'
         relief = 'flat'
-
-        self.button_quit = tk.Button(master=self.master, text='Exit', bg=bg, fg=fg,
-                                     relief='flat', command=self._quit)
-        self.button_pass = tk.Button(master=self.master, text='Pass', command=self._pass, highlightcolor='green',
-                                     bg=bg, fg=fg, relief=relief)
-        self.button_fail = tk.Button(master=self.master, text='Fail', command=self._fail, highlightcolor='red',
-                                     bg=bg, fg=fg, relief=relief)
-        self.button_comment = tk.Button(master=self.master, text='Save Comment', command=self.save_comment,
-                                        bg=bg, fg=fg, relief=relief)
-        self.button_edit = tk.Button(master=self.master, text='Edit', command=self.edit,
-                                     bg=bg, fg=fg, relief=relief)
-
         v = tk.StringVar()
-        self.entry_comment = tk.Entry(master=self.master, width=100, textvariable=v)
-        self.label_comment = tk.Label(master=self.master, text="Comment: ", bg='black', fg='white')
-        self.label_top = tk.Label(master=self.master, text=self.code, bg='black', fg='white', font=16)
+
+        # Configuration
+        self.button_quit.config(master=self.master, text='Exit', bg=bg, fg=fg, relief='flat', command=self._quit)
+        self.button_pass.config(master=self.master, text='Pass', command=self._pass, bg=bg, fg=fg, relief=relief)
+        self.button_fail.config(master=self.master, text='Fail', command=self._fail, bg=bg, fg=fg, relief=relief)
+        self.button_edit.config(master=self.master, text='Edit', command=self.edit, bg=bg, fg=fg, relief=relief)
+        self.entry_comment.config(master=self.master, width=100, textvariable=v)
+        self.label_comment.config(master=self.master, text="Comment: ", bg='black', fg='white')
+        self.label_top.config(master=self.master, text=self.code, bg='black', fg='white', font=16)
+
+        # Griding
+        self.grid(rowspan=4, columnspan=4, stick="news", padx=5, pady=5)
+        self.button_quit.grid(column=3, row=3, sticky='news', padx=5, pady=2)
+        self.button_pass.grid(column=2, row=3, stick='news', padx=5, pady=2)
+        self.button_fail.grid(column=1, row=3, sticky='news', padx=5, pady=2)
+        self.button_edit.grid(column=0, row=3, sticky='e', padx=5, pady=2)
+        self.entry_comment.grid(column=1, row=2, columnspan=2, sticky='w', padx=5, pady=2)
+        self.label_comment.grid(column=0, row=2, sticky='e')
+        self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
+
+        # Event Bindings
+        self.bind("<ButtonPress-1>", self.start_move)
+        self.bind("<ButtonRelease-1>", self.stop_move)
+        self.bind("<B1-Motion>", self.on_motion)
         self.label_top.bind("<ButtonPress-1>", self.start_move)
         self.label_top.bind("<ButtonRelease-1>", self.stop_move)
         self.label_top.bind("<B1-Motion>", self.on_motion)
-        self.label_top.grid(column=0, row=0, sticky='n', columnspan=4, rowspan=1)
-        self.label_comment.grid(column=0, row=2, sticky='e')
-        self.entry_comment.grid(column=1, row=2, columnspan=2, sticky='w', padx=5, pady=2)
+
+        # Miscellaneous Settings
+        self.winfo_toplevel().title("QC Tool")
         self.entry_comment.focus_set()
-        self.button_comment.grid(column=3, row=2, sticky='news', padx=5, pady=2)
-        self.button_fail.grid(column=1, row=3, sticky='news', padx=5, pady=2)
-        self.button_edit.grid(column=0, row=3, sticky='e', padx=5, pady=2)
-        self.button_pass.grid(column=2, row=3, stick='news', padx=5, pady=2)
-        self.button_quit.grid(column=3, row=3, sticky='news', padx=5, pady=2)
+        ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
 
         for i in range(0, 3):
             self.columnconfigure(i, weight=1)
@@ -86,7 +96,6 @@ class Application(tk.Frame):
             if messagebox.askyesno("Warning!", "Result not selected. Exit anyway?"):
                 self.master.quit()
         else:
-            self.save_comment()
             self.master.quit()
 
     def _pass(self):
@@ -106,14 +115,6 @@ class Application(tk.Frame):
         self.button_fail.config(bg='white', fg='black')
         self.button_pass.config(bg='white', fg='black')
         self.result = 'edit'
-
-    def save_comment(self):
-        self.button_comment.config(text='Comment Saved!', state='disabled')
-        self.comment = self.entry_comment.get()
-        self.button_comment.after(750, self.reset_comment_button)
-
-    def reset_comment_button(self):
-        self.button_comment.config(text='Save Comment', bg='white', fg='black', state='normal')
 
     def start_move(self, event):
         self.x = event.x
