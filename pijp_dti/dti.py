@@ -317,7 +317,7 @@ class ApplyMask(DTIStep):
 
     @classmethod
     def get_queue(cls, project_name):
-        masks = DTIRepository().get_project_masks(project_name)
+        masks = DTIRepository().get_edited_masks(project_name)
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row in masks]
         return todo
 
@@ -515,7 +515,7 @@ class MaskQC(DTIStep):
 
     @classmethod
     def get_next(cls, project_name, args):
-        cases = DTIRepository().get_mask_qc_list(project_name)
+        cases = DTIRepository().get_masks_to_qc(project_name)
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
@@ -571,6 +571,11 @@ class WarpQC(DTIStep):
         finally:
             os.remove(self.review_flag)
 
+    def open_mask_editor(self):
+        mask_editor = get_mask_editor()
+        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.fa,
+                                                                             overlay=self.warped_labels)
+        self._run_cmd(cmd)
 
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
