@@ -36,7 +36,7 @@ class DTIRepository(BaseRepository):
             ready = self.connection.fetchall(sql)
             return ready
 
-    def get_mask_qc_list(self, project):
+    def get_masks_to_qc(self, project):
         sql = r"""
         SELECT 
             ScanCode AS Code
@@ -63,7 +63,7 @@ class DTIRepository(BaseRepository):
         return todo
 
 
-    def get_project_masks(self, project):
+    def get_edited_masks(self, project):
         sql = r"""
         SELECT 
             ScanCode AS Code
