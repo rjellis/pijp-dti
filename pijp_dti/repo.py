@@ -43,7 +43,7 @@ class DTIRepository(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'dti' 
+            AND Process = 'pijp dti'
             AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
@@ -52,10 +52,11 @@ class DTIRepository(BaseRepository):
                 FROM 
                     ProcessingLog pl 
                 WHERE Project = {0}
-                    AND Process = 'dti' 
+                    AND Process = 'pijp dti' 
                     AND Step = 'MaskQC'
                     AND (Outcome = 'pass'
-                    OR Outcome = 'edit')
+                    OR Outcome = 'edit'
+                    OR Outcome = 'Error')
             )
         """.format(dbprocs.format_string_parameter(project))
 
@@ -69,7 +70,7 @@ class DTIRepository(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'dti' 
+            AND Process = 'pijp dti' 
             AND Step = 'MaskQC'
             AND (Outcome = 'pass' OR Outcome = 'edit')
             AND ScanCode NOT IN(
@@ -78,7 +79,7 @@ class DTIRepository(BaseRepository):
                 FROM 
                     ProcessingLog pl 
                 WHERE Project = {0}
-                    AND Process = 'dti' 
+                    AND Process = 'pijp dti' 
                     AND Step = 'Warp'
                     AND (Outcome = 'pass')
             )
@@ -94,12 +95,21 @@ class DTIRepository(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'dti' 
+            AND Process = 'pijp dti'
             AND ((Step = 'MaskQC'
                   AND Outcome = 'edit')
             OR
                 (Step = 'Mask'
                  AND Outcome = 'Done'))
+            AND ScanCode NOT IN(
+                SELECT
+                    ScanCode
+                FROM
+                    ProcessingLog
+                WHERE Project = {0}
+                AND Process = 'pijp dti'
+                AND Step = 'WarpQC'
+                AND (Outcome = 'pass' OR Outcome = 'fail'))
         """.format(dbprocs.format_string_parameter(project))
 
         todo = self.connection.fetchall(sql)
@@ -137,7 +147,7 @@ class DTIRepository(BaseRepository):
                     if mreader.line_num == 1:
                         row.pop()
                     else:
-                        fname = fsp(m)
+                        fname = fsp(m.split('/')[-1])
                         roi = fsp(str(row[0]))
                         min_val = fsp(str(row[1]))
                         max_val = fsp(str(row[2]))
@@ -158,23 +168,3 @@ class DTIRepository(BaseRepository):
 
         project_id = self.connection.fetchone(sql)
         return project_id
-
-    def get_project_settings(self, project_id):
-        # TODO fix this. Actually make a table, think of other possible settings
-        sql = r"""
-        SELECT
-            Threshold
-        FROM
-            pijp_dti
-        WHERE 
-            ProjectId = {}
-        """.format(fsp(project_id))
-
-        # affine registration level iterations
-        # symmetric diffeomorphic level iterations
-        # Otsu thresholding parameters
-        # Local PCA vs. Non-Local-Means denoising
-        #
-
-        settings = self.connection.fetchone(sql)
-        return settings
