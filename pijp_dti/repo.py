@@ -55,7 +55,6 @@ class DTIRepository(BaseRepository):
                     AND Process = 'pijp dti' 
                     AND Step = 'MaskQC'
                     AND (Outcome = 'pass'
-                    OR Outcome = 'edit'
                     OR Outcome = 'Error')
             )
         """.format(dbprocs.format_string_parameter(project))
@@ -63,30 +62,6 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def get_warp_qc_list(self, project):
-        sql = r"""
-        SELECT 
-            ScanCode AS Code
-        FROM 
-            ProcessingLog pl 
-        WHERE Project = {0}
-            AND Process = 'pijp dti' 
-            AND Step = 'MaskQC'
-            AND (Outcome = 'pass' OR Outcome = 'edit')
-            AND ScanCode NOT IN(
-                SELECT 
-                    ScanCode
-                FROM 
-                    ProcessingLog pl 
-                WHERE Project = {0}
-                    AND Process = 'pijp dti' 
-                    AND Step = 'Warp'
-                    AND (Outcome = 'pass')
-            )
-        """.format(dbprocs.format_string_parameter(project))
-
-        todo = self.connection.fetchall(sql)
-        return todo
 
     def get_project_masks(self, project):
         sql = r"""
@@ -96,11 +71,8 @@ class DTIRepository(BaseRepository):
             ProcessingLog pl 
         WHERE Project = {0}
             AND Process = 'pijp dti'
-            AND ((Step = 'MaskQC'
-                  AND Outcome = 'edit')
-            OR
-                (Step = 'Mask'
-                 AND Outcome = 'Done'))
+            Step = 'MaskQC'
+            AND Outcome = 'edit'
             AND ScanCode NOT IN(
                 SELECT
                     ScanCode
