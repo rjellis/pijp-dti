@@ -46,9 +46,9 @@ def get_dcm2niix():
 
 
 def get_mask_editor():
-    mask_editor = util.configuration['QC-DTI-Masks']
+    mask_editor = util.configuration['fslview']
     if not os.path.exists(mask_editor):
-        raise Exception("what not found")
+        raise Exception("fslview not found")
     return mask_editor
 
 
@@ -476,10 +476,12 @@ class MaskQC(DTIStep):
 
     def run(self):
 
-        mask_fig = mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
+        if not os.path.isfile(self.final_mask):
+                    shutil.copyfile(self.auto_mask, self.final_mask)
 
         try:
-            (result, comments) = QCinter.qc_tool(mask_fig, self.code)
+            mask_fig = mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
+            (result, comments) = QCinter.run_qc_interface(mask_fig, self.code, edit_cmd=self.open_mask_editor)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -487,19 +489,23 @@ class MaskQC(DTIStep):
             elif result == 'fail':
                 self.next_step = None
             elif result == 'edit':
-                if not os.path.isfile(self.final_mask):
-                    shutil.copyfile(self.auto_mask, self.final_mask)
-                mask_editor = get_mask_editor()  # TODO Use fslview! Figure out the commands needed
-                cmd = "python {mask_editor} -p {project} -c {code}".format(mask_editor=mask_editor,
-                                                                           project=self.project, code=self.code)
-                self._run_cmd(cmd)
+
                 self.outcome = 'edit'
                 self.next_step = None
             else:
                 self.outcome = 'Error'
-                self.comments = 'result not recognized'
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
         finally:
             os.remove(self.review_flag)
+
+    def open_mask_editor(self):
+        mask_editor = get_mask_editor()
+        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.b0,
+                                                                             overlay=self.final_mask)
+        self._run_cmd(cmd)
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -549,7 +555,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             mosaic_fig = mosaic.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
-            (result, comments) = QCinter.qc_tool(mosaic_fig, self.code, edit=False)
+            (result, comments) = QCinter.run_qc_interface(mosaic_fig, self.code, edit=False)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
