@@ -432,7 +432,7 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            idx[0][segmented[..., 1]==0] = 0  # using the second segmented volume (white # matter)
+            idx[0][segmented[..., 1] == 0] = 0  # using the second segmented volume TODO better masking? or verify this
             stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
             self._write_array(stats, idx[1])
 
@@ -488,9 +488,8 @@ class MaskQC(DTIStep):
                 self.next_step = None
             elif result == 'edit':
                 if not os.path.isfile(self.final_mask):
-                    with open(self.final_mask, 'a'):
-                        os.utime(self.final_mask, None)
-                mask_editor = get_mask_editor()
+                    shutil.copyfile(self.auto_mask, self.final_mask)
+                mask_editor = get_mask_editor()  # TODO Use fslview! Figure out the commands needed
                 cmd = "python {mask_editor} -p {project} -c {code}".format(mask_editor=mask_editor,
                                                                            project=self.project, code=self.code)
                 self._run_cmd(cmd)
