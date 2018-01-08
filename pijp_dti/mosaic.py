@@ -10,17 +10,18 @@ class Mosaic(object):
     def __init__(self, img):
         self.img = img
 
-    def plot(self, mosaic_path=None):
+    def plot(self, subplot_size=None, mosaic_path=None):
 
         slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(get_next_square(slc)))
+        if not subplot_size:
+            subplot_size = int(np.sqrt(get_next_square(slc)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
+        fig.set_facecolor('black')
         plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
                             wspace=0, hspace=0)
 
         slc_idx = 0
-
         for i in range(0, subplot_size):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
@@ -29,20 +30,19 @@ class Mosaic(object):
                 ax[i, j].axis("off")
                 slc_idx += 1
 
-        fig.set_facecolor('black')
-
         if mosaic_path is not None:
             plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
 
         return fig
 
-    def two_plot(self, img2, alpha=1.0, mosaic_path=None):
-
+    def plot_one_slice_with_overlay(self, overlay, alpha=1.0, cmap_img='gray',
+                                    cmap_overlay='nipy_spectral', mosaic_path=None):
         fig = plt.figure()
         fig.set_facecolor('black')
         plt.axes(frameon=False)
-        plt.imshow(np.rot90(self.img[:, :, self.img.shape[2]//2], 1), cmap='gray', interpolation=None)
-        plt.imshow(np.rot90(img2[:, :,  img2.shape[2]//2], 1), cmap='nipy_spectral', interpolation=None, alpha=alpha)
+        plt.imshow(np.rot90(self.img[:, :, self.img.shape[2]//2], 1), cmao=cmap_img, interpolation=None)
+        plt.imshow(np.rot90(overlay[:, :, overlay.shape[2] // 2], 1), cmap=cmap_overlay, interpolation=None,
+                   alpha=alpha)
 
         if mosaic_path is not None:
             plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
@@ -129,4 +129,4 @@ def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=0.2):
     image = nib.load(image_path).get_data()
     label = nib.load(label_path).get_data()
 
-    return Mosaic(image).two_plot(label, alpha=alpha, mosaic_path=mosaic_path)
+    return Mosaic(image).plot_one_slice_with_overlay(label, alpha=alpha, mosaic_path=mosaic_path)
