@@ -293,20 +293,28 @@ class ApplyMask(DTIStep):
         self.next_step = TensorFit
 
     def run(self):
-        reg, reg_aff = self._load_nii(self.reg)
-        if os.path.isfile(self.final_mask):
-            mask, mask_aff = self._load_nii(self.final_mask)
-            self.logger.info('applying the edited mask')
-        else:
-            mask, mask_aff = self._load_nii(self.auto_mask)
-            self.logger.info('applying the auto mask')
+        try:
+            reg, reg_aff = self._load_nii(self.reg)
 
-        bin_mask = mask
-        bin_mask[mask > 0] = 1
-        bin_mask[bin_mask < 1] = 0
-        masked = dtfunc.apply_mask(reg, bin_mask)
 
-        self._save_nii(masked, mask_aff, self.masked)
+            if os.path.isfile(self.final_mask):
+                mask, mask_aff = self._load_nii(self.final_mask)
+                self.logger.info('applying the edited mask')
+            else:
+                mask, mask_aff = self._load_nii(self.auto_mask)
+                self.logger.info('applying the auto mask')
+
+            # bin_mask = mask
+            # bin_mask[mask > 0] = 1
+            # bin_mask[bin_mask < 1] = 0
+            masked = dtfunc.apply_mask(reg, mask)
+            self._save_nii(masked, mask_aff, self.masked)
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.next_step = None
+
 
     @classmethod
     def get_queue(cls, project_name):
