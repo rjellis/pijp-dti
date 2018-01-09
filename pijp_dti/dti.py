@@ -482,8 +482,10 @@ class MaskQC(DTIStep):
 
         try:
             mask_fig = mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
-            (result, comments) = QCinter.run_qc_interface(mask_fig, self.code, edit_cmd=self.open_mask_editor,
-                                                          reset_mask_cmd=self.reset_mask)
+            (result, comments) = QCinter.run_qc_interface(mask_fig, self.code,
+                                                          edit_cmd=self.open_mask_editor,
+                                                          reset_mask_cmd=self.reset_mask,
+                                                          draw_figure_cmd=self.draw_figure)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -496,7 +498,7 @@ class MaskQC(DTIStep):
             elif result == 'unfinished':
                 self.outcome = 'unfinished'
                 self.next_step = None
-            elif result == 'cancelled':
+            elif result == "cancelled":
                 self.outcome = 'cancelled'
                 self.next_step = None
             else:
@@ -516,6 +518,9 @@ class MaskQC(DTIStep):
 
     def reset_mask(self):
         shutil.copyfile(self.auto_mask, self.final_mask)
+
+    def draw_figure(self):
+        return mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
 
     @classmethod
     def get_next(cls, project_name, args):
