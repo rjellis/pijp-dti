@@ -78,6 +78,7 @@ class DTIStep(Step):
         self.denoised = os.path.join(self.den_dir, self.code + '_denoised.nii.gz')
         self.auto_mask = os.path.join(self.mask_dir, self.code + '_auto_mask.nii.gz')
         self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
+        self.final_mask = os.path.join(self.mask_dir, self.code + '_final_mask.nii.gz')
         self.fa = os.path.join(self.tenfit_dir, self.code + '_fa.nii.gz')
         self.md = os.path.join(self.tenfit_dir, self.code + '_md.nii.gz')
         self.ga = os.path.join(self.tenfit_dir, self.code + '_ga.nii.gz')
@@ -98,7 +99,6 @@ class DTIStep(Step):
         self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
         self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
         self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
-        self.final_mask = os.path.join(self.qc_dir, self.code + '_final_mask.nii.gz')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -277,7 +277,7 @@ class Mask(DTIStep):
         mask = dtfunc.mask(dat)
         self._save_nii(mask, aff, self.auto_mask)
         mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
-
+        shutil.copyfile(self.auto_mask, self.final_mask)
 
 class ApplyMask(DTIStep):
     """Apply the auto mask (or the edited one if it exists)
@@ -297,12 +297,8 @@ class ApplyMask(DTIStep):
         try:
             reg, reg_aff = self._load_nii(self.reg)
 
-            if os.path.isfile(self.final_mask):
-                mask, mask_aff = self._load_nii(self.final_mask)
-                self.logger.info('applying the edited mask')
-            else:
-                mask, mask_aff = self._load_nii(self.auto_mask)
-                self.logger.info('applying the auto mask')
+            mask, mask_aff = self._load_nii(self.final_mask)
+            self.logger.info('applying the mask')
 
             masked = dtfunc.apply_mask(reg, mask)
             self._save_nii(masked, mask_aff, self.masked)
@@ -480,9 +476,6 @@ class MaskQC(DTIStep):
 
     def run(self):
 
-        if not os.path.isfile(self.final_mask):
-                    shutil.copyfile(self.auto_mask, self.final_mask)
-
         try:
             mask_fig = mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
             (result, comments) = QCinter.run_qc_interface(mask_fig, self.code, edit_cmd=self.open_mask_editor)
@@ -509,7 +502,6 @@ class MaskQC(DTIStep):
         cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.b0,
                                                                              overlay=self.final_mask)
         self._run_cmd(cmd)
-
 
     @classmethod
     def get_next(cls, project_name, args):
