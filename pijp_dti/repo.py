@@ -62,7 +62,6 @@ class DTIRepository(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-
     def get_edited_masks(self, project):
         sql = r"""
         SELECT 
@@ -71,7 +70,7 @@ class DTIRepository(BaseRepository):
             ProcessingLog pl 
         WHERE Project = {0}
             AND Process = 'pijp dti'
-            Step = 'MaskQC'
+            AND Step = 'MaskQC'
             AND Outcome = 'edit'
             AND ScanCode NOT IN(
                 SELECT
