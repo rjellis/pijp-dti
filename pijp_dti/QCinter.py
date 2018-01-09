@@ -29,6 +29,7 @@ class Application(tk.Frame):
         self.canvas = None
         self.edit_cmd = None
         self.reset_mask_cmd = None
+        self.draw_figure_cmd = None
 
         self.button_quit = tk.Button(master=self.master)
         self.button_save_quit = tk.Button(master=self.master)
@@ -82,12 +83,14 @@ class Application(tk.Frame):
 
         self.menubar.add_cascade(label="File", menu=self.file_menu, underline=0)
         self.menubar.add_cascade(label="Edit", menu=self.edit_menu, underline=0)
+        self.file_menu.config(tearoff=0)
         self.file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
-        self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0)
+        self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0, state="disabled")
         self.submit_submenu.add_command(label="Submit and Quit", command=self.submit_and_quit, underline=0)
-        self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting,
-                                        state='disabled')
+        self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting)
         self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
+
+        self.edit_menu.config(tearoff=0)
         self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
         self.edit_menu.add_command(label="Clear Result", command=self.clear_result)
 
@@ -155,12 +158,14 @@ class Application(tk.Frame):
         self.button_fail.config(bg='white', fg='black')
         self.button_edit.config(bg='white', fg='black')
         self.result = 'pass'
+        self.file_menu.entryconfig("Submit", state='normal')
 
     def _fail(self):
         self.button_fail.config(bg='indian red', fg='black')
         self.button_pass.config(bg='white', fg='black')
         self.button_edit.config(bg='white', fg='black')
         self.result = 'fail'
+        self.file_menu.entryconfig("Submit", state='normal')
 
     def edit(self):
         self.button_edit.config(bg='yellow', fg='black')
@@ -168,7 +173,7 @@ class Application(tk.Frame):
         self.button_pass.config(bg='white', fg='black')
         self.result = 'edit'
         self.edit_cmd()
-        self.submit_submenu.entryconfig("Quit without submitting", state='normal')
+        self.file_menu.entryconfig("Submit", state='normal')
 
     def clear_result(self):
         self.button_edit.config(bg='white', fg='black')
@@ -180,6 +185,13 @@ class Application(tk.Frame):
         if messagebox.askyesno("WARNING", "Are you sure you want to reset the mask? All edits will be lost.",
                                icon="warning", parent=self.master):
             self.reset_mask_cmd()
+            self.refresh_fig()
+            self.refresh_fig()
+
+    def refresh_fig(self):
+        newfig = self.draw_figure_cmd()
+        self.canvas.destroy()
+        self.create_figure(newfig)
 
     def start_move(self, event):
         self.x = event.x
@@ -197,20 +209,21 @@ class Application(tk.Frame):
         self.master.geometry("+%s+%s" % (x, y))
 
 
-def run_qc_interface(figure, code, edit_cmd=None, reset_mask_cmd=None):
+def run_qc_interface(figure, code, edit_cmd=None, reset_mask_cmd=None, draw_figure_cmd=None):
 
     root = tk.Tk()
     root.attributes('-topmost', True)
     root.minsize(width=640, height=480)
     app = Application(master=root)
     app.code = code
+    app.fig = figure
     app.edit_cmd = edit_cmd
     app.reset_mask_cmd = reset_mask_cmd
+    app.draw_figure_cmd = draw_figure_cmd
     app.create_widgets()
     app.create_figure(figure)
     app.mainloop()
     result = app.result
     comment = app.comment
     root.destroy()
-
     return result, comment
