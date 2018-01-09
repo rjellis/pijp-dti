@@ -30,7 +30,6 @@ class Application(tk.Frame):
         self.edit_cmd = None
         self.can_edit = True
 
-
         self.button_quit = tk.Button(master=self.master)
         self.button_save_quit = tk.Button(master=self.master)
         self.button_pass = tk.Button(master=self.master)
@@ -41,7 +40,6 @@ class Application(tk.Frame):
         self.label_top = tk.Label(master=self.master)
 
     def create_widgets(self):
-
 
         fg = 'black'
         bg = 'white'
@@ -150,11 +148,9 @@ class Application(tk.Frame):
         self.master.geometry("+%s+%s" % (x, y))
 
 
-
 def run_qc_interface(figure, code, edit_cmd=None, edit=True):
 
     root = tk.Tk()
-    #root.overrideredirect(True)
     root.attributes('-topmost', True)
     root.minsize(width=640, height=480)
     app = Application(master=root)
