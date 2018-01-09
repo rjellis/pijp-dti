@@ -11,6 +11,7 @@ import random
 
 import nibabel as nib
 import numpy as np
+import pymssql
 from dipy.io import read_bvals_bvecs
 from pijp import util
 from pijp.core import Step, get_project_dir
@@ -94,10 +95,10 @@ class DTIStep(Step):
         self.ga_roi = os.path.join(self.roiavg_dir, self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.roiavg_dir, self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.roiavg_dir, self.code + '_rd_roi.csv')
-        self.final_mask = os.path.join(self.qc_dir, self.code + '_final_mask.nii.gz')
         self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
         self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
         self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
+        self.final_mask = os.path.join(self.qc_dir, self.code + '_final_mask.nii.gz')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -303,9 +304,6 @@ class ApplyMask(DTIStep):
                 mask, mask_aff = self._load_nii(self.auto_mask)
                 self.logger.info('applying the auto mask')
 
-            # bin_mask = mask
-            # bin_mask[mask > 0] = 1
-            # bin_mask[bin_mask < 1] = 0
             masked = dtfunc.apply_mask(reg, mask)
             self._save_nii(masked, mask_aff, self.masked)
 
@@ -313,7 +311,6 @@ class ApplyMask(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.next_step = None
-
 
     @classmethod
     def get_queue(cls, project_name):
@@ -487,7 +484,7 @@ class MaskQC(DTIStep):
                     shutil.copyfile(self.auto_mask, self.final_mask)
 
         try:
-            mask_fig = mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
+            mask_fig = mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
             (result, comments) = QCinter.run_qc_interface(mask_fig, self.code, edit_cmd=self.open_mask_editor)
             self.outcome = result
             self.comments = comments
@@ -512,6 +509,7 @@ class MaskQC(DTIStep):
         cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.b0,
                                                                              overlay=self.final_mask)
         self._run_cmd(cmd)
+
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -561,7 +559,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             mosaic_fig = mosaic.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
-            (result, comments) = QCinter.run_qc_interface(mosaic_fig, self.code, edit=False)
+            (result, comments) = QCinter.run_qc_interface(mosaic_fig, self.code, edit_cmd=self.open_mask_editor)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -573,9 +571,11 @@ class WarpQC(DTIStep):
 
     def open_mask_editor(self):
         mask_editor = get_mask_editor()
-        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.fa,
-                                                                             overlay=self.warped_labels)
+        cmd = "{mask_editor} {img} {overlay} -t 0.3 -l Random-Rainbow".format(mask_editor=mask_editor,
+                                                                              img=self.fa,
+                                                                              overlay=self.warped_labels)
         self._run_cmd(cmd)
+
 
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
@@ -592,8 +592,14 @@ class StoreInDatabase(DTIStep):
         self.logger.info("storing in database")
         proj_id = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
         proj_id = proj_id['ProjectID']
-        DTIRepository().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
-                                      self.rd_roi, self.ad_roi)
+
+        try:
+            DTIRepository().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+                                          self.rd_roi, self.ad_roi)
+
+        except pymssql.IntegrityError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
 
 
 def run():
