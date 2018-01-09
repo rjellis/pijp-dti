@@ -86,9 +86,11 @@ class Application(tk.Frame):
         self.file_menu.config(tearoff=0)
         self.file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
         self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0, state="disabled")
+        self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
+
+        self.submit_submenu.config(tearoff=0)
         self.submit_submenu.add_command(label="Submit and Quit", command=self.submit_and_quit, underline=0)
         self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting)
-        self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
 
         self.edit_menu.config(tearoff=0)
         self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
