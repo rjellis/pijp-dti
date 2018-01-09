@@ -72,7 +72,6 @@ class DTIRepository(BaseRepository):
                 WHERE Project = {0}
                 AND Process = 'pijp dti'
                 AND Step = 'WarpQC'
-                AND (Outcome = 'pass' OR Outcome = 'fail'))
         """.format(dbprocs.format_string_parameter(project))
 
         todo = self.connection.fetchall(sql)
