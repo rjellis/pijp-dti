@@ -10,31 +10,23 @@ class DTIRepository(BaseRepository):
         super().__init__()
         self.connection.setdb('imaging')
 
-    def get_step_queue(self, project, process, step):
-            sql = r"""
-            SELECT 
-                ScanCode AS Code
-            FROM 
-                ProcessingLog pl 
-            WHERE Project = {project} 
-                AND Process = {process}
-                AND Step = {prev_step_name}
-                AND (Outcome = 'Done' OR Outcome = 'pass')
-                AND ScanCode NOT IN (SELECT 
-                    ScanCode
-                    FROM 
-                        ProcessingLog pl 
-                    WHERE Project = {project} 
-                        AND Process = {process} 
-                        AND Step = {step_name}
-                        AND (Outcome = 'Done' OR Outcome = 'pass'))
-            """.format(project=dbprocs.format_string_parameter(project),
-                       process=dbprocs.format_string_parameter(process),
-                       step_name=dbprocs.format_string_parameter(step.step_name),
-                       prev_step_name=dbprocs.format_string_parameter(step.prev_step[0].step_name))
+    def get_project_dtis(self, project):
 
-            ready = self.connection.fetchall(sql)
-            return ready
+        sql = r"""
+        SELECT 
+            SeriesCode AS Code
+        FROM 
+            dbo.DicomSeries se
+        INNER JOIN
+            dbo.DicomStudies st
+        ON
+            se.StudyInstanceUID = st.StudyInstanceUID
+        WHERE st.StudyCode = {project} 
+            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%'
+        """.format(project=fsp(project))
+
+        todo = self.connection.fetchall(sql)
+        return todo
 
     def get_masks_to_qc(self, project):
         sql = r"""
@@ -82,24 +74,6 @@ class DTIRepository(BaseRepository):
                 AND Step = 'WarpQC'
                 AND (Outcome = 'pass' OR Outcome = 'fail'))
         """.format(dbprocs.format_string_parameter(project))
-
-        todo = self.connection.fetchall(sql)
-        return todo
-
-    def get_project_dtis(self, project):
-
-        sql = r"""
-        SELECT 
-            SeriesCode AS Code
-        FROM 
-            dbo.DicomSeries se
-        INNER JOIN
-            dbo.DicomStudies st
-        ON
-            se.StudyInstanceUID = st.StudyInstanceUID
-        WHERE st.StudyCode = {project} 
-            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%'
-        """.format(project=fsp(project))
 
         todo = self.connection.fetchall(sql)
         return todo
