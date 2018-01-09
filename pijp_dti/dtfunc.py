@@ -171,6 +171,14 @@ def segment_tissue(dat):
 
     return pve
 
+def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
+
+    tissue_mask = segmented[..., tissue]
+    threshold = (np.max(tissue_mask)-np.min(tissue_mask))*(prob/100)
+    tissue_mask[tissue_mask < threshold] = 0
+    tissue_mask[tissue_mask > threshold] = 1
+
+    return apply_mask(dat, tissue_mask)
 
 def roi_stats(dat, overlay, labels, zooms):
     """Get statistics on a diffusion tensor measure in specific regions of interest.
