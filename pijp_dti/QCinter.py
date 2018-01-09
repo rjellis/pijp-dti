@@ -16,7 +16,7 @@ class Application(tk.Frame):
         master.rowconfigure(0, weight=1)
         master.geometry("1280x720")
         master.configure(bg='black')
-        master.protocol("WM_DELETE_WINDOW", self._quit)
+        master.protocol("WM_DELETE_WINDOW", self.wm_quit)
 
         # Base Frame Settings
         self.config(bg='black')
@@ -38,6 +38,7 @@ class Application(tk.Frame):
         self.entry_comment = tk.Entry(master=self.master)
         self.label_comment = tk.Label(master=self.master)
         self.label_top = tk.Label(master=self.master)
+        self.menubar = tk.Menu(master=self.master)
 
     def create_widgets(self):
 
@@ -47,8 +48,9 @@ class Application(tk.Frame):
         v = tk.StringVar()
 
         # Configuration
+        self.master.config(menu=self.menubar)
         self.button_quit.config(text='Exit', bg=bg, fg=fg, relief=relief, command=self._quit)
-        self.button_save_quit.config(text='Save and Exit', bg=bg, fg=fg, relief=relief, command=self.save_and_exit)
+        self.button_save_quit.config(text='Save and Exit', bg=bg, fg=fg, relief=relief, command=self.save_and_quit)
         self.button_pass.config(text='Pass', command=self._pass, bg=bg, fg=fg, relief=relief)
         self.button_fail.config(text='Fail', command=self._fail, bg=bg, fg=fg, relief=relief)
         self.button_edit.config(text='Edit', command=self.edit, bg=bg, fg=fg, relief=relief)
@@ -58,14 +60,12 @@ class Application(tk.Frame):
 
         # Griding
         self.grid(rowspan=ROW_SIZE, columnspan=COLUMN_SIZE, stick="news", padx=5, pady=5)
-        self.button_quit.grid(column=4, row=4, sticky='news', padx=5, pady=2)
-        self.button_save_quit.grid(column=4, row=3, sticky='news', padx=5, pady=2)
-        self.button_pass.grid(column=1, row=4, stick='news', padx=5, pady=2)
-        self.button_fail.grid(column=3, row=4, sticky='news', padx=5, pady=2)
-        self.button_edit.grid(column=2, row=4, sticky='news', padx=5, pady=2)
-        self.entry_comment.grid(column=1, row=3, columnspan=3, sticky='news', padx=5, pady=2)
-        self.label_comment.grid(column=0, row=3, sticky='e')
-        self.label_top.grid(column=1, row=1, sticky='n', columnspan=4, rowspan=1)
+        self.button_pass.grid(column=2, row=4, stick='news', padx=5, pady=2)
+        self.button_fail.grid(column=4, row=4, sticky='news', padx=5, pady=2)
+        self.button_edit.grid(column=3, row=4, sticky='news', padx=5, pady=2)
+        self.entry_comment.grid(column=2, row=3, columnspan=3, sticky='news', padx=5, pady=2)
+        self.label_comment.grid(column=1, row=3, sticky='e')
+        self.label_top.grid(column=2, row=1, sticky='n', columnspan=4, rowspan=1)
 
         # Event Bindings
         self.bind("<ButtonPress-1>", self.start_move)
@@ -74,6 +74,19 @@ class Application(tk.Frame):
         self.label_top.bind("<ButtonPress-1>", self.start_move)
         self.label_top.bind("<ButtonRelease-1>", self.stop_move)
         self.label_top.bind("<B1-Motion>", self.on_motion)
+
+        # Menu Bar
+        file_menu = tk.Menu(self.menubar)
+        edit_menu = tk.Menu(self.menubar)
+        self.menubar.add_cascade(label="File", menu=file_menu)
+        self.menubar.add_cascade(label="Edit", menu=edit_menu)
+        quit_submenu = tk.Menu(file_menu)
+        file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
+        file_menu.add_cascade(label='Quit', menu=quit_submenu, underline=0)
+        quit_submenu.add_command(label="Save and Quit", command=self.save_and_quit, underline=0)
+        quit_submenu.add_command(label="Exit", command=self._quit, underline=0)
+        edit_menu.add_command(label="Reset Mask")  # TODO make the command for this
+        edit_menu.add_command(label="Reset Result", command=self.reset_result)
 
         # Miscellaneous Settings
         self.winfo_toplevel().title("QC Tool")
@@ -99,7 +112,7 @@ class Application(tk.Frame):
 
     def _quit(self):
         if self.result:
-            if messagebox.askyesno("Warning!", "Exit without saving?"):
+            if messagebox.askokcancel("Warning!", "Quit without saving?"):
                 self.result = None
                 self.comment = "Exited without saving"
                 self.master.quit()
@@ -107,10 +120,23 @@ class Application(tk.Frame):
             self.master.quit()
             self.comment = "Exited without saving"
 
-    def save_and_exit(self):
+    def save_and_quit(self):
         if self.result is None:
             messagebox.showerror("Error", "Result not selected!")
         else:
+            self.master.quit()
+
+    def wm_quit(self):
+        if self.result:
+            if messagebox.askyesno("Warning!", "Save result before exiting?"):
+                self.master.quit()
+            else:
+                self.result = None
+                self.comment = "Exited without saving"
+                self.master.quit()
+        else:
+            self.result = None
+            self.comment = "Exited without saving"
             self.master.quit()
 
     def _pass(self):
@@ -131,6 +157,12 @@ class Application(tk.Frame):
         self.button_pass.config(bg='white', fg='black')
         self.edit_cmd()
         self.result = 'edit'
+
+    def reset_result(self):
+        self.button_edit.config(bg='white', fg ='black')
+        self.button_pass.config(bg='white', fg ='black')
+        self.button_fail.config(bg='white', fg ='black')
+        self.result = None
 
     def start_move(self, event):
         self.x = event.x
