@@ -28,7 +28,7 @@ class Application(tk.Frame):
         self.scale = 1
         self.canvas = None
         self.edit_cmd = None
-        self.can_edit = True
+        self.reset_mask_cmd = None
 
         self.button_quit = tk.Button(master=self.master)
         self.button_save_quit = tk.Button(master=self.master)
@@ -39,6 +39,9 @@ class Application(tk.Frame):
         self.label_comment = tk.Label(master=self.master)
         self.label_top = tk.Label(master=self.master)
         self.menubar = tk.Menu(master=self.master)
+        self.file_menu = tk.Menu(self.menubar)
+        self.edit_menu = tk.Menu(self.menubar)
+        self.submit_submenu = tk.Menu(self.file_menu)
 
     def create_widgets(self):
 
@@ -50,7 +53,7 @@ class Application(tk.Frame):
         # Configuration
         self.master.config(menu=self.menubar)
         self.button_quit.config(text='Exit', bg=bg, fg=fg, relief=relief, command=self._quit)
-        self.button_save_quit.config(text='Save and Exit', bg=bg, fg=fg, relief=relief, command=self.save_and_quit)
+        self.button_save_quit.config(text='Save and Exit', bg=bg, fg=fg, relief=relief, command=self.submit_and_quit)
         self.button_pass.config(text='Pass', command=self._pass, bg=bg, fg=fg, relief=relief)
         self.button_fail.config(text='Fail', command=self._fail, bg=bg, fg=fg, relief=relief)
         self.button_edit.config(text='Edit', command=self.edit, bg=bg, fg=fg, relief=relief)
@@ -76,17 +79,17 @@ class Application(tk.Frame):
         self.label_top.bind("<B1-Motion>", self.on_motion)
 
         # Menu Bar
-        file_menu = tk.Menu(self.menubar)
-        edit_menu = tk.Menu(self.menubar)
-        self.menubar.add_cascade(label="File", menu=file_menu)
-        self.menubar.add_cascade(label="Edit", menu=edit_menu)
-        quit_submenu = tk.Menu(file_menu)
-        file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
-        file_menu.add_cascade(label='Quit', menu=quit_submenu, underline=0)
-        quit_submenu.add_command(label="Save and Quit", command=self.save_and_quit, underline=0)
-        quit_submenu.add_command(label="Exit", command=self._quit, underline=0)
-        edit_menu.add_command(label="Reset Mask")  # TODO make the command for this
-        edit_menu.add_command(label="Reset Result", command=self.reset_result)
+
+        self.menubar.add_cascade(label="File", menu=self.file_menu, underline=0)
+        self.menubar.add_cascade(label="Edit", menu=self.edit_menu, underline=0)
+        self.file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
+        self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0)
+        self.submit_submenu.add_command(label="Submit and Quit", command=self.submit_and_quit, underline=0)
+        self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting,
+                                        state='disabled')
+        self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
+        self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
+        self.edit_menu.add_command(label="Clear Result", command=self.clear_result)
 
         # Miscellaneous Settings
         self.winfo_toplevel().title("QC Tool")
@@ -97,9 +100,6 @@ class Application(tk.Frame):
             self.columnconfigure(i, weight=1)
         for j in range(0, ROW_SIZE):
             self.rowconfigure(j, weight=1)
-
-        if not self.can_edit:
-            self.button_edit.config(state='disabled')
 
     def create_figure(self, fig, col=0, row=0, span=COLUMN_SIZE):
         canvas = FigureCanvasTkAgg(fig, self.master)
@@ -112,30 +112,41 @@ class Application(tk.Frame):
 
     def _quit(self):
         if self.result:
-            if messagebox.askokcancel("Warning!", "Quit without saving?"):
-                self.result = None
+            if messagebox.askokcancel("QC Tool", "Quit without saving?", parent=self.master):
+                self.result = "cancelled"
                 self.comment = "Exited without saving"
                 self.master.quit()
         else:
             self.master.quit()
             self.comment = "Exited without saving"
 
-    def save_and_quit(self):
+    def submit_and_quit(self):
         if self.result is None:
-            messagebox.showerror("Error", "Result not selected!")
+            messagebox.showerror("Error", "Result not selected!", parent=self.master)
         else:
-            self.master.quit()
+            if messagebox.askokcancel("QC Tool", "Are you sure you want to submit?", parent=self.master):
+                self.master.quit()
+
+    def quit_without_submitting(self):
+        if self.result == 'edit':
+            if messagebox.askokcancel("QC Tool", "Are you sure you want to quit?", parent=self.master):
+                self.result = 'unfinished'
+                if self.comment is None:
+                    self.comment = "editing in progress"
+                self.master.quit()
+        else:
+            messagebox.showinfo("QC Tool", "Edit result not selected. Use Exit instead.")
 
     def wm_quit(self):
         if self.result:
-            if messagebox.askyesno("Warning!", "Save result before exiting?"):
+            if messagebox.askyesno("QC Tool", "Save result before exiting?", parent=self.master):
                 self.master.quit()
             else:
-                self.result = None
+                self.result = "cancelled"
                 self.comment = "Exited without saving"
                 self.master.quit()
         else:
-            self.result = None
+            self.result = "cancelled"
             self.comment = "Exited without saving"
             self.master.quit()
 
@@ -155,14 +166,20 @@ class Application(tk.Frame):
         self.button_edit.config(bg='yellow', fg='black')
         self.button_fail.config(bg='white', fg='black')
         self.button_pass.config(bg='white', fg='black')
-        self.edit_cmd()
         self.result = 'edit'
+        self.edit_cmd()
+        self.submit_submenu.entryconfig("Quit without submitting", state='normal')
 
-    def reset_result(self):
-        self.button_edit.config(bg='white', fg ='black')
-        self.button_pass.config(bg='white', fg ='black')
-        self.button_fail.config(bg='white', fg ='black')
+    def clear_result(self):
+        self.button_edit.config(bg='white', fg='black')
+        self.button_pass.config(bg='white', fg='black')
+        self.button_fail.config(bg='white', fg='black')
         self.result = None
+
+    def reset_mask(self):
+        if messagebox.askyesno("WARNING", "Are you sure you want to reset the mask? All edits will be lost.",
+                               icon="warning", parent=self.master):
+            self.reset_mask_cmd()
 
     def start_move(self, event):
         self.x = event.x
@@ -180,7 +197,7 @@ class Application(tk.Frame):
         self.master.geometry("+%s+%s" % (x, y))
 
 
-def run_qc_interface(figure, code, edit_cmd=None, edit=True):
+def run_qc_interface(figure, code, edit_cmd=None, reset_mask_cmd=None):
 
     root = tk.Tk()
     root.attributes('-topmost', True)
@@ -188,7 +205,7 @@ def run_qc_interface(figure, code, edit_cmd=None, edit=True):
     app = Application(master=root)
     app.code = code
     app.edit_cmd = edit_cmd
-    app.can_edit = edit
+    app.reset_mask_cmd = reset_mask_cmd
     app.create_widgets()
     app.create_figure(figure)
     app.mainloop()
