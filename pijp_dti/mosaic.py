@@ -115,9 +115,6 @@ def get_mask_mosaic(image_path, mask_path, mosaic_path=None):
 def get_seg_mosaic(image_path, seg_path, mosaic_path=None):
     image = nib.load(image_path).get_data()
     seg = nib.load(seg_path).get_data()
-    seg = seg[..., 1]
-    seg[seg > 1] = 1
-    seg[seg < 0.001] = 0
     image = rescale(image)
     image = np.stack((image, image, image), axis=-1)
     masked = mask_image(image, seg, hue=[1, 0, 0], alpha=0.5)
