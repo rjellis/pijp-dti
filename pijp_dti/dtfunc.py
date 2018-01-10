@@ -97,7 +97,7 @@ def b0_avg(dat, aff, bval):
         if bval[i] == 0:
             if b0 is None:
                 b0 = dat[..., i]
-            b0_reg, b0_aff = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
+            b0_reg, b0_aff, b0_map = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
             b0_sum = np.add(b0_sum, b0_reg)
             b0_dir += 1
 
@@ -124,9 +124,11 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     """
     affines = []
     reg_dat = np.zeros(shape=dat.shape)
+    reg_map = []
     for i in range(0, dat.shape[3]):
-        reg_dir, reg_aff = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
+        reg_dir, reg_aff, reg_map_slice = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
         reg_dat[..., i] = reg_dir
+        reg_map.append(reg_map_slice.affine)
         if bval[i] != 0:
             affines.append(reg_aff)
 
@@ -134,7 +136,7 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     new_gtab = gradients.reorient_bvecs(gtab, affines)
     reg_bvecs = new_gtab.bvecs
 
-    return reg_dat, reg_bvecs
+    return reg_dat, reg_bvecs, reg_map
 
 
 def fit_dti(dat, bval, bvec):
@@ -264,7 +266,7 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
             params0, static_affine,
             moving_affine, c_of_mass.affine)
         dat_reg = rig_map.transform(moving)
-        return dat_reg, rig_map.affine
+        return dat_reg, rig_map.affine, rig_map
 
     if not rigid:
         aff_map = affreg.optimize(
@@ -273,7 +275,7 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
             params0, static_affine,
             moving_affine, c_of_mass.affine)
         dat_reg = aff_map.transform(moving)
-        return dat_reg, aff_map.affine
+        return dat_reg, aff_map.affine, aff_map
 
 
 def sym_diff_registration(static, moving, static_affine, moving_affine):
