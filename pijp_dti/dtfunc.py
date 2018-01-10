@@ -171,6 +171,7 @@ def segment_tissue(dat):
 
     return pve
 
+
 def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
 
     tissue_mask = segmented[..., tissue]
@@ -180,6 +181,7 @@ def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
 
     return apply_mask(dat, tissue_mask)
 
+
 def roi_stats(dat, overlay, labels, zooms):
     """Get statistics on a diffusion tensor measure in specific regions of interest.
 
@@ -188,7 +190,7 @@ def roi_stats(dat, overlay, labels, zooms):
                        Mean Diffusivity, etc.
         overlay (ndarray): 3D ndarray with the same dimension of dat.
         labels (Union): A dictionary of overlay values as keys that correspond to region labels_lookup as dictionary values.
-
+        zooms (list): list of voxel dimensions
     Returns:
         stats (list): Array of the list of stats for all regions of interests. Lists are in the format: [name, min, max,
                       mean, standard deviation].
@@ -298,4 +300,3 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     warped_moving = mapping.transform(moving)
 
     return warped_moving, mapping
-
