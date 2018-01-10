@@ -201,7 +201,6 @@ def roi_stats(dat, overlay, labels, zooms):
     intensities_by_roi = dict()
     stats = [['name', 'min', 'max', 'mean', 'sd', 'median', 'volume']]
     vox_size = zooms[0] * zooms[1] * zooms[2]  # The size of voxels in mm
-
     for roi_labels in labels.values():
         intensities_by_roi[roi_labels] = []  # A list of ROI lists containing voxel intensities
 
@@ -216,7 +215,8 @@ def roi_stats(dat, overlay, labels, zooms):
         npa = np.asarray(intensities_by_roi[rois])
         try:
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
-                          (np.sum(npa)*vox_size)])
+                          (len(npa)*vox_size)])
+
         except ValueError:  # Catches rows with empty ROIs
             stats.append([rois, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
