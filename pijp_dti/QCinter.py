@@ -14,9 +14,9 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, master)
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
-        master.geometry("1280x720")
         master.configure(bg='black')
         master.protocol("WM_DELETE_WINDOW", self.wm_quit)
+        center_window(master, 0.75)
 
         # Base Frame Settings
         self.config(bg='black')
@@ -229,3 +229,15 @@ def run_qc_interface(figure, code, edit_cmd=None, reset_mask_cmd=None, draw_figu
     comment = app.comment
     root.destroy()
     return result, comment
+
+def center_window(master, scale):
+    master.update_idletasks()
+    w = master.winfo_screenwidth()
+    h = master.winfo_screenheight()
+    x = int(w*scale)
+    y = int(h*scale)
+    x_off = int(w/2 - x/2)
+    y_off = int(h/2 - y/2 )
+    master.geometry("{:d}x{:d}{:+d}{:+d}".format(x, y, x_off, y_off))
+    print(w, h)
+    print(x, y)
