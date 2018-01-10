@@ -481,11 +481,7 @@ class MaskQC(DTIStep):
     def run(self):
 
         try:
-            mask_fig = mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
-            (result, comments) = QCinter.run_qc_interface(mask_fig, self.code,
-                                                          edit_cmd=self.open_mask_editor,
-                                                          reset_mask_cmd=self.reset_mask,
-                                                          draw_figure_cmd=self.draw_figure)
+            (result, comments) = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -509,18 +505,6 @@ class MaskQC(DTIStep):
             self.comments = str(e)
         finally:
             os.remove(self.review_flag)
-
-    def open_mask_editor(self):
-        mask_editor = get_mask_editor()
-        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=self.b0,
-                                                                             overlay=self.final_mask)
-        self._run_cmd(cmd)
-
-    def reset_mask(self):
-        shutil.copyfile(self.auto_mask, self.final_mask)
-
-    def draw_figure(self):
-        return mosaic.get_mask_mosaic(self.b0, self.final_mask, self.mask_mosaic)
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -570,7 +554,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             mosaic_fig = mosaic.get_warp_mosaic(self.fa, self.warped_labels, self.warp_mosaic)
-            (result, comments) = QCinter.run_qc_interface(mosaic_fig, self.code, edit_cmd=self.open_mask_editor)
+            (result, comments) = QCinter.run_qc_interface(self.code, self.fa, self.warped_labels, self.warped_labels)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -579,13 +563,6 @@ class WarpQC(DTIStep):
                 self.next_step = None
         finally:
             os.remove(self.review_flag)
-
-    def open_mask_editor(self):
-        mask_editor = get_mask_editor()
-        cmd = "{mask_editor} {img} {overlay} -t 0.3 -l Random-Rainbow".format(mask_editor=mask_editor,
-                                                                              img=self.fa,
-                                                                              overlay=self.warped_labels)
-        self._run_cmd(cmd)
 
 
 class StoreInDatabase(DTIStep):
