@@ -35,7 +35,6 @@ class Application(tk.Frame):
         self.config(bg='black')
         self.result = None
         self.comment = ''
-        self.code = ''
         self.x = None
         self.y = None
         self.scale = 1
@@ -77,7 +76,7 @@ class Application(tk.Frame):
         self.button_pass.grid(column=2, row=4, stick='news', padx=5, pady=2)
         self.button_fail.grid(column=4, row=4, sticky='news', padx=5, pady=2)
         self.button_edit.grid(column=3, row=4, sticky='news', padx=5, pady=2)
-        self.entry_comment.grid(column=2, row=3, columnspan=3, sticky='news', padx=5, pady=2)
+        self.entry_comment.grid(column=2, row=3, columnspan=3, sticky='news', padx=5, pady=5)
         self.label_comment.grid(column=1, row=3, sticky='e')
         self.label_top.grid(column=2, row=1, sticky='n', columnspan=4, rowspan=1)
 
@@ -96,6 +95,7 @@ class Application(tk.Frame):
         self.file_menu.config(tearoff=0)
         self.file_menu.add_command(label="Open in FSLView", command=self.open_mask_editor)
         self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0, state="disabled")
+        self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
 
         self.submit_submenu.config(tearoff=0)
@@ -103,8 +103,11 @@ class Application(tk.Frame):
         self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting)
 
         self.edit_menu.config(tearoff=0)
-        self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
+        self.edit_menu.add_command(label="Refresh Figure", command=self.refresh_fig, underline=0)
         self.edit_menu.add_command(label="Clear Result", command=self.clear_result)
+        self.edit_menu.add_checkbutton(label="Toggle Mosaic", command=self.toggle_mosaic)
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
 
         # Miscellaneous Settings
         self.winfo_toplevel().title("QC Tool")
@@ -206,6 +209,14 @@ class Application(tk.Frame):
         newfig = draw_figure(self.b0, self.final_mask, self.mosaic_mode)
         self.canvas.destroy()
         self.create_figure(newfig)
+
+    def toggle_mosaic(self):
+        if self.mosaic_mode:
+            self.mosaic_mode = False
+            self.refresh_fig()
+        elif not self.mosaic_mode:
+            self.mosaic_mode = True
+            self.refresh_fig()
 
     def start_move(self, event):
         self.x = event.x
