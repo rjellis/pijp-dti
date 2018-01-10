@@ -561,7 +561,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             (result, comments) = QCinter.run_qc_interface(self.code, self.fa, self.warped_wm_labels,
-                                                          self.warped_wm_labels, mosaic_mode=True)
+                                                          self.warped_wm_labels, mosaic_mode=False)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
