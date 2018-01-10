@@ -16,13 +16,14 @@ COLUMN_SIZE = 5
 
 class Application(tk.Frame):
 
-    def __init__(self, code, b0, auto_mask, final_mask, master):
+    def __init__(self, code, b0, auto_mask, final_mask, master, mosaic_mode=True):
 
         tk.Frame.__init__(self, master)
         self.code = code
         self.b0 = b0
         self.auto_mask = auto_mask
         self.final_mask = final_mask
+        self.mosaic_mode = mosaic_mode
 
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
@@ -38,8 +39,8 @@ class Application(tk.Frame):
         self.x = None
         self.y = None
         self.scale = 1
-        self.canvas = None
 
+        self.canvas = tk.Canvas(master=self.master)
         self.button_quit = tk.Button(master=self.master)
         self.button_save_quit = tk.Button(master=self.master)
         self.button_pass = tk.Button(master=self.master)
@@ -202,7 +203,7 @@ class Application(tk.Frame):
         open_mask_editor(self.b0, self.final_mask)
 
     def refresh_fig(self):
-        newfig = draw_figure(self.b0, self.final_mask)
+        newfig = draw_figure(self.b0, self.final_mask, self.mosaic_mode)
         self.canvas.destroy()
         self.create_figure(newfig)
 
@@ -220,24 +221,6 @@ class Application(tk.Frame):
         x = self.master.winfo_x() + deltax
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
-
-
-def run_qc_interface(code, b0, auto_mask, final_mask):
-
-    root = tk.Tk()
-    root.attributes('-topmost', True)
-    root.minsize(width=640, height=480)
-    app = Application(code, b0, auto_mask, final_mask, root)
-    app.edit_cmd = open_mask_editor
-    app.reset_mask_cmd = reset_mask
-    app.draw_figure_cmd = draw_figure
-    app.create_widgets()
-    app.create_figure(draw_figure(b0, final_mask))
-    app.mainloop()
-    result = app.result
-    comment = app.comment
-    root.destroy()
-    return result, comment
 
 
 def center_window(master, scale):
@@ -270,5 +253,23 @@ def reset_mask(auto_mask, final_mask):
     shutil.copyfile(auto_mask, final_mask)
 
 
-def draw_figure(b0, mask):
-    return mosaic.get_mask_mosaic(b0, mask)
+def draw_figure(b0, mask, mosaic_mode=True):
+    if mosaic_mode:
+        return mosaic.get_mask_mosaic(b0, mask)
+    if not mosaic_mode:
+        return mosaic.get_warp_mosaic(b0, mask)
+
+
+def run_qc_interface(code, b0, auto_mask, final_mask, mosaic_mode=True):
+
+    root = tk.Tk()
+    root.attributes('-topmost', True)
+    root.minsize(width=640, height=480)
+    app = Application(code, b0, auto_mask, final_mask, root, mosaic_mode=mosaic_mode)
+    app.create_widgets()
+    app.create_figure(draw_figure(b0, final_mask, mosaic_mode))
+    app.mainloop()
+    result = app.result
+    comment = app.comment
+    root.destroy()
+    return result, comment
