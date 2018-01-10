@@ -1,8 +1,14 @@
+import os
+import subprocess
+import shutil
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from pijp import util
+from pijp_dti import mosaic
 
 ROW_SIZE = 5
 COLUMN_SIZE = 5
@@ -10,8 +16,14 @@ COLUMN_SIZE = 5
 
 class Application(tk.Frame):
 
-    def __init__(self, master=None):
+    def __init__(self, code, b0, auto_mask, final_mask, master):
+
         tk.Frame.__init__(self, master)
+        self.code = code
+        self.b0 = b0
+        self.auto_mask = auto_mask
+        self.final_mask = final_mask
+
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
         master.configure(bg='black')
@@ -27,9 +39,6 @@ class Application(tk.Frame):
         self.y = None
         self.scale = 1
         self.canvas = None
-        self.edit_cmd = None
-        self.reset_mask_cmd = None
-        self.draw_figure_cmd = None
 
         self.button_quit = tk.Button(master=self.master)
         self.button_save_quit = tk.Button(master=self.master)
@@ -84,7 +93,7 @@ class Application(tk.Frame):
         self.menubar.add_cascade(label="File", menu=self.file_menu, underline=0)
         self.menubar.add_cascade(label="Edit", menu=self.edit_menu, underline=0)
         self.file_menu.config(tearoff=0)
-        self.file_menu.add_command(label="Open in FSLView", command=self.edit_cmd)
+        self.file_menu.add_command(label="Open in FSLView", command=self.open_mask_editor)
         self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0, state="disabled")
         self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
 
@@ -174,7 +183,7 @@ class Application(tk.Frame):
         self.button_fail.config(bg='white', fg='black')
         self.button_pass.config(bg='white', fg='black')
         self.result = 'edit'
-        self.edit_cmd()
+        self.open_mask_editor()
         self.file_menu.entryconfig("Submit", state='normal')
 
     def clear_result(self):
@@ -186,12 +195,14 @@ class Application(tk.Frame):
     def reset_mask(self):
         if messagebox.askyesno("WARNING", "Are you sure you want to reset the mask? All edits will be lost.",
                                icon="warning", parent=self.master):
-            self.reset_mask_cmd()
-            self.refresh_fig()
+            reset_mask(self.auto_mask, self.final_mask)
             self.refresh_fig()
 
+    def open_mask_editor(self):
+        open_mask_editor(self.b0, self.final_mask)
+
     def refresh_fig(self):
-        newfig = self.draw_figure_cmd()
+        newfig = draw_figure(self.b0, self.final_mask)
         self.canvas.destroy()
         self.create_figure(newfig)
 
@@ -211,24 +222,23 @@ class Application(tk.Frame):
         self.master.geometry("+%s+%s" % (x, y))
 
 
-def run_qc_interface(figure, code, edit_cmd=None, reset_mask_cmd=None, draw_figure_cmd=None):
+def run_qc_interface(code, b0, auto_mask, final_mask):
 
     root = tk.Tk()
     root.attributes('-topmost', True)
     root.minsize(width=640, height=480)
-    app = Application(master=root)
-    app.code = code
-    app.fig = figure
-    app.edit_cmd = edit_cmd
-    app.reset_mask_cmd = reset_mask_cmd
-    app.draw_figure_cmd = draw_figure_cmd
+    app = Application(code, b0, auto_mask, final_mask, root)
+    app.edit_cmd = open_mask_editor
+    app.reset_mask_cmd = reset_mask
+    app.draw_figure_cmd = draw_figure
     app.create_widgets()
-    app.create_figure(figure)
+    app.create_figure(draw_figure(b0, final_mask))
     app.mainloop()
     result = app.result
     comment = app.comment
     root.destroy()
     return result, comment
+
 
 def center_window(master, scale):
     master.update_idletasks()
@@ -237,7 +247,28 @@ def center_window(master, scale):
     x = int(w*scale)
     y = int(h*scale)
     x_off = int(w/2 - x/2)
-    y_off = int(h/2 - y/2 )
+    y_off = int(h/2 - y/2)
     master.geometry("{:d}x{:d}{:+d}{:+d}".format(x, y, x_off, y_off))
-    print(w, h)
-    print(x, y)
+
+
+def get_mask_editor():
+    mask_editor = util.configuration['fslview']
+    if not os.path.exists(mask_editor):
+        raise Exception("fslview not found")
+    return mask_editor
+
+
+def open_mask_editor(b0, mask):
+        mask_editor = get_mask_editor()
+        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=b0,
+                                                                             overlay=mask)
+        args = cmd.split()
+        subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+def reset_mask(auto_mask, final_mask):
+    shutil.copyfile(auto_mask, final_mask)
+
+
+def draw_figure(b0, mask):
+    return mosaic.get_mask_mosaic(b0, mask)
