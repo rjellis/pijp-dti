@@ -292,7 +292,7 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
         mapping (DiffeomorphicMap): The mapping object to warp 3D ndarrays to the obtained registration
 
     """
-    moving_reg, pre_align = affine_registration(static, moving, static_affine, moving_affine)
+    moving_reg, pre_align, reg_map = affine_registration(static, moving, static_affine, moving_affine)
     metric = metrics.CCMetric(3)  # Cross Correlation Metric for 3 dimensions
     level_iters = [30, 50, 100]  # Iterations at each resolution (fine
     #  to coarse)
