@@ -62,8 +62,6 @@ class Application(tk.Frame):
 
         # Configuration
         self.master.config(menu=self.menubar)
-        self.button_quit.config(text='Exit', bg=bg, fg=fg, relief=relief, command=self._quit)
-        self.button_save_quit.config(text='Save and Exit', bg=bg, fg=fg, relief=relief, command=self.submit_and_quit)
         self.button_pass.config(text='Pass', command=self._pass, bg=bg, fg=fg, relief=relief)
         self.button_fail.config(text='Fail', command=self._fail, bg=bg, fg=fg, relief=relief)
         self.button_edit.config(text='Edit', command=self.edit, bg=bg, fg=fg, relief=relief)
@@ -99,7 +97,7 @@ class Application(tk.Frame):
         self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
 
         self.submit_submenu.config(tearoff=0)
-        self.submit_submenu.add_command(label="Submit and Quit", command=self.submit_and_quit, underline=0)
+        self.submit_submenu.add_command(label="Submit", command=self.submit_and_quit, underline=0)
         self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting)
 
         self.edit_menu.config(tearoff=0)
@@ -143,6 +141,7 @@ class Application(tk.Frame):
             messagebox.showerror("Error", "Result not selected!", parent=self.master)
         else:
             if messagebox.askokcancel("QC Tool", "Are you sure you want to submit?", parent=self.master):
+                messagebox.showinfo("QC Tool", "Submitted!", parent=self.master)
                 self.master.quit()
 
     def quit_without_submitting(self):
