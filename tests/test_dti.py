@@ -7,7 +7,7 @@ from pijp_dti import dti
 class Test(unittest.TestCase):
 
     project = 'NRC'
-    code = 'NRC-FRA018-0021-V0-a1001'
+    code = 'NRC-FRA018-0046-V0-a1201'
     args = None
     comments = 'testing'
 
