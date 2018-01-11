@@ -1,10 +1,6 @@
 import unittest
-import shutil
-import os
-import subprocess
 
-from pijp import util
-from pijp_dti import QCinter, mosaic
+from pijp_dti import QCinter
 
 
 IMG_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/2Register/NRC-FRA018-0022-V0-a1201_b0.nii.gz'
