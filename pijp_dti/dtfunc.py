@@ -163,6 +163,14 @@ def fit_dti(dat, bval, bvec):
 
 
 def segment_tissue(dat):
+    """Segments the image into different tissue classifications
+
+    Args:
+        dat (ndarray): 3D ndarray
+
+    Returns:
+          pve (ndarray): 4D ndarray where the 4th dimension is the class of the tissue
+    """
 
     nclass = 4
     beta = 0.1
@@ -175,13 +183,27 @@ def segment_tissue(dat):
 
 
 def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
+    """Masks the data
 
+    Args:
+        dat (ndarray)
+        segmented (ndarray)
+        tissue (int)
+        prob (int)
+
+    Returns:
+        masked_tissue (ndarray)
+
+
+    """
     tissue_mask = segmented[..., tissue]
     threshold = (np.max(tissue_mask)-np.min(tissue_mask))*(prob/100)
     tissue_mask[tissue_mask < threshold] = 0
     tissue_mask[tissue_mask > threshold] = 1
 
-    return apply_mask(dat, tissue_mask)
+    masked_tissue = apply_mask(dat, tissue_mask)
+
+    return masked_tissue
 
 
 def roi_stats(dat, overlay, labels, zooms):
