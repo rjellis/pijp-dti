@@ -3,9 +3,16 @@ import unittest
 from pijp_dti import QCinter
 
 
-IMG_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/2Register/NRC-FRA018-0022-V0-a1201_b0.nii.gz'
-MSK_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/3Mask/NRC-FRA018-0022-V0-a1201_final_mask.nii.gz'
-AUTO_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/3Mask/NRC-FRA018-0022-V0-a1201_auto_mask.nii.gz'
+IMG_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/4Tenfit/NRC-FRA018-0022-V0-a1201_fa.nii.gz'
+MSK_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/6Segment/NRC-FRA018-0022-V0' \
+           '-a1201_warped_wm_labels' \
+           '.nii' \
+           '.gz'
+AUTO_PATH = '/m/InProcess/External/NRC/pijp_dti/NRC-FRA018-0022-V0-a1201/6Segment/NRC-FRA018-0022-V0' \
+            '-a1201_warped_wm_labels' \
+            '.nii' \
+            '.gz'
+
 CODE = 'NRC-FRA018-0022-V0-a1201'
 
 
