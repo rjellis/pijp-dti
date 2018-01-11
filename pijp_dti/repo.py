@@ -46,8 +46,8 @@ class DTIRepository(BaseRepository):
                 WHERE Project = {0}
                     AND Process = 'pijp dti' 
                     AND Step = 'MaskQC'
-                    AND (Outcome = 'pass'
-                    OR Outcome = 'Error')
+                    AND (Outcome = 'Pass'
+                    OR Outcome = 'Edit')
             )
         """.format(dbprocs.format_string_parameter(project))
 
@@ -71,7 +71,7 @@ class DTIRepository(BaseRepository):
                     ProcessingLog
                 WHERE Project = {0}
                 AND Process = 'pijp dti'
-                AND Step = 'WarpQC'
+                AND Step = 'WarpQC')
         """.format(dbprocs.format_string_parameter(project))
 
         todo = self.connection.fetchall(sql)
