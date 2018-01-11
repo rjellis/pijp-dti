@@ -48,7 +48,7 @@ Creates an average b0 volume and rigidly registers all the diffusion
 directions to the average b0 volume to correct for subject motion.
 The b-vectors are updated to reflect the orientation changes due to registration.
 The average volume and the registered image are saved as a compressed
-Niftis and updated b-vectors are saved as a numpy file (.npy).
+Niftis and the tranformation matricies and updated b-vectors are saved as a numpy files (.npy).
 
 The average b0 volume is created by rigidly registering all of the found
 b0 directions to the first found b0 direction and averaging the voxel
@@ -58,15 +58,16 @@ intensities.
 
 **Skull Strip the b0 volume**
 
-Masks the average b0 volume using median Otsu thresholding.
+Masks the average b0 volume using median Otsu thresholding. Holes in the binary mask
+are filled with scipy's binary_fill_holes. The largest element of the mask is extracted
+to remove extraneous pieces of the mask.
 
 ## 5. ApplyMask
 
 **Applies the generated or edited b0 mask to the DWI**
 
-First tries to apply the edited mask if it exists. If there is no
-edited mask saved, then the auto mask is applied to the denoised DWI
-and saved in the 'mask' directory.
+Saves a copy of the automatic mask (as the final mask)
+and applies the binary mask to the copy.
 
 ## 6. TensorFit
 
@@ -103,7 +104,8 @@ Inverse mapping warps the subject space to the template space.
 ## 8. Segment
 
 The registered b0 image is segmented into 4 tissue classes: background, white matter,
-gray matter, and CSF.
+gray matter, and CSF. The white matter segmentation is applied as a mask to the warped labels
+for clarity during QC.
 
 ## 9. RoiStats
 
@@ -115,7 +117,8 @@ region of interest. The minimum value, maximum value, mean, standard
 deviation, median and volume are calculated for each region of interest.
 A comma separated value file (CSV) is generated for each anisotropy measure.
 CSV format: (name, min, max, mean, std. dev, median, volume).
-The white matter segmentation is applied before caluclation.
+The white matter segmentation mask is applied before caluclation. It thresholds
+where the probability for white matter is greater than or equal to 50%.
 The ROI statistics are only calculated over the non-zero voxels.
 
 ## Interactive Steps
@@ -124,11 +127,37 @@ The ROI statistics are only calculated over the non-zero voxels.
 
 **Launch a GUI to QC the automated skull stripping**
 
+Selecting 'Pass', 'Fail', or 'Edit' sets the result for the case being QC'd.
+
+Selecting
+'Edit' will launch FSLView with the mask overlaid on the averaged b0 image. Use FSLView to make manual edits
+Be sure to overwrite the `_final_mask.nii.gz` in the case's `3Mask` directory when saving.
+
+Once a result is selected and/or a manual QC edit is completed, you can submit the
+case by going to `File -> Submit`.
+
+If you wish to quit before you finish the manual QC edits,
+select `File -> Quit without submitting`.
+
+`File -> Open in FSLView` opens the case in FSLView, if you want a better look at the masking.
+
+`Edit -> Refresh Figure` reloads the image with any changes made.
+
+`Edit -> Clear Result` removes the selected result, if you want to change it.
+
+`Edit -> Reset Mask` copys the auto_mask over the final mask. **Warning!** You will lose all edits with this option.
+
 Runs WarpQC if 'pass' is selected.
 
 ### WarpQC
 
 **Launch a GUI to QC the nonlinear registration**
+
+`Edit -> Toggle Mosaic` will switch between the mosaic view and the single slice view. Note that the mosaic view only
+shows the ROI's in red. If you want a better look at the warping, open the case in FSLView using `File -> Open in FSLView`.
+By default, the overlay will still be red but you can change the color map to `Random-Rainbow` for a good view of the
+different ROI's.
+
 
 If 'pass' is selected, the results from RoiStats are stored in the Database.
 
