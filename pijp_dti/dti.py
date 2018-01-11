@@ -24,7 +24,7 @@ from pijp_dti import mosaic, QCinter
 from pijp_dti.repo import DTIRepository
 
 LOGGER = logging.getLogger(__name__)
-PROCESS_TITLE = 'pijp_dti'
+PROCESS_TITLE = 'pijp-dti'
 VERSION = "0.2.0"
 
 
@@ -147,7 +147,7 @@ class DTIStep(Step):
 class Stage(DTIStep):
     """Convert Dicoms and set up the pipeline
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Stage"
     step_cli = "stage"
 
@@ -217,7 +217,7 @@ class Stage(DTIStep):
 class Denoise(DTIStep):
     """Denoise the DWI using Local PCA
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Denoise"
     step_cli = "denoise"
 
@@ -239,7 +239,7 @@ class Denoise(DTIStep):
 class Register(DTIStep):
     """Rigidly register the diffusion weighted directions to an averaged b0 volume
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Register"
     step_cli = "register"
     prev_step = [Denoise]
@@ -265,7 +265,7 @@ class Register(DTIStep):
 class Mask(DTIStep):
     """Skull strip the average b0 volume
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Mask"
     step_cli = "mask"
 
@@ -289,7 +289,7 @@ class ApplyMask(DTIStep):
     """Apply the auto mask (or the edited one if it exists)
     """
 
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "ApplyMask"
     step_cli = "apply"
 
@@ -324,7 +324,7 @@ class ApplyMask(DTIStep):
 class TensorFit(DTIStep):
     """Fit the diffusion tensor model
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "TensorFit"
     step_cli = "tenfit"
     prev_step = [ApplyMask]
@@ -353,7 +353,7 @@ class TensorFit(DTIStep):
 class Warp(DTIStep):
     """Warp the template FA and labels_lookup to the subject space
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Warp"
     step_cli = "warp"
     prev_step = [TensorFit]
@@ -382,7 +382,7 @@ class Warp(DTIStep):
 
 class Segment(DTIStep):
 
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "Segment"
     step_cli = "seg"
     prev_step = Warp
@@ -414,7 +414,7 @@ class Segment(DTIStep):
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "RoiStats"
     step_cli = "stats"
     prev_step = [Segment]
@@ -458,7 +458,7 @@ class RoiStats(DTIStep):
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "MaskQC"
     step_cli = "qc"
     interactive = True
@@ -530,7 +530,7 @@ class MaskQC(DTIStep):
 class WarpQC(DTIStep):
     """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels_lookup overlaid on the FA image.
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "WarpQC"
     step_cli = "warpqc"
     interactive = True
@@ -575,7 +575,7 @@ class WarpQC(DTIStep):
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
     """
-    process_name = "pijp dti"
+    process_name = "pijp-dti"
     step_name = "StoreInDatabase"
     step_cli = "store"
     interactive = True
