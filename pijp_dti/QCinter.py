@@ -16,11 +16,11 @@ COLUMN_SIZE = 5
 
 class Application(tk.Frame):
 
-    def __init__(self, code, b0, auto_mask, final_mask, master, mosaic_mode=True):
+    def __init__(self, code, img, auto_mask, final_mask, master, mosaic_mode=True):
 
         tk.Frame.__init__(self, master)
         self.code = code
-        self.b0 = b0
+        self.img = img
         self.auto_mask = auto_mask
         self.final_mask = final_mask
         self.mosaic_mode = mosaic_mode
@@ -88,19 +88,21 @@ class Application(tk.Frame):
 
         # Menu Bar
 
+        self.menubar.config(background='black', foreground='white')
         self.menubar.add_cascade(label="File", menu=self.file_menu, underline=0)
         self.menubar.add_cascade(label="Edit", menu=self.edit_menu, underline=0)
-        self.file_menu.config(tearoff=0)
+
+        self.file_menu.config(background='black', foreground='white', tearoff=0)
         self.file_menu.add_command(label="Open in FSLView", command=self.open_mask_editor)
         self.file_menu.add_cascade(label='Submit', menu=self.submit_submenu, underline=0, state="disabled")
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self._quit, underline=1)
 
-        self.submit_submenu.config(tearoff=0)
+        self.submit_submenu.config(background='black', foreground='white', tearoff=0)
         self.submit_submenu.add_command(label="Submit", command=self.submit_and_quit, underline=0)
         self.submit_submenu.add_command(label="Quit without submitting", command=self.quit_without_submitting)
 
-        self.edit_menu.config(tearoff=0)
+        self.edit_menu.config(background='black', foreground='white', tearoff=0)
         self.edit_menu.add_command(label="Refresh Figure", command=self.refresh_fig, underline=0)
         self.edit_menu.add_command(label="Clear Result", command=self.clear_result)
         self.edit_menu.add_checkbutton(label="Toggle Mosaic", command=self.toggle_mosaic)
@@ -202,10 +204,10 @@ class Application(tk.Frame):
             self.refresh_fig()
 
     def open_mask_editor(self):
-        open_mask_editor(self.b0, self.final_mask)
+        open_mask_editor(self.img, self.final_mask)
 
     def refresh_fig(self):
-        newfig = draw_figure(self.b0, self.final_mask, self.mosaic_mode)
+        newfig = draw_figure(self.img, self.final_mask, self.mosaic_mode)
         self.canvas.destroy()
         self.create_figure(newfig)
 
@@ -251,9 +253,9 @@ def get_mask_editor():
     return mask_editor
 
 
-def open_mask_editor(b0, mask):
+def open_mask_editor(img, mask):
         mask_editor = get_mask_editor()
-        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=b0,
+        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=img,
                                                                              overlay=mask)
         args = cmd.split()
         subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -263,21 +265,31 @@ def reset_mask(auto_mask, final_mask):
     shutil.copyfile(auto_mask, final_mask)
 
 
-def draw_figure(b0, mask, mosaic_mode=True):
+def draw_figure(img, mask, mosaic_mode=True):
     if mosaic_mode:
-        return mosaic.get_mask_mosaic(b0, mask)
+        return mosaic.get_mask_mosaic(img, mask)
     if not mosaic_mode:
-        return mosaic.get_warp_mosaic(b0, mask)
+        return mosaic.get_warp_mosaic(img, mask)
 
 
-def run_qc_interface(code, b0, auto_mask, final_mask, mosaic_mode=True):
-
+def run_qc_interface(code, img, auto_mask, final_mask, mosaic_mode=True):
+    """Opens a GUI for reviewing an image with an overlay
+    Args:
+        code (string): The code of the case being reviewed
+        img (string): The path to the base Nifti image
+        auto_mask (string): The path to the overlaid Nifti image
+        final_mask (string): The path to the copied auto_mask (allows for editing)
+        mosaic_mode (bool): Selector for mosaic view or middle slice view
+    Returns:
+        result (string): The result selected in the UI (pass, fail, edit, cancelled)
+        comment (string): The text entered in the UI's comment entry box
+    """
     root = tk.Tk()
     root.attributes('-topmost', True)
     root.minsize(width=640, height=480)
-    app = Application(code, b0, auto_mask, final_mask, root, mosaic_mode=mosaic_mode)
+    app = Application(code, img, auto_mask, final_mask, root, mosaic_mode=mosaic_mode)
     app.create_widgets()
-    app.create_figure(draw_figure(b0, final_mask, mosaic_mode))
+    app.create_figure(draw_figure(img, final_mask, mosaic_mode))
     app.mainloop()
     result = app.result
     comment = app.comment
