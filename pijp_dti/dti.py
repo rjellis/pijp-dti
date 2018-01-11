@@ -21,7 +21,7 @@ from pijp.engine import run_module, run_file
 
 from pijp_dti import dtfunc
 from pijp_dti import mosaic, QCinter
-from pijp_dti.repo import DTIRepository
+from pijp_dti.repo import DTIRepo
 
 LOGGER = logging.getLogger(__name__)
 PROCESS_TITLE = 'pijp-dti'
@@ -208,7 +208,7 @@ class Stage(DTIStep):
         plog = ProcessingLog()
         attempted = plog.get_step_attempted(project_name, cls.process_name, cls.step_name)
         attempted_codes = [row['Code'] for row in attempted]
-        dtis = DTIRepository().get_project_dtis(project_name)
+        dtis = DTIRepo().get_project_dtis(project_name)
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis if row['Code'] not in
                 attempted_codes]
         return todo
@@ -316,7 +316,7 @@ class ApplyMask(DTIStep):
 
     @classmethod
     def get_queue(cls, project_name):
-        masks = DTIRepository().get_edited_masks(project_name)
+        masks = DTIRepo().get_edited_masks(project_name)
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row in masks]
         return todo
 
@@ -515,7 +515,7 @@ class MaskQC(DTIStep):
 
     @classmethod
     def get_next(cls, project_name, args):
-        cases = DTIRepository().get_masks_to_qc(project_name)
+        cases = DTIRepo().get_masks_to_qc(project_name)
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
@@ -585,12 +585,12 @@ class StoreInDatabase(DTIStep):
 
     def run(self):
         self.logger.info("storing in database")
-        proj_id = DTIRepository().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
+        proj_id = DTIRepo().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
         proj_id = proj_id['ProjectID']
 
         try:
-            DTIRepository().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
-                                          self.rd_roi, self.ad_roi)
+            DTIRepo().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+                                    self.rd_roi, self.ad_roi)
 
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'

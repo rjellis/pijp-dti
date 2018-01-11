@@ -5,7 +5,7 @@ from pijp import dbprocs
 from pijp.dbprocs import format_string_parameter as fsp
 
 
-class DTIRepository(BaseRepository):
+class DTIRepo(BaseRepository):
     def __init__(self):
         super().__init__()
         self.connection.setdb('imaging')
@@ -46,8 +46,7 @@ class DTIRepository(BaseRepository):
                 WHERE Project = {0}
                     AND Process = 'pijp-dti' 
                     AND Step = 'MaskQC'
-                    AND (Outcome = 'Pass'
-                    OR Outcome = 'Edit')
+                    AND Outcome = 'Pass'
             )
         """.format(dbprocs.format_string_parameter(project))
 
@@ -112,3 +111,10 @@ class DTIRepository(BaseRepository):
 
         project_id = self.connection.fetchone(sql)
         return project_id
+
+    def get_all_processed_codes(self):
+        sql = r"""
+        SELECT ScanCode FROM ProcessingLog WHERE Process = 'pijp-dti'
+        """
+        processed_codes = self.connection.fetchall(sql)
+        return processed_codes
