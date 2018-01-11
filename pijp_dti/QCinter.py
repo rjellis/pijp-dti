@@ -105,13 +105,12 @@ class Application(tk.Frame):
         self.edit_menu.config(background='black', foreground='white', tearoff=0)
         self.edit_menu.add_command(label="Refresh Figure", command=self.refresh_fig, underline=0)
         self.edit_menu.add_command(label="Clear Result", command=self.clear_result)
-        self.edit_menu.add_checkbutton(label="Toggle Mosaic", command=self.toggle_mosaic)
+        self.edit_menu.add_checkbutton(label="Toggle Mosaic", command=self.toggle_mosaic, selectcolor='white')
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Reset Mask", command=self.reset_mask)
 
         # Miscellaneous Settings
         self.winfo_toplevel().title("QC Tool")
-        self.entry_comment.focus_set()
         ttk.Sizegrip(self.master).grid(column=999, row=999, sticky='se')
 
         for i in range(0, COLUMN_SIZE):
@@ -143,7 +142,6 @@ class Application(tk.Frame):
             messagebox.showerror("Error", "Result not selected!", parent=self.master)
         else:
             if messagebox.askokcancel("QC Tool", "Are you sure you want to submit?", parent=self.master):
-                messagebox.showinfo("QC Tool", "Submitted!", parent=self.master)
                 self.master.quit()
 
     def quit_without_submitting(self):
