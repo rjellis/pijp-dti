@@ -35,7 +35,7 @@ class DTIRepository(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'pijp dti'
+            AND Process = 'pijp-dti'
             AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
@@ -44,7 +44,7 @@ class DTIRepository(BaseRepository):
                 FROM 
                     ProcessingLog pl 
                 WHERE Project = {0}
-                    AND Process = 'pijp dti' 
+                    AND Process = 'pijp-dti' 
                     AND Step = 'MaskQC'
                     AND (Outcome = 'Pass'
                     OR Outcome = 'Edit')
@@ -61,7 +61,7 @@ class DTIRepository(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'pijp dti'
+            AND Process = 'pijp-dti'
             AND Step = 'MaskQC'
             AND Outcome = 'edit'
             AND ScanCode NOT IN(
@@ -70,7 +70,7 @@ class DTIRepository(BaseRepository):
                 FROM
                     ProcessingLog
                 WHERE Project = {0}
-                AND Process = 'pijp dti'
+                AND Process = 'pijp-dti'
                 AND Step = 'WarpQC')
         """.format(dbprocs.format_string_parameter(project))
 
