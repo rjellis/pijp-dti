@@ -17,7 +17,7 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, maskqc*, warpqc*, store
+steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, qc*, warpqc*, store
 
 * steps with queue modes
 
