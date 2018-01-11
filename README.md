@@ -145,7 +145,7 @@ select `File -> Quit without submitting`.
 
 `Edit -> Clear Result` removes the selected result, if you want to change it.
 
-`Edit -> Reset Mask` copys the auto_mask over the final mask. **Warning!** You will lose all edits with this option.
+`Edit -> Reset Mask` copies the auto_mask over the final mask. **Warning!** You will lose all edits with this option.
 
 Runs WarpQC if 'pass' is selected.
 
