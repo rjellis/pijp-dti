@@ -24,7 +24,7 @@ class Mosaic(object):
         for i in range(0, subplot_size):
             for j in range(0, subplot_size):
                 if slc_idx < slc:
-                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx], 1), interpolation=None)
+                    ax[i, j].imshow(np.rot90(self.img[:, :, slc_idx, :], 1), interpolation=None)
 
                 ax[i, j].axis("off")
                 slc_idx += 1
