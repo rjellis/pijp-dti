@@ -114,7 +114,7 @@ class DTIRepo(BaseRepository):
 
     def get_all_processed_codes(self):
         sql = r"""
-        SELECT ScanCode FROM ProcessingLog WHERE Process = 'pijp-dti'
+        SELECT ScanCode FROM ProcessingLog WHERE Process = 'pijp-dti' AND Step = 'RoiStats' AND Outcome = 'Done'
         """
         processed_codes = self.connection.fetchall(sql)
         return processed_codes
