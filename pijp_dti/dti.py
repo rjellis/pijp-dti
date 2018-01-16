@@ -69,6 +69,7 @@ class DTIStep(Step):
         self.seg_dir = os.path.join(self.working_dir, '6Segment')
         self.roiavg_dir = os.path.join(self.working_dir, '7Stats')
         self.qc_dir = os.path.join(self.working_dir, '8QC')
+        self.mni_dir = os.path.join(self.working_dir, '9MNI')
         self.fdwi = os.path.join(self.stage_dir, self.code + '.nii.gz')
         self.fbval = os.path.join(self.stage_dir, self.code + '.bval')
         self.fbvec = os.path.join(self.stage_dir, self.code + '.bvec')
@@ -102,6 +103,11 @@ class DTIStep(Step):
         self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
         self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
         self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
+        self.fa_warp = os.path.join(self.mni_dir, self.code + '_fa_in_mni.nii.gz')
+        self.md_warp = os.path.join(self.mni_dir, self.code + '_md_in_mni.nii.gz')
+        self.ga_warp = os.path.join(self.mni_dir, self.code + '_ga_in_mni.nii.gz')
+        self.ad_warp = os.path.join(self.mni_dir, self.code + '_ad_in_mni.nii.gz')
+        self.rd_warp = os.path.join(self.mni_dir, self.code + '_rd_in_mni.nii.gz')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
@@ -165,12 +171,13 @@ class Stage(DTIStep):
         try:
 
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
-                    self.seg_dir, self.roiavg_dir, self.qc_dir]
+                    self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
-                self.logger.info('building directory {}'.format(dr))
+                    self.logger.info('building directory {}'.format(dr))
 
+            # TODO: Check if file already exists! Then run anyway if option -f (force)
             dcm2niix = get_dcm2niix()
             dcm_dir = self._copy_files(source)
             cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
@@ -460,7 +467,7 @@ class MaskQC(DTIStep):
     """
     process_name = "pijp-dti"
     step_name = "MaskQC"
-    step_cli = "qc"
+    step_cli = "maskqc"
     interactive = True
 
     def __init__(self, project, code, args):
@@ -492,20 +499,7 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = WarpQC
-            elif result == 'fail':
-                self.next_step = None
-            elif result == 'edit':
-                self.outcome = 'edit'
-                self.next_step = None
-            elif result == 'unfinished':
-                self.outcome = 'unfinished'
-                self.next_step = None
-            elif result == "cancelled":
-                self.outcome = 'cancelled'
-                self.next_step = None
-            else:
-                self.outcome = 'Error'
+                self.next_step = SegQC
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
@@ -527,6 +521,49 @@ class MaskQC(DTIStep):
                 return next_job
 
 
+class SegQC(DTIStep):
+
+    process_name = "pijp-dti"
+    step_name = "SegQC"
+    step_cli = 'segqc'
+    interactive = True
+    prev_step = MaskQC
+
+    def __init__(self, project, code, args):
+        super(SegQC, self).__init__(project, code, args)
+
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
+
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+        try:
+            (result, comments) = QCinter.run_qc_interface(self.code, self.b0, self.segmented_wm, self.segmented_wm)
+            self.outcome = result
+            self.comments = comments
+            if result == 'pass':
+                self.next_step = WarpQC
+            if result == 'fail':
+                self.next_step = None
+        finally:
+            os.remove(self.review_flag)
+
+
 class WarpQC(DTIStep):
     """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels_lookup overlaid on the FA image.
     """
@@ -534,7 +571,7 @@ class WarpQC(DTIStep):
     step_name = "WarpQC"
     step_cli = "warpqc"
     interactive = True
-    prev_step = MaskQC
+    prev_step = SegQC
 
     def __init__(self, project, code, args):
         super(WarpQC, self).__init__(project, code, args)
@@ -561,7 +598,7 @@ class WarpQC(DTIStep):
     def run(self):
         try:
             (result, comments) = QCinter.run_qc_interface(self.code, self.fa, self.warped_wm_labels,
-                                                          self.warped_wm_labels, mosaic_mode=False)
+                                                          self.warped_wm_labels)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -595,6 +632,39 @@ class StoreInDatabase(DTIStep):
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'
             self.comments = str(e)
+
+
+# TODO search for project setting, run this after StoreInDB
+class SaveInMNI(DTIStep):
+    process_name = "pijp-dti"
+    step_name = "SaveInMNI"
+    step_cli = "mni"
+
+    def __init__(self, project, code, args):
+        super(SaveInMNI, self).__init__(project, code, args)
+
+    def run(self):
+        self.logger.info("Saving in MNI space")
+
+        # inverse_warp_map = np.load(self.inverse_warp_map)
+        template, template_aff = self._load_nii(self.template)
+        fa, aff = self._load_nii(self.fa)
+        md, aff = self._load_nii(self.md)
+        ga, aff = self._load_nii(self.ga)
+        rd, aff = self._load_nii(self.rd)
+        ad, aff = self._load_nii(self.ad)
+        # Have to redo warpping... want to eventually do the transform just with the inverse_warp_map
+        warped_template, mapping = dtfunc.sym_diff_registration(fa, template, aff, template_aff)
+        fa_warp = mapping.transform_inverse(fa)
+        md_warp = mapping.transform_inverse(md)
+        ga_warp = mapping.transform_inverse(ga)
+        rd_warp = mapping.transform_inverse(rd)
+        ad_warp = mapping.transform_inverse(ad)
+        self._save_nii(fa_warp, aff, self.fa_warp)
+        self._save_nii(md_warp, aff, self.md_warp)
+        self._save_nii(ga_warp, aff, self.ga_warp)
+        self._save_nii(rd_warp, aff, self.rd_warp)
+        self._save_nii(ad_warp, aff, self.ad_warp)
 
 
 def run():
