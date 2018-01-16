@@ -7,7 +7,7 @@ from pijp_dti import dti
 class Test(unittest.TestCase):
 
     project = 'NRC'
-    code = 'NRC-FRA018-0046-V0-a1201'
+    code = 'NRC-FRA018-0003-V0-a1001'
     args = None
     comments = 'testing'
 
@@ -107,6 +107,13 @@ class Test(unittest.TestCase):
 
         self.assertIsNotNone(maskqc.outcome)
 
+    def test_segqc(self):
+
+        segqc = dti.SegQC(self.project, self.code, self.args)
+        segqc.run()
+
+        self.assertIsNotNone(segqc.outcome)
+
     def test_warpqc(self):
 
         warpqc = dti.WarpQC(self.project, self.code, self.args)
@@ -114,3 +121,13 @@ class Test(unittest.TestCase):
 
         self.assertIsNotNone(warpqc.outcome)
 
+    def test_saveinmni(self):
+
+        saveinmni = dti.SaveInMNI(self.project, self.code, self.args)
+        saveinmni.run()
+
+        self.assertTrue(os.path.isfile(saveinmni.fa_warp))
+        self.assertTrue(os.path.isfile(saveinmni.md_warp))
+        self.assertTrue(os.path.isfile(saveinmni.ga_warp))
+        self.assertTrue(os.path.isfile(saveinmni.ad_warp))
+        self.assertTrue(os.path.isfile(saveinmni.rd_warp))
