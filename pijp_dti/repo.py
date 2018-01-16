@@ -46,7 +46,7 @@ class DTIRepo(BaseRepository):
                 WHERE Project = {0}
                     AND Process = 'pijp-dti' 
                     AND Step = 'MaskQC'
-                    AND Outcome = 'Pass'
+                    AND (Outcome = 'Pass' OR Outcome = 'Edit')
             )
         """.format(dbprocs.format_string_parameter(project))
 
@@ -78,8 +78,9 @@ class DTIRepo(BaseRepository):
 
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
         sql = r"""
-        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev)
-        VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd})
+        INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
+        Volume, RecordDate)
+        VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd}, {median}, {vol}, {time})
         """
         measures = [md, fa, ga, rd, ad]
         for m in measures:
