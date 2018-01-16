@@ -23,7 +23,6 @@ steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, qc*, w
 
 ```
 
-
 ## 1. Stage
 
 **Convert Dicoms and set up the pipeline**
