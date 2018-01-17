@@ -10,8 +10,8 @@ AUTO_PATH = '/m/InProcess/External/NRC/pijp_dti/{code}/3Mask/{code}_auto_mask.ni
 class Test(unittest.TestCase):
 
     def test_qc_tool(self):
-        QCinter.run_qc_interface(CODE, IMG_PATH, AUTO_PATH, MSK_PATH)
-
+        step = 'MaskQC'
+        QCinter.run_qc_interface(CODE, IMG_PATH, AUTO_PATH, MSK_PATH, step)
 
 if __name__ == "__main__":
     unittest.main()
