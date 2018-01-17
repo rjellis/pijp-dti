@@ -197,7 +197,8 @@ def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
 
     """
     tissue_mask = segmented[..., tissue]
-    threshold = (np.max(tissue_mask)-np.min(tissue_mask))*(prob/100)
+    tissue_mask /= np.max(tissue_mask)  # Normalize the tissue_mask
+    threshold = (prob/100)
     tissue_mask[tissue_mask < threshold] = 0
     tissue_mask[tissue_mask > threshold] = 1
 
