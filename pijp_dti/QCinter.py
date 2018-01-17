@@ -18,13 +18,14 @@ COLUMN_SIZE = 3
 
 class Application(tk.Frame):
 
-    def __init__(self, code, img, auto_mask, final_mask, master):
+    def __init__(self, code, img, auto_mask, final_mask, step, master):
 
         tk.Frame.__init__(self, master)
         self.code = code
         self.img = img
         self.auto_mask = auto_mask
         self.final_mask = final_mask
+        self.step = step
         self.default_bg = 'black'
         self.default_fg = 'white'
         self.default_button_bg = 'white'
@@ -56,6 +57,7 @@ class Application(tk.Frame):
         self.button_skip = tk.Button(master=self.master)
         self.entry_comment = tk.Entry(master=self.master)
         self.label_result = tk.Label(master=self.master)
+        self.label_step = tk.Label(master=self.master)
         self.label_top = tk.Label(master=self.master)
 
     def create_widgets(self):
@@ -64,9 +66,11 @@ class Application(tk.Frame):
 
         # Configuration
         self.master.config(background=self.default_bg)
+
         self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Pass Auto Mask',
                                 command=self._pass)
-        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail', command=self._fail)
+        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail Auto Mask',
+                                command=self._fail)
         self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit)
         self.button_submit.config(fg=self.default_fg, bg=self.default_bg, text='Submit', command=self.submit)
         self.button_quit.config(fg=self.default_fg, bg=self.default_bg, text='Quit', command=self._quit)
@@ -75,15 +79,26 @@ class Application(tk.Frame):
         self.button_skip.config(fg=self.default_fg, bg=self.default_bg, text='Skip', command=self.skip)
         self.entry_comment.config(textvariable=v, foreground='gray')
         self.label_top.config(fg=self.default_fg, bg=self.default_bg, text=self.code, font=16)
+        self.label_step.config(fg='green', bg=self.default_bg, text=self.step)
+
+        if self.step == 'SegQC':
+            self.button_pass.config(text='Pass Segmentation')
+            self.button_fail.config(text='Fail Segmentation')
+            self.button_edit.config(state='disabled')
+        if self.step == 'WarpQC':
+            self.button_pass.config(text='Pass Warping')
+            self.button_fail.config(text='Fail Warping')
+            self.button_edit.config(state='disabled')
 
         # Griding
         self.grid(rowspan=ROW_SIZE, columnspan=COLUMN_SIZE, padx=5, pady=5)
-        self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=2, columnspan=2)
+        self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
+        self.label_step.grid(column=2, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
         self.button_open.grid(column=1, row=1, sticky='new', padx=2, pady=2, columnspan=1)
         self.button_skip.grid(column=2, row=1, sticky='new', padx=2, pady=2, columnspan=1)
-        self.button_pass.grid(column=1, row=2, stick='ew', padx=5, pady=2, columnspan=2)
-        self.button_edit.grid(column=1, row=3, sticky='ew', padx=5, pady=2, columnspan=2)
-        self.button_fail.grid(column=1, row=4, sticky='ew', padx=5, pady=2, columnspan=2)
+        self.button_pass.grid(column=1, row=2, stick='sew', padx=5, pady=0, columnspan=2)
+        self.button_edit.grid(column=1, row=3, sticky='ew', padx=5, pady=0, columnspan=2)
+        self.button_fail.grid(column=1, row=4, sticky='new', padx=5, pady=0, columnspan=2)
         self.entry_comment.grid(column=1, row=5, sticky='new', padx=5, pady=2, columnspan=2)
         self.button_submit.grid(column=1, row=6, sticky='new', padx=2, pady=2, columnspan=1)
         self.button_quit.grid(column=2, row=6, sticky='new', padx=2, pady=2, columnspan=1)
@@ -144,10 +159,11 @@ class Application(tk.Frame):
         if self.result:
             if messagebox.askokcancel("QC Tool", "Quit without saving?", parent=self.master):
                 self.result = "cancelled"
-                self.comment = "Exited without saving"
+                self.comment = "Exited"
                 self.master.quit()
         else:
             self.master.quit()
+            self.result = "cancelled"
             self.comment = "Exited"
 
     def submit(self):
@@ -172,7 +188,7 @@ class Application(tk.Frame):
                 self.master.quit()
             else:
                 self.result = "cancelled"
-                self.comment = "Exited without saving"
+                self.comment = "Exited"
                 self.master.quit()
         else:
             self.result = "cancelled"
@@ -180,7 +196,7 @@ class Application(tk.Frame):
             self.master.quit()
 
     def open_mask_editor(self):
-            open_mask_editor(self.img, self.final_mask)
+            open_mask_editor(self.img, self.final_mask, self.step)
     # def reset_mask(self):
     #     if messagebox.askyesno("WARNING", "Are you sure you want to reset the mask? All edits will be lost.",
     #                            icon="warning", parent=self.master):
@@ -237,10 +253,16 @@ def get_mask_editor():
     return mask_editor
 
 
-def open_mask_editor(img, mask):
+def open_mask_editor(img, mask, step):
         mask_editor = get_mask_editor()
-        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=img,
-                                                                             overlay=mask)
+        if step == 'WarpQC':
+            cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Random-Rainbow".format(mask_editor=mask_editor,
+                                                                                            img=img,
+                                                                                            overlay=mask)
+        else:
+            cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=img,
+                                                                                 overlay=mask)
+
         args = cmd.split()
         subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -256,25 +278,28 @@ def draw_figure(img, mask, mosaic_mode=True):
         return mosaic.get_warp_mosaic(img, mask)
 
 
-def run_qc_interface(code, img, auto_mask, final_mask):
+def run_qc_interface(code, img, auto_mask, final_mask, step):
     """Opens a GUI for reviewing an image with an overlay
     Args:
         code (string): The code of the case being reviewed
         img (string): The path to the base Nifti image
         auto_mask (string): The path to the overlaid Nifti image
         final_mask (string): The path to the copied auto_mask (allows for editing)
+        step (string): The step of QC being run
     Returns:
         result (string): The result selected in the UI (pass, fail, edit, cancelled)
         comment (string): The text entered in the UI's comment entry box
     """
     root = tk.Tk()
     root.minsize(1280, 720)
-    app = Application(code, img, auto_mask, final_mask, root)
+    app = Application(code, img, auto_mask, final_mask, step, root)
     app.create_widgets()
     app.create_figure(draw_figure(img, final_mask))
     app.mainloop()
     result = app.result
     comment = app.comment
+    if comment == 'Enter a comment:':
+        comment = None
     root.destroy()
     return result, comment
 
