@@ -9,6 +9,7 @@ class Mosaic(object):
 
     def __init__(self, img):
         self.img = img
+        plt.close('all')  # Close all other plots before making a new one
 
     def plot(self, mosaic_path=None):
 
