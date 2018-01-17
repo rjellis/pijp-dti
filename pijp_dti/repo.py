@@ -53,6 +53,73 @@ class DTIRepo(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
+    def get_segs_to_qc(self, project):  # TODO Fix this. It might queue up edited cases that are still processing
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM 
+            ProcessingLog
+        WHERE Project = {0}
+            AND Process = 'pijp-dti'
+            AND Step = 'MaskQC'
+            AND (Outcome = 'Pass' OR Outcome = 'Edit')
+            AND ScanCode NOT IN(
+                SELECT
+                    ScanCode
+                FROM
+                    ProcessingLog
+                WHERE Project = {0}
+                AND Process = 'pijp-dti'
+                AND Step = 'SegQC'
+                AND (Outcome = 'Pass' OR Outcome = 'Fail')
+            )
+        """.format(dbprocs.format_string_parameter(project))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
+    def get_warps_to_qc(self, project):
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM 
+            ProcessingLog
+        WHERE Project = {0}
+            AND Process = 'pijp-dti'
+            AND Step = 'SegQC'
+            AND Outcome = 'Pass'
+            AND ScanCode NOT IN(
+                SELECT
+                    ScanCode
+                FROM
+                    ProcessingLog
+                WHERE Project = {0}
+                AND Process = 'pijp-dti'
+                AND Step = 'WarpQC'
+                AND (Outcome = 'Pass' OR Outcome = 'Fail')
+            )
+        """.format(dbprocs.format_string_parameter(project))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
+    def is_edited(self, project, code):
+        sql = r"""
+        SELECT
+            ScanCode
+        FROM
+            ProcessingLog
+        WHERE
+            ScanCode = {code}
+            AND Project = {project}
+            AND Process = 'pijp-dti'
+            AND Step = 'MaskQC'
+            AND Outcome = 'edit'
+        """.format(code=fsp(code), project=fsp(project))
+
+        edited = self.connection.fetchone(sql)
+        return edited is not None  # Returns true if edited, false if not edited
+
     def get_edited_masks(self, project):
         sql = r"""
         SELECT 
@@ -70,7 +137,9 @@ class DTIRepo(BaseRepository):
                     ProcessingLog
                 WHERE Project = {0}
                 AND Process = 'pijp-dti'
-                AND Step = 'WarpQC')
+                AND Step = 'ApplyMask'
+                AND Outcome = 'Redone'
+            )
         """.format(dbprocs.format_string_parameter(project))
 
         todo = self.connection.fetchall(sql)
@@ -96,9 +165,9 @@ class DTIRepo(BaseRepository):
                         min_val = fsp(str(row[1]))
                         max_val = fsp(str(row[2]))
                         mean_val = fsp(str(row[3]))
-                        sd = fsp(str(row[5]))
-                        median_val = fsp(str(row[4]))
-                        volume = fsp(str(row[5]))
+                        sd = fsp(str(row[4]))
+                        median_val = fsp(str(row[5]))
+                        volume = fsp(str(row[6]))
                         time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         formatted_sql = sql.format(code=fsp(code), project_id=project_id, fname=fname, measure=msr,
                                                    roi=roi, min=min_val, max=max_val, mean=mean_val, sd=sd,
