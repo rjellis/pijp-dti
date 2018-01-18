@@ -9,10 +9,10 @@ from pijp_dti import dtfunc
 
 
 class Test(unittest.TestCase):
-
-    img1 = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.nii.gz'
-    fbval = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.bval'
-    fbvec = '/m/InProcess/External/NRC/dti/NRC-FRA018-0003-V0-a1001/stage/NRC-FRA018-0003-V0-a1001.bvec'
+    code = 'NRC-FRA018-0003-V0-a1001'
+    img1 = '/m/InProcess/External/NRC/pijp_dti/{code}/0Stage/{code}.nii.gz'.format(code=code)
+    fbval = '/m/InProcess/External/NRC/pijp_dti/{code}/0Stage/{code}.bval'.format(code=code)
+    fbvec = '/m/InProcess/External/NRC/pijp_dti/{code}/0Stage/{code}.bvec'.format(code=code)
 
     fpath = os.path.dirname(__file__).rstrip('/tests') + '/pijp_dti'
     template = os.path.join(fpath, 'templates', 'fa_template.nii')
@@ -39,7 +39,22 @@ class Test(unittest.TestCase):
         bval, bvec = read_bvals_bvecs(self.fbval, self.fbvec)
         b0 = dtfunc.b0_avg(dat, aff, bval)
 
+        img = nib.Nifti1Image(b0, aff)
+        nib.save(img, '/home/vhasfcellisr/b0_avg.nii')
+
         self.assertEqual(b0.shape, dat[..., 0].shape)
+
+    def test_affine_registration(self):
+
+        dat = nib.load(self.img1).get_data()
+        aff = nib.load(self.img1).affine
+        a = dat[:, :, :, 0]
+        b = dat[:, :, :, 1]
+
+        reg, aff_reg, aff_map = dtfunc.affine_registration(a, b, aff, aff)
+
+        c = nib.Nifti1Image(reg, aff_reg)
+        nib.save(c, '/home/vhasfcellisr/reg_1.nii')
 
     def test_register(self):
 
