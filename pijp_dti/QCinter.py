@@ -148,7 +148,9 @@ class Application(tk.Frame):
 
     def edit(self):
         if masks_are_same(self.auto_mask, self.final_mask):
-            messagebox.showerror("Error", "No edits detected!")
+            if messagebox.askyesno("QC Tool", "No edits detected! Would you like to open FSLView?",
+                                   parent=self.master):
+                self.open_mask_editor()
         else:
             self.result = 'edit'
             self.button_edit.config(bg='yellow', fg='black')
@@ -178,8 +180,7 @@ class Application(tk.Frame):
 
     def skip(self):
         if messagebox.askokcancel("QC Tool", "Are you sure you want to skip?"):
-            self.result = 'cancelled'
-            self.comment = 'Skipped'
+            self.result = 'skipped'
             self.master.quit()
 
     def wm_quit(self):
