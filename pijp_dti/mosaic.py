@@ -14,12 +14,10 @@ class Mosaic(object):
     def plot(self, mosaic_path=None):
 
         slc = self.img.shape[2]
-        subplot_size = int(np.sqrt(get_next_square(slc)))
+        subplot_size = int(np.sqrt(get_prev_square(slc)))
 
         fig, ax = plt.subplots(subplot_size, subplot_size)
         fig.set_facecolor('black')
-        plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
-                            wspace=0, hspace=0)
 
         slc_idx = 0
         for i in range(0, subplot_size):
@@ -30,6 +28,8 @@ class Mosaic(object):
                 ax[i, j].axis("off")
                 slc_idx += 1
 
+        plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
+                            wspace=0, hspace=0)
         if mosaic_path is not None:
             plt.savefig(mosaic_path, facecolor='black', edgecolor='black', format='png')
 
@@ -50,10 +50,10 @@ class Mosaic(object):
         return fig
 
 
-def get_next_square(num):
+def get_prev_square(num):
     sq = num
     while np.mod(np.sqrt(sq), 1) != 0:
-        sq = (sq // 1) + 1
+        sq = (sq // 1) - 1
     return sq
 
 
