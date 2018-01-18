@@ -489,6 +489,7 @@ class RoiStats(DTIStep):
         self.logger.info("saving {}".format(csv_path))
 
 
+# TODO Think about making a Base QC Step (These are pretty much the same)
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
@@ -532,6 +533,10 @@ class MaskQC(DTIStep):
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
+
+            if result == 'skipped':
+                self.outcome = 'Skipped'
+                self.logger.info("Skipped {}".format(self.code))
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
@@ -597,6 +602,10 @@ class SegQC(DTIStep):
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
+
+            if result == 'skipped':
+                self.outcome = 'Skipped'
+                self.logger.info("Skipped {}".format(self.code))
         finally:
             os.remove(self.review_flag)
 
@@ -658,6 +667,9 @@ class WarpQC(DTIStep):
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
+            if result == 'skipped':
+                self.outcome = 'Skipped'
+                self.logger.info("Skipped {}".format(self.code))
         finally:
             os.remove(self.review_flag)
 
@@ -686,6 +698,9 @@ class StoreInDatabase(DTIStep):
     def __init__(self, project, code, args):
         super(StoreInDatabase, self).__init__(project, code, args)
 
+    # TODO Add a reset() fuction for forcing StoreInDatabase
+    #   Should remove the case from the database
+
     def run(self):
         self.logger.info("storing in database")
         proj_id = DTIRepo().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
@@ -698,6 +713,10 @@ class StoreInDatabase(DTIStep):
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'
             self.comments = str(e)
+
+    def reset(self):
+        self.logger.info("Removing {} from database".format(self.code))
+        DTIRepo().remove_roi_stats(self.project, self.code)
 
 
 # TODO search for project setting, run this after StoreInDB
