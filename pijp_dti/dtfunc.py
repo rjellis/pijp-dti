@@ -48,11 +48,11 @@ def denoise(dat):
 
     """
     sigma = noise_estimate.estimate_sigma(dat)
-    denoise_dat = np.zeros(shape=dat.shape)
+    denoise_dat = []
 
     for i in range(0, dat.shape[3]):
-        denoise_dat[..., i] = non_local_means.non_local_means(dat[..., i], sigma[i])
-
+        denoise_dat.append(non_local_means.non_local_means(dat[..., i], sigma[i]))
+    denoise_dat = np.stack(denoise_dat, axis=-1)
     return denoise_dat
 
 
@@ -88,20 +88,18 @@ def b0_avg(dat, aff, bval):
         b0 (ndarray): 3D ndarray of the averaged b0 image.
 
     """
-    b0_dir = 0
-    b0_sum = np.zeros(shape=dat[..., 0].shape)
-    b0_aff = aff
     b0 = None
+    b0s_reg = []
 
     for i in range(0, len(bval)):
         if bval[i] == 0:
             if b0 is None:
                 b0 = dat[..., i]
-            b0_reg, b0_aff, b0_map = affine_registration(b0, dat[..., i], aff, b0_aff, rigid=True)
-            b0_sum = np.add(b0_sum, b0_reg)
-            b0_dir += 1
+            b0_reg, b0_aff, b0_map = affine_registration(b0, dat[..., i], aff, aff, rigid=True)
+            b0s_reg.append(b0_reg)
 
-    avg_b0 = b0_sum / b0_dir
+    b0s_reg = np.stack(b0s_reg, axis=-1)
+    avg_b0 = np.mean(b0s_reg, axis=-1)
 
     return avg_b0
 
@@ -123,15 +121,15 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
 
     """
     affines = []
-    reg_dat = np.zeros(shape=dat.shape)
     reg_map = []
+    reg_dat = []
     for i in range(0, dat.shape[3]):
         reg_dir, reg_aff, reg_map_slice = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
-        reg_dat[..., i] = reg_dir
+        reg_dat.append(reg_dir)
         reg_map.append(reg_map_slice.affine)
         if bval[i] != 0:
             affines.append(reg_aff)
-
+    reg_dat = np.stack(reg_dat, axis=-1)
     gtab = gradients.gradient_table(bval, bvec)
     new_gtab = gradients.reorient_bvecs(gtab, affines)
     reg_bvecs = new_gtab.bvecs
