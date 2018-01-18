@@ -128,34 +128,15 @@ The ROI statistics are only calculated over the non-zero voxels.
 
 Selecting 'Pass', 'Fail', or 'Edit' sets the result for the case being QC'd.
 
-Selecting
-'Edit' will launch FSLView with the mask overlaid on the averaged b0 image. Use FSLView to make manual edits
-Be sure to overwrite the `_final_mask.nii.gz` in the case's `3Mask` directory when saving.
+Runs SegQC if 'pass' is selected.
 
-Once a result is selected and/or a manual QC edit is completed, you can submit the
-case by going to `File -> Submit`.
-
-If you wish to quit before you finish the manual QC edits,
-select `File -> Quit without submitting`.
-
-`File -> Open in FSLView` opens the case in FSLView, if you want a better look at the masking.
-
-`Edit -> Refresh Figure` reloads the image with any changes made.
-
-`Edit -> Clear Result` removes the selected result, if you want to change it.
-
-`Edit -> Reset Mask` copies the auto_mask over the final mask. **Warning!** You will lose all edits with this option.
+### SegQC
 
 Runs WarpQC if 'pass' is selected.
 
 ### WarpQC
 
 **Launch a GUI to QC the nonlinear registration**
-
-`Edit -> Toggle Mosaic` will switch between the mosaic view and the single slice view. Note that the mosaic view only
-shows the ROI's in red. If you want a better look at the warping, open the case in FSLView using `File -> Open in FSLView`.
-By default, the overlay will still be red but you can change the color map to `Random-Rainbow` for a good view of the
-different ROI's.
 
 
 If 'pass' is selected, the results from RoiStats are stored in the Database.
