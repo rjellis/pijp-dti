@@ -153,7 +153,7 @@ class DTIStep(Step):
 class Stage(DTIStep):
     """Convert Dicoms and set up the pipeline
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Stage"
     step_cli = "stage"
 
@@ -238,7 +238,7 @@ class Stage(DTIStep):
 class Denoise(DTIStep):
     """Denoise the DWI using Local PCA
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Denoise"
     step_cli = "denoise"
 
@@ -260,7 +260,7 @@ class Denoise(DTIStep):
 class Register(DTIStep):
     """Rigidly register the diffusion weighted directions to an averaged b0 volume
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Register"
     step_cli = "register"
     prev_step = [Denoise]
@@ -270,9 +270,9 @@ class Register(DTIStep):
         self.next_step = Mask
 
     def run(self):
-        self.logger.info('averaging the b0 volume')
         dat, aff = self._load_nii(self.denoised)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+        self.logger.info('averaging the b0 volume')
         b0 = dtfunc.b0_avg(dat, aff, bval)
         self.logger.info('registering the DWI to its averaged b0 volume')
         reg_dat, bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
@@ -285,7 +285,7 @@ class Register(DTIStep):
 class Mask(DTIStep):
     """Skull strip the average b0 volume
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Mask"
     step_cli = "mask"
 
@@ -309,7 +309,7 @@ class ApplyMask(DTIStep):
     """Apply the auto mask (or the edited one if it exists)
     """
 
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "ApplyMask"
     step_cli = "apply"
 
@@ -347,7 +347,7 @@ class ApplyMask(DTIStep):
 class TensorFit(DTIStep):
     """Fit the diffusion tensor model
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "TensorFit"
     step_cli = "tenfit"
     prev_step = [ApplyMask]
@@ -379,7 +379,7 @@ class TensorFit(DTIStep):
 class Warp(DTIStep):
     """Warp the template FA and labels_lookup to the subject space
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Warp"
     step_cli = "warp"
     prev_step = [TensorFit]
@@ -411,7 +411,7 @@ class Warp(DTIStep):
 
 class Segment(DTIStep):
 
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "Segment"
     step_cli = "seg"
     prev_step = Warp
@@ -445,7 +445,7 @@ class Segment(DTIStep):
 class RoiStats(DTIStep):
     """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "RoiStats"
     step_cli = "stats"
     prev_step = [Segment]
@@ -493,7 +493,7 @@ class RoiStats(DTIStep):
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "MaskQC"
     step_cli = "maskqc"
     interactive = True
@@ -561,7 +561,7 @@ class MaskQC(DTIStep):
 
 class SegQC(DTIStep):
 
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "SegQC"
     step_cli = 'segqc'
     interactive = True
@@ -626,7 +626,7 @@ class SegQC(DTIStep):
 class WarpQC(DTIStep):
     """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels_lookup overlaid on the FA image.
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "WarpQC"
     step_cli = "warpqc"
     interactive = True
@@ -690,16 +690,13 @@ class WarpQC(DTIStep):
 class StoreInDatabase(DTIStep):
     """Store the currently processed information in the database
     """
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "StoreInDatabase"
     step_cli = "store"
     interactive = True
 
     def __init__(self, project, code, args):
         super(StoreInDatabase, self).__init__(project, code, args)
-
-    # TODO Add a reset() fuction for forcing StoreInDatabase
-    #   Should remove the case from the database
 
     def run(self):
         self.logger.info("storing in database")
@@ -721,7 +718,7 @@ class StoreInDatabase(DTIStep):
 
 # TODO search for project setting, run this after StoreInDB
 class SaveInMNI(DTIStep):
-    process_name = "pijp-dti"
+    process_name = PROCESS_TITLE
     step_name = "SaveInMNI"
     step_cli = "mni"
 
