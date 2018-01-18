@@ -6,6 +6,8 @@ from pijp.repositories import BaseRepository
 from pijp import dbprocs
 from pijp.dbprocs import format_string_parameter as fsp
 
+PROCESS_NAME = 'pijp-dti'
+
 
 class DTIRepo(BaseRepository):
     def __init__(self):
@@ -37,7 +39,7 @@ class DTIRepo(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'pijp-dti'
+            AND Process = {1}
             AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
@@ -46,11 +48,11 @@ class DTIRepo(BaseRepository):
                 FROM 
                     ProcessingLog pl 
                 WHERE Project = {0}
-                    AND Process = 'pijp-dti' 
+                    AND Process = {1}
                     AND Step = 'MaskQC'
                     AND (Outcome = 'Pass' OR Outcome = 'Edit')
             )
-        """.format(dbprocs.format_string_parameter(project))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -62,7 +64,7 @@ class DTIRepo(BaseRepository):
         FROM 
             ProcessingLog
         WHERE Project = {0}
-            AND Process = 'pijp-dti'
+            AND Process = {1}
             AND Step = 'MaskQC'
             AND (Outcome = 'Pass' OR Outcome = 'Edit')
             AND ScanCode NOT IN(
@@ -71,11 +73,11 @@ class DTIRepo(BaseRepository):
                 FROM
                     ProcessingLog
                 WHERE Project = {0}
-                AND Process = 'pijp-dti'
+                AND Process = {1}
                 AND Step = 'SegQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -87,7 +89,7 @@ class DTIRepo(BaseRepository):
         FROM 
             ProcessingLog
         WHERE Project = {0}
-            AND Process = 'pijp-dti'
+            AND Process = {1}
             AND Step = 'SegQC'
             AND Outcome = 'Pass'
             AND ScanCode NOT IN(
@@ -96,11 +98,11 @@ class DTIRepo(BaseRepository):
                 FROM
                     ProcessingLog
                 WHERE Project = {0}
-                AND Process = 'pijp-dti'
+                AND Process = {1}
                 AND Step = 'WarpQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -114,10 +116,10 @@ class DTIRepo(BaseRepository):
         WHERE
             ScanCode = {code}
             AND Project = {project}
-            AND Process = 'pijp-dti'
+            AND Process = {process}
             AND Step = 'MaskQC'
             AND Outcome = 'edit'
-        """.format(code=fsp(code), project=fsp(project))
+        """.format(code=fsp(code), project=fsp(project), process=fsp(PROCESS_NAME))
 
         edited = self.connection.fetchone(sql)
         return edited is not None  # Returns true if edited, false if not edited
@@ -129,7 +131,7 @@ class DTIRepo(BaseRepository):
         FROM 
             ProcessingLog pl 
         WHERE Project = {0}
-            AND Process = 'pijp-dti'
+            AND Process = {1}
             AND Step = 'MaskQC'
             AND Outcome = 'edit'
             AND ScanCode NOT IN(
@@ -138,11 +140,11 @@ class DTIRepo(BaseRepository):
                 FROM
                     ProcessingLog
                 WHERE Project = {0}
-                AND Process = 'pijp-dti'
+                AND Process = {1}
                 AND Step = 'ApplyMask'
                 AND Outcome = 'Redone'
             )
-        """.format(dbprocs.format_string_parameter(project))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -200,11 +202,11 @@ class DTIRepo(BaseRepository):
         SELECT * 
         FROM ProcessingLog 
         WHERE Project = {proj}
-        AND Process = 'pijp-dti' 
+        AND Process = {process} 
         AND Step =  {step} 
         AND CompletedBy = 'ellis'
         ORDER BY CompletedOn DESC
-        """.format(proj=fsp(project), step=fsp(step), completed_by=fsp(completed_by))
+        """.format(proj=fsp(project), step=fsp(step), completed_by=fsp(completed_by), process=fsp(PROCESS_NAME))
 
         processed_codes = self.connection.fetchall(sql)
         return processed_codes
