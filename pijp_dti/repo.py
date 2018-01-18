@@ -1,5 +1,7 @@
 import csv
+import getpass
 from datetime import datetime
+
 from pijp.repositories import BaseRepository
 from pijp import dbprocs
 from pijp.dbprocs import format_string_parameter as fsp
@@ -148,7 +150,7 @@ class DTIRepo(BaseRepository):
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
         sql = r"""
         INSERT INTO pijp_dti (Code, ProjectID, FileName, Measure, Roi, MinVal, MaxVal, MeanVal, StdDev, MedianVal, 
-        Volume, RecordDate)
+                              Volume, RecordDate)
         VALUES ({code}, {project_id}, {fname}, {measure}, {roi}, {min}, {max}, {mean}, {sd}, {median}, {vol}, {time})
         """
         measures = [md, fa, ga, rd, ad]
@@ -174,6 +176,14 @@ class DTIRepo(BaseRepository):
                                                    median=median_val, vol=volume, time=time)
                         self.connection.execute_non_query(formatted_sql)
 
+    def remove_roi_stats(self, project, code):
+        project_id = self.get_project_id(project)
+        sql = r"""
+        DELETE FROM pijp_dti WHERE ProjectID = {0} AND Code = {1} 
+        """.format(fsp(project_id), fsp(code))
+
+        self.connection.execute_non_query(sql)
+
     def get_project_id(self, project):
         sql = r"""
         SELECT ProjectID FROM Projects WHERE ProjectName = {0}
@@ -182,9 +192,23 @@ class DTIRepo(BaseRepository):
         project_id = self.connection.fetchone(sql)
         return project_id
 
-    def get_all_processed_codes(self):
+    def get_processed_codes(self, project, step):
+
+        completed_by = getpass.getuser()
+
         sql = r"""
-        SELECT ScanCode FROM ProcessingLog WHERE Process = 'pijp-dti' AND Step = 'RoiStats' AND Outcome = 'Done'
-        """
+        SELECT * 
+        FROM ProcessingLog 
+        WHERE Project = {proj}
+        AND Process = 'pijp-dti' 
+        AND Step =  {step} 
+        AND CompletedBy = 'ellis'
+        ORDER BY CompletedOn DESC
+        """.format(proj=fsp(project), step=fsp(step), completed_by=fsp(completed_by))
+
         processed_codes = self.connection.fetchall(sql)
         return processed_codes
+
+# codes = DTIRepo().get_processed_codes('NRC', 'MaskQC')
+# for code in codes:
+#     print(code['CompletedOn'].ctime(), code['Project'], code['ScanCode'], code['Outcome'])
