@@ -197,9 +197,10 @@ class DTIRepo(BaseRepository):
     def find_where_left_off(self, project, step):
 
         sql = r"""
-        SELECT ScanCode as CODE 
-        FROM {project} 
-        WHERE Step = {step} 
+        SELECT ScanCode as Code, Outcome
+        FROM ProcessingLog
+        WHERE Project = {project}
+        AND Step = {step} 
         AND CompletedBy = {user} 
         ORDER BY CompletedOn DESC
         """.format(project=fsp(project), step=fsp(step), user=fsp(getpass.getuser()))
