@@ -181,7 +181,7 @@ class Application(tk.Frame):
 
     def _quit(self):
         if self.result:
-            if messagebox.askokcancel("QC Tool", "Quit without saving?", parent=self.master):
+            if messagebox.askokcancel("QC Tool", "Quit without submitting?", parent=self.master):
                 self.result = "cancelled"
                 self.comment = "Exited"
                 self.master.quit()
