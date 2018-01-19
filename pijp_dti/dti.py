@@ -551,10 +551,16 @@ class MaskQC(DTIStep):
         LOGGER.info("%s cases in queue." % len(cases))
 
         cases = [x["Code"] for x in cases]
+        last_job = DTIRepo().find_where_left_off(project_name, 'MaskQC')
         while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = MaskQC(project_name, code, args)
+            if last_job["Outcome"] == "Cancelled":
+                code = last_job["Code"]
+                cases.remove(code)
+                next_job = MaskQC(project_name, code, args)
+            else:
+                code = random.choice(cases)
+                cases.remove(code)
+                next_job = MaskQC(project_name, code, args)
             if not next_job.under_review():
                 return next_job
 
