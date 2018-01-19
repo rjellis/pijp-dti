@@ -489,7 +489,6 @@ class RoiStats(DTIStep):
         self.logger.info("saving {}".format(csv_path))
 
 
-# TODO Think about making a Base QC Step (These are pretty much the same)
 class MaskQC(DTIStep):
     """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
     """
@@ -535,7 +534,8 @@ class MaskQC(DTIStep):
                 raise CancelProcessingError
 
             if result == 'skipped':
-                self.outcome = 'Skipped'
+                self.outcome = 'Cancelled'
+                self.comments = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
 
         except FileNotFoundError as e:
@@ -716,7 +716,6 @@ class StoreInDatabase(DTIStep):
         DTIRepo().remove_roi_stats(self.project, self.code)
 
 
-# TODO search for project setting, run this after StoreInDB
 class SaveInMNI(DTIStep):
     process_name = PROCESS_TITLE
     step_name = "SaveInMNI"
