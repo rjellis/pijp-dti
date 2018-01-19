@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib import animation
 
 from pijp import util
 from pijp_dti import mosaic
@@ -273,10 +274,8 @@ def reset_mask(auto_mask, final_mask):
 
 
 def draw_figure(img, mask, mosaic_mode=True):
-    if mosaic_mode:
-        return mosaic.get_mask_mosaic(img, mask)
-    if not mosaic_mode:
-        return mosaic.get_warp_mosaic(img, mask)
+    # return mosaic.get_mask_mosaic(img, mask)
+    return mosaic.get_animation(img, mask)
 
 
 def run_qc_interface(code, img, auto_mask, final_mask, step):
@@ -295,7 +294,9 @@ def run_qc_interface(code, img, auto_mask, final_mask, step):
     root.minsize(1280, 720)
     app = Application(code, img, auto_mask, final_mask, step, root)
     app.create_widgets()
-    app.create_figure(draw_figure(img, final_mask))
+    fig, ims = draw_figure(img, final_mask)
+    app.create_figure(fig)
+    ani = animation.ArtistAnimation(fig, ims, repeat=True, interval=200)
     app.mainloop()
     result = app.result
     comment = app.comment
