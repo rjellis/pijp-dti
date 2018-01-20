@@ -205,22 +205,20 @@ class DTIRepo(BaseRepository):
         ORDER BY CompletedOn DESC
         """.format(project=fsp(project), step=fsp(step), user=fsp(getpass.getuser()))
 
-        left_off= self.connection.fetchone(sql)
+        left_off = self.connection.fetchone(sql)
         return left_off
 
-    def get_processed_codes(self, project, step):
+    def get_processed_codes(self, project):
 
         completed_by = getpass.getuser()
 
         sql = r"""
-        SELECT * 
+        SELECT DISTINCT ScanCode as Code 
         FROM ProcessingLog 
         WHERE Project = {proj}
         AND Process = {process} 
-        AND Step =  {step} 
         AND CompletedBy = 'ellis'
-        ORDER BY CompletedOn DESC
-        """.format(proj=fsp(project), step=fsp(step), completed_by=fsp(completed_by), process=fsp(PROCESS_NAME))
+        """.format(proj=fsp(project), completed_by=fsp(completed_by), process=fsp(PROCESS_NAME))
 
         processed_codes = self.connection.fetchall(sql)
         return processed_codes
