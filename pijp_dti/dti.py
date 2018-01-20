@@ -270,16 +270,22 @@ class Register(DTIStep):
         self.next_step = Mask
 
     def run(self):
-        dat, aff = self._load_nii(self.denoised)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        self.logger.info('averaging the b0 volume')
-        b0 = dtfunc.b0_avg(dat, aff, bval)
-        self.logger.info('registering the DWI to its averaged b0 volume')
-        reg_dat, bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
-        self._save_nii(b0, aff, self.b0)
-        self._save_nii(reg_dat, aff, self.reg)
-        np.save(self.fbvec_reg, bvec)
-        np.save(self.reg_map, reg_map)
+        try:
+            dat, aff = self._load_nii(self.denoised)
+            bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+            self.logger.info('averaging the b0 volume')
+            b0 = dtfunc.b0_avg(dat, aff, bval)
+            self.logger.info('registering the DWI to its averaged b0 volume')
+            reg_dat, bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+            self._save_nii(b0, aff, self.b0)
+            self._save_nii(reg_dat, aff, self.reg)
+            np.save(self.fbvec_reg, bvec)
+            np.save(self.reg_map, reg_map)
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.next_step = None
 
 
 class Mask(DTIStep):
