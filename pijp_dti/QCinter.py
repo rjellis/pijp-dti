@@ -1,5 +1,5 @@
 import os
-import time
+# import time
 import subprocess
 import shutil
 
@@ -31,8 +31,8 @@ class Application(tk.Frame):
         self.step = step
         self.default_bg = 'black'
         self.default_fg = 'white'
-        self.default_button_bg = 'white'
-        self.default_button_fg = 'black'
+        self.default_button_bg = 'LightCyan4'
+        self.default_button_fg = 'white'
 
         # Matplotlib stuff
         self.index = 0
@@ -79,17 +79,16 @@ class Application(tk.Frame):
 
         # Configuration
         self.master.config(background=self.default_bg)
-
+        self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
+                                command=self.open_mask_editor)
         self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Pass Auto Mask',
                                 command=self._pass)
         self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail Auto Mask',
                                 command=self._fail)
         self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit)
-        self.button_submit.config(fg=self.default_fg, bg=self.default_bg, text='Submit', command=self.submit)
-        self.button_quit.config(fg=self.default_fg, bg=self.default_bg, text='Quit', command=self._quit)
-        self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
-                                command=self.open_mask_editor)
-        self.button_skip.config(fg=self.default_fg, bg=self.default_bg, text='Skip', command=self.skip)
+        self.button_submit.config(fg='green', bg=self.default_bg, text='Submit', command=self.submit)
+        self.button_quit.config(fg='red', bg=self.default_bg, text='Quit', command=self._quit)
+        self.button_skip.config(fg='goldenrod', bg=self.default_bg, text='Skip', command=self.skip)
         self.entry_comment.config(textvariable=v, foreground='gray')
         self.label_top.config(fg=self.default_fg, bg=self.default_bg, text=self.code, font=16)
         self.label_step.config(fg='lightgreen', bg=self.default_bg, text=self.step)
@@ -103,20 +102,23 @@ class Application(tk.Frame):
             self.button_pass.config(text='Pass Warping')
             self.button_fail.config(text='Fail Warping')
             self.button_edit.config(state='disabled')
+        if self.step == 'MaskQC':
+            if not masks_are_same(self.auto_mask, self.final_mask):
+                self.edit()
 
         # Griding
-        self.grid(rowspan=ROW_SIZE, columnspan=COLUMN_SIZE, padx=5, pady=5)
+        self.grid(rowspan=ROW_SIZE, columnspan=COLUMN_SIZE, padx=5, pady=5, ipadx=10, ipady=10)
         self.label_slice.grid(column=0, row=0, sticky='news', padx=5, pady=2)
-        self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
-        self.label_step.grid(column=2, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
-        self.button_open.grid(column=1, row=1, sticky='new', padx=2, pady=2, columnspan=1)
-        self.button_skip.grid(column=2, row=1, sticky='new', padx=2, pady=2, columnspan=1)
-        self.button_pass.grid(column=1, row=2, stick='sew', padx=5, pady=0, columnspan=2)
-        self.button_edit.grid(column=1, row=3, sticky='ew', padx=5, pady=0, columnspan=2)
-        self.button_fail.grid(column=1, row=4, sticky='new', padx=5, pady=0, columnspan=2)
-        self.entry_comment.grid(column=1, row=5, sticky='new', padx=5, pady=2, columnspan=2)
-        self.button_submit.grid(column=1, row=6, sticky='new', padx=2, pady=2, columnspan=1)
-        self.button_quit.grid(column=2, row=6, sticky='new', padx=2, pady=2, columnspan=1)
+        self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=2, columnspan=2)
+        self.label_step.grid(column=3, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
+        self.button_open.grid(column=1, row=1, sticky='ew', ipadx=5, ipady=10, columnspan=2)
+        self.button_pass.grid(column=1, row=2, stick='sew', ipadx=5, ipady=10, columnspan=2)
+        self.button_edit.grid(column=1, row=3, sticky='ew', ipadx=5, ipady=10, columnspan=2)
+        self.button_fail.grid(column=1, row=4, sticky='new', ipadx=5, ipady=10, columnspan=2)
+        self.entry_comment.grid(column=1, row=5, sticky='sew', padx=5, pady=10, columnspan=2)
+        self.button_submit.grid(column=1, row=6, sticky='ew', padx=2, pady=2, ipady=10, ipadx=10, columnspan=1)
+        self.button_skip.grid(column=2, row=6,  sticky='ew', padx=2, pady=2, ipady=10, ipadx=10, columnspan=1)
+        self.button_quit.grid(column=3, row=6, sticky='ew', padx=2, pady=2, ipady=10, ipadx=20, columnspan=1)
 
         # Event Bindings
         self.master.bind_all("<ButtonPress-1>", self.start_move)
@@ -151,7 +153,7 @@ class Application(tk.Frame):
         self.label_slice.config(text='Slice {}'.format(self.index))
 
     def _pass(self):
-        if not masks_are_same(self.auto_mask, self.final_mask):
+        if not masks_are_same(self.auto_mask, self.final_mask) and self.step == 'MaskQC':
             messagebox.showerror("Error", "Edits detected!")
         else:
             self.result = 'pass'
@@ -160,7 +162,7 @@ class Application(tk.Frame):
             self.button_edit.config(bg=self.default_button_bg, fg=self.default_button_fg)
 
     def _fail(self):
-        if not masks_are_same(self.auto_mask, self.final_mask):
+        if not masks_are_same(self.auto_mask, self.final_mask) and self.step == 'MaskQC':
             messagebox.showerror("Error", "Edits detected!")
         else:
             self.result = 'fail'
@@ -274,7 +276,7 @@ class Application(tk.Frame):
         x = self.master.winfo_x() + deltax
         y = self.master.winfo_y() + deltay
         self.master.geometry("+%s+%s" % (x, y))
-
+        # TODO print mouse position on canvas
 
 def center_window(master):
     master.update_idletasks()
