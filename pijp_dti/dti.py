@@ -145,7 +145,7 @@ class DTIStep(Step):
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (output, error) = p.communicate()
         if output:
-            self.logger.info(output.decode('utf-8'))
+            self.logger.debug(output.decode('utf-8'))
         if error:
             self.logger.error(error.decode('utf-8'))
 
@@ -561,19 +561,23 @@ class MaskQC(DTIStep):
 
         while len(cases) != 0:
             if last_job:
-                if last_job['Outcome'] == 'Cancelled':
+                if last_job['Outcome'] == 'Cancelled' and last_job['Comments'] != 'Skipped':
                     code = last_job["Code"]
                     cases.remove(code)
                     next_job = MaskQC(project_name, code, args)
-                    if not next_job.under_review():
-                        return next_job
+
+                else:
+                    code = random.choice(cases)
+                    cases.remove(code)
+                    next_job = MaskQC(project_name, code, args)
+
             else:
                 code = random.choice(cases)
                 cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
 
-                if not next_job.under_review():
-                    return next_job
+            if not next_job.under_review():
+                return next_job
 
 
 class SegQC(DTIStep):
