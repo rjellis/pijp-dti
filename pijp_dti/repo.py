@@ -57,7 +57,7 @@ class DTIRepo(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
-    def get_segs_to_qc(self, project):  # TODO Fix this. It might queue up edited cases that are still processing
+    def get_segs_to_qc(self, project):
         sql = r"""
         SELECT
             ScanCode AS Code
