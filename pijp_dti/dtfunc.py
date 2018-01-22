@@ -319,6 +319,7 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     #  to coarse)
 
     sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters)
+    sdr.verbosity = 0
     mapping = sdr.optimize(static, moving, static_affine, moving_affine, pre_align)
     warped_moving = mapping.transform(moving)
 
