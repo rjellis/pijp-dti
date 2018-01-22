@@ -66,7 +66,7 @@ class DTIRepo(BaseRepository):
         WHERE Project = {0}
             AND Process = {1}
             AND Step = 'MaskQC'
-            AND (Outcome = 'Pass' OR Outcome = 'Edit')
+            AND Outcome = 'Pass'
             AND ScanCode NOT IN(
                 SELECT
                     ScanCode
@@ -79,7 +79,28 @@ class DTIRepo(BaseRepository):
             )
         """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
 
+        sql2 = r"""
+        SELECT
+            ScanCode as Code
+        FROM
+            ProcessingLog
+        WHERE Project = {0}
+            AND Process = {1}
+            AND Step = 'RoiStats'
+            AND Outcome = 'Redone'
+        And ScanCode NOT IN(
+            SELECT ScanCode
+            FROM ProcessingLog
+            WHERE Project = {0}
+            AND Process = {1}
+            AND Step = 'SegQC'
+            AND (Outcome = 'Pass' OR Outcome = 'Fail')
+        """.format(fsp(project), fsp(PROCESS_NAME))
+
         todo = self.connection.fetchall(sql)
+        todo2 = self.connection.fetchall(sql2)
+        todo.update(todo2)  # joining the dictionaries
+
         return todo
 
     def get_warps_to_qc(self, project):
@@ -207,22 +228,3 @@ class DTIRepo(BaseRepository):
 
         left_off = self.connection.fetchone(sql)
         return left_off
-
-    def get_processed_codes(self, project):
-
-        completed_by = getpass.getuser()
-
-        sql = r"""
-        SELECT DISTINCT ScanCode as Code 
-        FROM ProcessingLog 
-        WHERE Project = {proj}
-        AND Process = {process} 
-        AND CompletedBy = 'ellis'
-        """.format(proj=fsp(project), completed_by=fsp(completed_by), process=fsp(PROCESS_NAME))
-
-        processed_codes = self.connection.fetchall(sql)
-        return processed_codes
-
-# codes = DTIRepo().get_processed_codes('NRC', 'MaskQC')
-# for code in codes:
-#     print(code['CompletedOn'].ctime(), code['Project'], code['ScanCode'], code['Outcome'])
