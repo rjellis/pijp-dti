@@ -34,7 +34,7 @@ class DTIRepo(BaseRepository):
 
     def get_masks_to_qc(self, project):
         sql = r"""
-        SELECT 
+        SELECT DISTINCT 
             ScanCode AS Code
         FROM 
             ProcessingLog pl 
@@ -81,7 +81,7 @@ class DTIRepo(BaseRepository):
 
         sql2 = r"""
         SELECT
-            ScanCode as Code
+            ScanCode AS Code
         FROM
             ProcessingLog
         WHERE Project = {0}
@@ -95,13 +95,13 @@ class DTIRepo(BaseRepository):
             AND Process = {1}
             AND Step = 'SegQC'
             AND (Outcome = 'Pass' OR Outcome = 'Fail')
-        """.format(fsp(project), fsp(PROCESS_NAME))
+            )
+        """.format(fsp(project), fsp(PROCESS_NAME))  # Need this second queue for getting redone edited cases
 
         todo = self.connection.fetchall(sql)
         todo2 = self.connection.fetchall(sql2)
-        todo.update(todo2)  # joining the dictionaries
 
-        return todo
+        return todo + todo2
 
     def get_warps_to_qc(self, project):
         sql = r"""
@@ -203,7 +203,7 @@ class DTIRepo(BaseRepository):
         project_id = self.get_project_id(project)
         sql = r"""
         DELETE FROM pijp_dti WHERE ProjectID = {0} AND Code = {1} 
-        """.format(fsp(project_id), fsp(code))
+        """.format(project_id['ProjectID'], fsp(code))
 
         self.connection.execute_non_query(sql)
 
@@ -218,7 +218,7 @@ class DTIRepo(BaseRepository):
     def find_where_left_off(self, project, step):
 
         sql = r"""
-        SELECT ScanCode as Code, Outcome
+        SELECT ScanCode as Code, Outcome, Comments
         FROM ProcessingLog
         WHERE Project = {project}
         AND Step = {step} 
