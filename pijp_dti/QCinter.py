@@ -81,10 +81,8 @@ class Application(tk.Frame):
         self.master.config(background=self.default_bg)
         self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
                                 command=self.open_mask_editor)
-        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Pass Auto Mask',
-                                command=self._pass)
-        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail Auto Mask',
-                                command=self._fail)
+        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._pass)
+        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._fail)
         self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit)
         self.button_submit.config(fg='green', bg=self.default_bg, text='Submit', command=self.submit)
         self.button_quit.config(fg='red', bg=self.default_bg, text='Quit', command=self._quit)
@@ -103,6 +101,9 @@ class Application(tk.Frame):
             self.button_fail.config(text='Fail Warping')
             self.button_edit.config(state='disabled')
         if self.step == 'MaskQC':
+            self.button_pass.config(text='Pass Auto Mask')
+            self.button_fail.config(text='Fail Auto Mask')
+            self.button_edit.config(state='normal')
             if not masks_are_same(self.auto_mask, self.final_mask):
                 self.edit()
 
@@ -111,11 +112,11 @@ class Application(tk.Frame):
         self.label_slice.grid(column=0, row=0, sticky='news', padx=5, pady=2)
         self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=2, columnspan=2)
         self.label_step.grid(column=3, row=0, sticky='ew', padx=5, pady=2, columnspan=1)
-        self.button_open.grid(column=1, row=1, sticky='ew', ipadx=5, ipady=10, columnspan=2)
+        self.button_open.grid(column=1, row=1, sticky='ew', ipadx=5, ipady=10, columnspan=3)
         self.button_pass.grid(column=1, row=2, stick='sew', ipadx=5, ipady=10, columnspan=2)
         self.button_edit.grid(column=1, row=3, sticky='ew', ipadx=5, ipady=10, columnspan=2)
         self.button_fail.grid(column=1, row=4, sticky='new', ipadx=5, ipady=10, columnspan=2)
-        self.entry_comment.grid(column=1, row=5, sticky='sew', padx=5, pady=10, columnspan=2)
+        self.entry_comment.grid(column=1, row=5, sticky='sew', padx=5, pady=10, columnspan=3)
         self.button_submit.grid(column=1, row=6, sticky='ew', padx=2, pady=2, ipady=10, ipadx=10, columnspan=1)
         self.button_skip.grid(column=2, row=6,  sticky='ew', padx=2, pady=2, ipady=10, ipadx=10, columnspan=1)
         self.button_quit.grid(column=3, row=6, sticky='ew', padx=2, pady=2, ipady=10, ipadx=20, columnspan=1)
