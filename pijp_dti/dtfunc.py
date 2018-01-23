@@ -191,15 +191,10 @@ def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
 
     Returns:
         masked_tissue (ndarray)
-
-
     """
     tissue_mask = segmented[..., tissue]
     threshold = (prob/100)
-    tissue_mask[tissue_mask < threshold] = 0
-    tissue_mask[tissue_mask >= threshold] = 1
-
-    dat[tissue_mask == 0] = 0
+    dat[tissue_mask < threshold] = 0
 
     return dat
 
