@@ -45,7 +45,7 @@ class Application(tk.Frame):
         self.mask_dat = nib.load(self.final_mask).get_data()
         self.masked = None
         self.fig = plt.figure()
-        self.fig.set_facecolor('black')
+        self.fig.set_facecolor(self.default_bg)
         self.fig.tight_layout()
         self.projection = None
         self.alpha = 0.5
@@ -85,9 +85,12 @@ class Application(tk.Frame):
         self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
                                 command=self.open_mask_editor)
         self.button_reset.config(fg=self.default_fg, bg=self.default_bg, text='Reset Mask', command=self.reset_mask)
-        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._pass)
-        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._fail)
-        self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit)
+        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._pass,
+                                activebackground='lightgreen', activeforeground='white')
+        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._fail,
+                                activebackground='indian red', activeforeground='white')
+        self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit,
+                                activebackground='lightgoldenrod', activeforeground='black')
         self.button_submit.config(fg='green', bg=self.default_bg, text='Submit', command=self.submit)
         self.button_quit.config(fg='red', bg=self.default_bg, text='Quit', command=self._quit)
         self.button_skip.config(fg='goldenrod', bg=self.default_bg, text='Skip', command=self.skip)
@@ -97,18 +100,18 @@ class Application(tk.Frame):
         self.label_slice.config(fg='lightgreen', bg=self.default_bg, text='Slice {}'.format(self.index))
         self.label_slider.config(fg=self.default_fg, bg=self.default_bg, text='Opacity')
         self.slider.config(fg=self.default_fg, bg=self.default_bg, from_=0, to=1, resolution=0.1, orient='horizontal',
-                           command=self.change_alpha)
-        self.slider.set(self.alpha)
+                           command=self.change_alpha, variable=self.alpha, sliderrelief='flat')
 
         if self.step == 'SegQC':
             self.button_pass.config(text='Pass Segmentation')
             self.button_fail.config(text='Fail Segmentation')
             self.button_edit.config(state='disabled')
+            self.button_reset.config(state='disabled')
         if self.step == 'WarpQC':
             self.button_pass.config(text='Pass Warping')
             self.button_fail.config(text='Fail Warping')
             self.button_edit.config(state='disabled')
-            self.cmap = 'nipy_spectral'
+            self.button_reset.config(state='disabled')
         if self.step == 'MaskQC':
             self.button_pass.config(text='Pass Auto Mask')
             self.button_fail.config(text='Fail Auto Mask')
@@ -123,9 +126,9 @@ class Application(tk.Frame):
         self.label_step.grid(column=3, row=0, sticky='ew', padx=5, pady=5, columnspan=1)
         self.button_open.grid(column=1, row=1, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
         self.button_reset.grid(column=3, row=1, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=1)
-        self.button_pass.grid(column=1, row=2, stick='sew', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_pass.grid(column=1, row=2, stick='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
         self.button_edit.grid(column=1, row=3, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
-        self.button_fail.grid(column=1, row=4, sticky='new', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_fail.grid(column=1, row=4, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
         self.entry_comment.grid(column=1, row=5, sticky='sew', padx=5, pady=10, columnspan=3)
         self.button_submit.grid(column=1, row=6, sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
         self.button_skip.grid(column=2, row=6,  sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
@@ -154,7 +157,7 @@ class Application(tk.Frame):
         self.canvas = FigureCanvasTkAgg(self.fig, self.master)
         self.canvas.show()
         self.canvas.get_tk_widget().grid(column=col, row=row, columnspan=cspan, rowspan=rspan, sticky='news', padx=25,
-                                    pady=25)
+                                         pady=25)
         self.canvas = self.canvas._tkcanvas
 
     def draw_fig(self):
@@ -185,12 +188,12 @@ class Application(tk.Frame):
 
     def edit(self):
         if masks_are_same(self.auto_mask, self.final_mask):
-            if messagebox.askyesno("QC Tool", "No edits detected! Would you like to open FSLView?",
+            if messagebox.askyesno("QC Tool", "No edits detected!\nWould you like to open FSLView?",
                                    parent=self.master):
                 self.open_mask_editor()
         else:
             self.result = 'edit'
-            self.button_edit.config(bg='yellow', fg='black')
+            self.button_edit.config(bg='goldenrod', fg='black')
             self.button_fail.config(bg=self.default_button_bg, fg=self.default_button_fg)
             self.button_pass.config(bg=self.default_button_bg, fg=self.default_button_fg)
 
@@ -239,7 +242,7 @@ class Application(tk.Frame):
         self.refresh_fig()
 
     def reset_mask(self):
-        if messagebox.askyesno("WARNING", "Are you sure you want to reset the mask? All edits will be lost.",
+        if messagebox.askokcancel("QC Tool", "Are you sure you want to reset the mask?\nAll edits will be lost.",
                                icon="warning", parent=self.master):
                 shutil.copyfile(self.auto_mask, self.final_mask)
                 self.refresh_fig()
@@ -256,7 +259,6 @@ class Application(tk.Frame):
     def change_alpha(self, event):
         self.alpha = self.slider.get()
         self.refresh_fig()
-
 
     def scroll_fig_forward(self, event):
         self.index += 1
@@ -346,7 +348,6 @@ def rescale(array, bins=1000):
         ndarray : normalized array
     """
     h, bin_edges = np.histogram(array, bins)
-    bin_width = (bin_edges[1] - bin_edges[0])
     h_area = np.sum(h)
     idcs = []
     for i in range(len(h)):
