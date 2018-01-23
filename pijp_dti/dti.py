@@ -113,13 +113,11 @@ class DTIStep(Step):
         img = nib.load(fname)
         dat = img.get_data()
         aff = img.affine
-
         return dat, aff
 
     def _load_bval_bvec(self, fbval, fbvec):
         self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
         bval, bvec = read_bvals_bvecs(fbval, fbvec)
-
         return bval, bvec
 
     def _save_nii(self, dat, aff, fname):
@@ -249,7 +247,6 @@ class Denoise(DTIStep):
         dat, aff = self._load_nii(self.fdwi)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         denoised = dtfunc.denoise_pca(dat, bval, bvec)
-
         self._save_nii(denoised, aff, self.denoised)
 
 
@@ -323,14 +320,11 @@ class ApplyMask(DTIStep):
 
     def run(self):
         try:
-            reg, reg_aff = self._load_nii(self.reg)
-
-            mask, mask_aff = self._load_nii(self.final_mask)
             self.logger.info('Applying the mask')
-
+            reg, reg_aff = self._load_nii(self.reg)
+            mask, mask_aff = self._load_nii(self.final_mask)
             masked = dtfunc.apply_mask(reg, mask)
             self._save_nii(masked, mask_aff, self.masked)
-
             if DTIRepo().is_edited(self.project, self.code):
                 self.outcome = 'Redone'
 
@@ -359,13 +353,12 @@ class TensorFit(DTIStep):
         self.next_step = Warp
 
     def run(self):
+
+        self.logger.info('Fitting the tensor')
         dat, aff = self._load_nii(self.masked)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         bvec_reg = np.load(self.fbvec_reg)
-
-        self.logger.info('Fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec_reg)
-
         self._save_nii(tenfit.fa, aff, self.fa)
         self._save_nii(tenfit.md, aff, self.md)
         self._save_nii(tenfit.ga, aff, self.ga)
@@ -458,10 +451,8 @@ class RoiStats(DTIStep):
         ga, aff = self._load_nii(self.ga)
         ad, aff = self._load_nii(self.ad)
         rd, aff = self._load_nii(self.rd)
-        segmented_wm, aff = self._load_nii(self.segmented_wm)
-        warped_labels, aff = self._load_nii(self.warped_labels)
+        warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
         labels = np.load(self.labels_lookup).item()
-
         original = nib.load(self.fdwi)
         zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
 
@@ -472,8 +463,7 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            idx[0][segmented_wm == 0] = 0
-            stats = dtfunc.roi_stats(idx[0], warped_labels, labels, zooms)
+            stats = dtfunc.roi_stats(idx[0], warped_wm_labels, labels, zooms)
             self._write_array(stats, idx[1])
 
         if DTIRepo().is_edited(self.project, self.code):
