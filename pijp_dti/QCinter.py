@@ -1,5 +1,4 @@
 import os
-# import time
 import subprocess
 import shutil
 
@@ -14,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from pijp import util
+from pijp_dti.nifti_io import rescale
 
 ROW_SIZE = 7
 COLUMN_SIZE = 3
@@ -243,7 +243,7 @@ class Application(tk.Frame):
 
     def reset_mask(self):
         if messagebox.askokcancel("QC Tool", "Are you sure you want to reset the mask?\nAll edits will be lost.",
-                               icon="warning", parent=self.master):
+                                  icon="warning", parent=self.master):
                 shutil.copyfile(self.auto_mask, self.final_mask)
                 self.refresh_fig()
 
@@ -334,34 +334,6 @@ def masks_are_same(auto_mask, final_mask):
     final_mask_dat = nib.load(final_mask).get_data()
 
     return np.array_equal(auto_mask_dat, final_mask_dat)
-
-
-def rescale(array, bins=1000):
-    """
-    Normalizes array by integrating histogram.
-    Finds the value at which the area under the curve is approximately %98.5 of total area.
-    Saturates at that value. assumes all values in array > 0
-    Args:
-        array (ndarray): array to be normalized
-        bins (int): number of bins to use in histogram. corresponds to precision of integration
-    Returns:
-        ndarray : normalized array
-    """
-    h, bin_edges = np.histogram(array, bins)
-    h_area = np.sum(h)
-    idcs = []
-    for i in range(len(h)):
-        i = i + 1
-        val = np.sum(h[:-i]) / h_area
-        if val > 0.98:
-            idcs.append((i, val))
-        else:
-            break
-    idcs.sort(key=lambda x: (abs(0.985 - x[1]), 1 / x[0]))
-    idx = idcs[0][0]
-    maxval = max(array[array < bin_edges[-idx]])
-    array[array > maxval] = maxval
-    return array / maxval
 
 
 def mask_image(img, mask, hue, alpha=1):
