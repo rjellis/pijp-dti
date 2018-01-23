@@ -17,7 +17,7 @@ optional arguments:
   -d DELAY, --delay DELAY
                         Number of seconds to delay between jobs
 
-steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, qc*, warpqc*, store
+steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, maskqc*, segqc*, warpqc*, store
 
 * steps with queue modes
 
@@ -30,6 +30,9 @@ steps: stage*, denoise, register, mask, apply*, tenfit, warp, seg, stats, qc*, w
 Copies Dicom files for a particular DWI scan code from a database and
 converts them to a singular Nifti file with accompanying .bval and
 .bvec files using dcm2niix. Stage also creates the directories for all of the steps.
+
+Staging will not overwrite a case directory if it already exists, use '--force' if you wish
+to do so.
 
 ## 2. Denoise
 
@@ -47,7 +50,7 @@ Creates an average b0 volume and rigidly registers all the diffusion
 directions to the average b0 volume to correct for subject motion.
 The b-vectors are updated to reflect the orientation changes due to registration.
 The average volume and the registered image are saved as a compressed
-Niftis and the tranformation matricies and updated b-vectors are saved as a numpy files (.npy).
+Niftis and the transformation matrices and updated b-vectors are saved as a numpy files (.npy).
 
 The average b0 volume is created by rigidly registering all of the found
 b0 directions to the first found b0 direction and averaging the voxel
@@ -116,31 +119,50 @@ region of interest. The minimum value, maximum value, mean, standard
 deviation, median and volume are calculated for each region of interest.
 A comma separated value file (CSV) is generated for each anisotropy measure.
 CSV format: (name, min, max, mean, std. dev, median, volume).
-The white matter segmentation mask is applied before caluclation. It thresholds
-where the probability for white matter is greater than or equal to 50%.
+The white matter segmentation mask is applied before calculation. It thresholds
+where the probability for white matter is greater than or equal to 40%.
 The ROI statistics are only calculated over the non-zero voxels.
 
 ## Interactive Steps
 
 ### MaskQC
 
-**Launch a GUI to QC the automated skull stripping**
+**Open a GUI to QC the automated skull stripping**
 
-Selecting 'Pass', 'Fail', or 'Edit' sets the result for the case being QC'd.
-
+Selecting **'Pass', 'Fail', or 'Edit'** sets the result for the case being QC'd.
 Runs SegQC if 'pass' is selected.
 
 ### SegQC
 
-Runs WarpQC if 'pass' is selected.
+**Open a GUI to QC the tissue segmentation**
+
+Runs WarpQC if 'pass' is selected. Queues up cases where MaskQC is passed or edited
+cases where RoiStats has an outcome of 'Redone.'
 
 ### WarpQC
 
-**Launch a GUI to QC the nonlinear registration**
+**Open a GUI to QC the nonlinear registration**
 
-
+Queues up cases where SegQC has passed.
 If 'pass' is selected, the results from RoiStats are stored in the Database.
 
 ### StoreInDatabase
 
 Store the CSV's from RoiStats in the database after passing WarpQC.
+
+# How To Use QC Tool
+
+sample command:
+
+`dti.py -p SampleProject -s maskqc`
+
+This will queue up all cases ready for MaskQC. A window will open with the
+middle slice of the average b0 image, with a red mask overlaid. Use the **Pass, Edit, or Fail**
+buttons on the right to select a result. Select **Open in FSLView** if you wish to edit the
+mask or view the case with a more advanced viewer. When you are done editing or selecting a result,
+use the **Submit** button to submit the case. This button will close the current window. If you wish to
+exit the QC Tool at any time, use the **Quit** button. This will close the QC Tool and stop the queue.
+Running the MaskQC command again will continue where you left off.
+If you wish to open a single case, use the option `-c` followed by the desired code in the command.
+
+
