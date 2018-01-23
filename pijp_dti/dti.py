@@ -547,17 +547,14 @@ class MaskQC(DTIStep):
                     code = last_job["Code"]
                     cases.remove(code)
                     next_job = MaskQC(project_name, code, args)
-
                 else:
                     code = random.choice(cases)
                     cases.remove(code)
                     next_job = MaskQC(project_name, code, args)
-
             else:
                 code = random.choice(cases)
                 cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
-
             if not next_job.under_review():
                 return next_job
 
@@ -605,7 +602,6 @@ class SegQC(DTIStep):
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
-
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
