@@ -195,14 +195,13 @@ def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
 
     """
     tissue_mask = segmented[..., tissue]
-    tissue_mask /= np.max(tissue_mask)  # Normalize the tissue_mask
     threshold = (prob/100)
     tissue_mask[tissue_mask < threshold] = 0
-    tissue_mask[tissue_mask > threshold] = 1
+    tissue_mask[tissue_mask >= threshold] = 1
 
-    masked_tissue = apply_mask(dat, tissue_mask)
+    dat[tissue_mask == 0] = 0
 
-    return masked_tissue
+    return dat
 
 
 def roi_stats(dat, overlay, labels, zooms):
