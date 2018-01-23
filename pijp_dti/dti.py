@@ -163,10 +163,12 @@ class Stage(DTIStep):
 
     def run(self):
 
+        self.logger.info("Staging pipeline")
+        self.logger.info("Finding DICOM files")
         source = DicomRepository().get_series_files(self.code)
 
         if source is None:
-            raise ProcessingError("Could not find staging data.")
+            raise ProcessingError("Could not find staging data")
 
         try:
 
@@ -175,7 +177,7 @@ class Stage(DTIStep):
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
-                    self.logger.info('building directory {}'.format(dr))
+                    self.logger.info('Building directory {}'.format(dr))
 
             if len(os.listdir(self.stage_dir)) != 0:
                 self.logger.error("{} is not empty!".format(self.stage_dir))
@@ -184,6 +186,7 @@ class Stage(DTIStep):
             else:
                 dcm2niix = get_dcm2niix()
                 dcm_dir = self._copy_files(source)
+                self.logger.info("Converting DICOM files to NIfTI")
                 cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
                 self._run_cmd(cmd)
 
@@ -197,7 +200,7 @@ class Stage(DTIStep):
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.info('failed to find .bval or .bvec')
+            self.logger.info('Failed to find .bval or .bvec')
             self.next_step = None
             shutil.rmtree(get_case_dir(self.project, self.code))
 
@@ -249,7 +252,7 @@ class Denoise(DTIStep):
         self.next_step = Register
 
     def run(self):
-        self.logger.info("denoising the DWI")
+        self.logger.info("Denoising the DWI")
         dat, aff = self._load_nii(self.fdwi)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         denoised = dtfunc.denoise_pca(dat, bval, bvec)
@@ -273,9 +276,9 @@ class Register(DTIStep):
         try:
             dat, aff = self._load_nii(self.denoised)
             bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-            self.logger.info('averaging the b0 volume')
+            self.logger.info('Averaging the b0 volume')
             b0 = dtfunc.b0_avg(dat, aff, bval)
-            self.logger.info('registering the DWI to its averaged b0 volume')
+            self.logger.info('Registering the DWI to its averaged b0 volume')
             reg_dat, bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
             self._save_nii(b0, aff, self.b0)
             self._save_nii(reg_dat, aff, self.reg)
@@ -303,7 +306,7 @@ class Mask(DTIStep):
 
     def run(self):
         dat, aff = self._load_nii(self.b0)
-        self.logger.info('masking the average b0 volume')
+        self.logger.info('Masking the average b0 volume')
         mask = dtfunc.mask(dat)
         mask[mask > 0] = 1
         self._save_nii(mask, aff, self.auto_mask)
@@ -330,7 +333,7 @@ class ApplyMask(DTIStep):
             reg, reg_aff = self._load_nii(self.reg)
 
             mask, mask_aff = self._load_nii(self.final_mask)
-            self.logger.info('applying the mask')
+            self.logger.info('Applying the mask')
 
             masked = dtfunc.apply_mask(reg, mask)
             self._save_nii(masked, mask_aff, self.masked)
@@ -367,7 +370,7 @@ class TensorFit(DTIStep):
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         bvec_reg = np.load(self.fbvec_reg)
 
-        self.logger.info('fitting the tensor')
+        self.logger.info('Fitting the tensor')
         evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec_reg)
 
         self._save_nii(tenfit.fa, aff, self.fa)
@@ -395,7 +398,7 @@ class Warp(DTIStep):
         self.next_step = Segment
 
     def run(self):
-        self.logger.info('generating nonlinear registration map for FA')
+        self.logger.info('Generating nonlinear registration map for FA')
         fa, fa_aff = self._load_nii(self.fa)
         template, template_aff = self._load_nii(self.template)
         temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
@@ -427,7 +430,7 @@ class Segment(DTIStep):
         self.next_step = RoiStats
 
     def run(self):
-        self.logger.info('segmenting tissue for the average b0 of the masked volume')
+        self.logger.info('Segmenting tissue for the average b0 of the masked volume')
         if os.path.isfile(self.final_mask):
             mask, maff = self._load_nii(self.final_mask)
         else:
@@ -460,7 +463,7 @@ class RoiStats(DTIStep):
         super(RoiStats, self).__init__(project, code, args)
 
     def run(self):
-        self.logger.info('calculating roi statistics')
+        self.logger.info('Calculating roi statistics')
         fa, aff = self._load_nii(self.fa)
         md, aff = self._load_nii(self.md)
         ga, aff = self._load_nii(self.ga)
@@ -720,7 +723,7 @@ class StoreInDatabase(DTIStep):
         super(StoreInDatabase, self).__init__(project, code, args)
 
     def run(self):
-        self.logger.info("storing in database")
+        self.logger.info("Storing in database")
         proj_id = DTIRepo().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
         proj_id = proj_id['ProjectID']
 
