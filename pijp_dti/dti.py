@@ -156,12 +156,13 @@ class Stage(DTIStep):
 
         self.logger.info("Staging pipeline")
         self.logger.info("Finding DICOM files")
-        source = DicomRepository().get_series_files(self.code)
 
-        if source is None:
-            raise ProcessingError("Could not find staging data")
 
         try:
+            source = DicomRepository().get_series_files(self.code)
+
+            if source is None or len(source) == 0:
+                raise ProcessingError
 
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
@@ -187,6 +188,11 @@ class Stage(DTIStep):
                 self.outcome = 'Error'
                 self.comments = 'DWI must have 4 dimensions'
                 self.next_step = None
+
+        except ProcessingError as e:
+            self.outcome = 'Error'
+            self.comments = 'Could not find staging data.'
+            self.next_step = None
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
@@ -422,8 +428,8 @@ class Segment(DTIStep):
         warped, waff = self._load_nii(self.warped_labels)
         masked_b0 = dtfunc.apply_mask(b0, mask)
         segmented = dtfunc.segment_tissue(masked_b0)
-        segmented_wm = dtfunc.apply_tissue_mask(masked_b0, segmented, prob=10)
-        warped_wm_labels = dtfunc.apply_tissue_mask(warped, segmented, prob=10)
+        segmented_wm = dtfunc.apply_tissue_mask(masked_b0, segmented, prob=1)
+        warped_wm_labels = dtfunc.apply_tissue_mask(warped, segmented, prob=1)
         self._save_nii(segmented, baff, self.segmented)
         self._save_nii(segmented_wm, baff, self.segmented_wm)
         self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
