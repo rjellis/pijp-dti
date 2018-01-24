@@ -157,7 +157,6 @@ class Stage(DTIStep):
         self.logger.info("Staging pipeline")
         self.logger.info("Finding DICOM files")
 
-
         try:
             source = DicomRepository().get_series_files(self.code)
 
@@ -189,17 +188,16 @@ class Stage(DTIStep):
                 self.comments = 'DWI must have 4 dimensions'
                 self.next_step = None
 
-        except ProcessingError as e:
+        except ProcessingError:
             self.outcome = 'Error'
-            self.comments = 'Could not find staging data.'
+            self.comments = 'ProcessingError: Could not find staging data.'
             self.next_step = None
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.info('Failed to find .bval or .bvec')
+            self.logger.info('Failed to find  .bval or .bvec')
             self.next_step = None
-            shutil.rmtree(get_case_dir(self.project, self.code))
 
         except FileExistsError as e:
             self.outcome = 'Error'
