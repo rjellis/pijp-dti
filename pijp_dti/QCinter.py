@@ -73,7 +73,6 @@ class Application(tk.Frame):
         self.label_step = tk.Label(master=self.master)
         self.label_top = tk.Label(master=self.master)
         self.label_slice = tk.Label(master=self.master)
-        self.label_slider = tk.Label(master=self.master)
         self.slider = tk.Scale(master=self.master)
 
     def create_widgets(self):
@@ -98,9 +97,9 @@ class Application(tk.Frame):
         self.label_top.config(fg=self.default_fg, bg=self.default_bg, text=self.code, font=16)
         self.label_step.config(fg='lightgreen', bg=self.default_bg, text=self.step)
         self.label_slice.config(fg='lightgreen', bg=self.default_bg, text='Slice {}'.format(self.index))
-        self.label_slider.config(fg=self.default_fg, bg=self.default_bg, text='Opacity')
         self.slider.config(fg=self.default_fg, bg=self.default_bg, from_=0, to=1, resolution=0.1, orient='horizontal',
-                           command=self.change_alpha, variable=self.alpha, sliderrelief='flat')
+                           command=self.change_alpha, sliderrelief='flat',label='Opacity')
+        self.slider.set(self.alpha)
 
         if self.step == 'SegQC':
             self.button_pass.config(text='Pass Segmentation')
@@ -133,7 +132,6 @@ class Application(tk.Frame):
         self.button_submit.grid(column=1, row=6, sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
         self.button_skip.grid(column=2, row=6,  sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
         self.button_quit.grid(column=3, row=6, sticky='ew', padx=5, pady=0, ipady=10, ipadx=20, columnspan=1)
-        self.label_slider.grid(column=0, row=7, sticky='sw', padx=5, pady=2)
         self.slider.grid(column=0, row=8, sticky='w', columnspan=1, padx=5, pady=5)
 
         # Event Bindings
@@ -143,6 +141,7 @@ class Application(tk.Frame):
         self.entry_comment.bind("<Key>", self.change_comment_text_color_and_clear)
         self.master.bind("<ButtonPress-4>", self.scroll_fig_forward)
         self.master.bind("<ButtonPress-5>", self.scroll_fig_backward)
+        self.slider.bind("<ButtonRelease-1>", self.refresh_fig)
 
         # Miscellaneous Settings
         self.winfo_toplevel().title("QC Tool")
@@ -247,7 +246,7 @@ class Application(tk.Frame):
                 shutil.copyfile(self.auto_mask, self.final_mask)
                 self.refresh_fig()
 
-    def refresh_fig(self):
+    def refresh_fig(self, event=None):
         self.mask_dat = nib.load(self.final_mask).get_data()
         self.image_dat = nib.load(self.img).get_data()
         self.image_dat = rescale(self.image_dat)
@@ -258,7 +257,6 @@ class Application(tk.Frame):
 
     def change_alpha(self, event):
         self.alpha = self.slider.get()
-        self.refresh_fig()
 
     def scroll_fig_forward(self, event):
         self.index += 1
