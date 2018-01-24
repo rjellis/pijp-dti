@@ -32,6 +32,24 @@ class DTIRepo(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
+    def get_time_points(self, project, code):
+        sql = r"""
+        SELECT 
+            SeriesCode AS Code
+        FROM 
+            dbo.DicomSeries se
+        INNER JOIN
+            dbo.DicomStudies st
+        ON
+            se.StudyInstanceUID = st.StudyInstanceUID
+        WHERE st.StudyCode = {project} 
+            AND SeriesDescription LIKE '%DTI%'
+            AND SeriesCode LIKE  '%{code}%'
+        """.format(project=fsp(project), code=fsp(code))
+
+        time_points = self.connection.fetchall(sql)
+        return time_points
+
     def get_masks_to_qc(self, project):
         sql = r"""
         SELECT DISTINCT 
