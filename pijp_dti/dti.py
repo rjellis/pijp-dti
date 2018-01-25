@@ -302,7 +302,6 @@ class Mask(DTIStep):
         dat, aff = self._load_nii(self.b0)
         self.logger.info('Masking the average b0 volume')
         mask = dtfunc.mask(dat)
-        mask[mask > 0] = 1
         self._save_nii(mask, aff, self.auto_mask)
         mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
         shutil.copyfile(self.auto_mask, self.final_mask)
@@ -311,7 +310,6 @@ class Mask(DTIStep):
 class ApplyMask(DTIStep):
     """Apply the auto mask (or the edited one if it exists)
     """
-
     process_name = PROCESS_TITLE
     step_name = "ApplyMask"
     step_cli = "apply"
@@ -456,7 +454,7 @@ class RoiStats(DTIStep):
         ad, aff = self._load_nii(self.ad)
         rd, aff = self._load_nii(self.rd)
         warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
-        labels = np.load(self.labels_lookup).item()
+        roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
         original = nib.load(self.fdwi)
         zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
 
@@ -467,7 +465,7 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            stats = dtfunc.roi_stats(idx[0], warped_wm_labels, labels, zooms)
+            stats = dtfunc.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
             self._write_array(stats, idx[1])
 
         if DTIRepo().is_edited(self.project, self.code):
@@ -546,15 +544,12 @@ class MaskQC(DTIStep):
         last_job = DTIRepo().find_where_left_off(project_name, 'MaskQC')
 
         while len(cases) != 0:
-            if last_job:
-                if last_job['Outcome'] == 'Cancelled' and last_job['Comments'] != 'Skipped':
-                    code = last_job["Code"]
-                    cases.remove(code)
-                    next_job = MaskQC(project_name, code, args)
-                else:
-                    code = random.choice(cases)
-                    cases.remove(code)
-                    next_job = MaskQC(project_name, code, args)
+            if (last_job
+                    and last_job['Outcome'] == 'Cancelled'
+                    and last_job['Comments'] != 'Skipped'):
+                code = last_job["Code"]
+                cases.remove(code)
+                next_job = MaskQC(project_name, code, args)
             else:
                 code = random.choice(cases)
                 cases.remove(code)
