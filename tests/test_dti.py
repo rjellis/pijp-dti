@@ -7,7 +7,7 @@ from pijp_dti import dti
 class Test(unittest.TestCase):
 
     project = 'PPMI'
-    code = 'PPMI_007_S_3107m12'
+    code = 'PPMI_007_S_3107m12_i296434'
     args = None
     comments = 'testing'
 
