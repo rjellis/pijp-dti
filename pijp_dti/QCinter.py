@@ -98,7 +98,7 @@ class Application(tk.Frame):
         self.label_step.config(fg='lightgreen', bg=self.default_bg, text=self.step)
         self.label_slice.config(fg='lightgreen', bg=self.default_bg, text='Slice {}'.format(self.index))
         self.slider.config(fg=self.default_fg, bg=self.default_bg, from_=0, to=1, resolution=0.1, orient='horizontal',
-                           command=self.change_alpha, sliderrelief='flat',label='Opacity')
+                           command=self.change_alpha, sliderrelief='flat', label='Opacity')
         self.slider.set(self.alpha)
 
         if self.step == 'SegQC':
