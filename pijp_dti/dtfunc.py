@@ -130,6 +130,7 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
         if bval[i] != 0:
             affines.append(reg_aff)
     reg_dat = np.stack(reg_dat, axis=-1)
+    reg_map = np.stack(reg_map, axis=-1)
     gtab = gradients.gradient_table(bval, bvec)
     new_gtab = gradients.reorient_bvecs(gtab, affines)
     reg_bvecs = new_gtab.bvecs
@@ -263,30 +264,20 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     sigmas = [3.0, 1.0, 0.0]
     factors = [4, 2, 1]  # Factors that determine resolution
 
-    affreg = imaffine.AffineRegistration(metric,
-                                         level_iters=level_iters,
-                                         sigmas=sigmas,
-                                         factors=factors,
-                                         verbosity=0)
+    affreg = imaffine.AffineRegistration(metric, level_iters=level_iters, sigmas=sigmas, factors=factors, verbosity=0)
     params0 = None
 
     if rigid:
-        rig_map = affreg.optimize(
-            static, moving,
-            transforms.RigidTransform3D(),
-            params0, static_affine,
-            moving_affine, 'mass')
-        dat_reg = rig_map.transform(moving)
-        return dat_reg, rig_map.affine, rig_map
+        transform = transforms.RigidTransform3D()
+    else:
+        transform = transforms.AffineTransform3D()
 
-    if not rigid:
-        aff_map = affreg.optimize(
-            static, moving,
-            transforms.AffineTransform3D(),
-            params0, static_affine,
-            moving_affine, 'mass')
-        dat_reg = aff_map.transform(moving)
-        return dat_reg, aff_map.affine, aff_map
+    # 'mass' tells optimize to align the image's centers of mass
+    aff_map = affreg.optimize(static, moving, transform, params0, static_affine, moving_affine, 'mass')
+    dat_reg = aff_map.transform(moving)
+
+    return dat_reg, aff_map.affine, aff_map
+
 
 
 def sym_diff_registration(static, moving, static_affine, moving_affine):
