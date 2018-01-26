@@ -19,16 +19,17 @@ from pijp.repositories import DicomRepository
 from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcessingError
 from pijp.engine import run_module, run_file
 
+import pijp_dti
 from pijp_dti import dtfunc
 from pijp_dti import mosaic, QCinter
 from pijp_dti.repo import DTIRepo
 
 LOGGER = logging.getLogger(__name__)
-PROCESS_TITLE = 'pijp-dti'
+PROCESS_TITLE = pijp_dti.__process_title__
 
 
 def get_process_dir(project):
-    return os.path.join(get_project_dir(project), 'pijp-dti')
+    return os.path.join(get_project_dir(project), PROCESS_TITLE)
 
 
 def get_case_dir(project, code):

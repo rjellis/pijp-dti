@@ -2,11 +2,12 @@ import csv
 import getpass
 from datetime import datetime
 
+import pijp_dti
 from pijp.repositories import BaseRepository
 from pijp import dbprocs
 from pijp.dbprocs import format_string_parameter as fsp
 
-PROCESS_NAME = 'pijp-dti'
+PROCESS_TITLE = pijp_dti.__process_title__
 
 
 class DTIRepo(BaseRepository):
@@ -43,7 +44,7 @@ class DTIRepo(BaseRepository):
             AND Process = {process}
             AND Step = 'Stage'
             AND (Outcome = 'Done' or Outcome = 'Error')
-        """.format(project=fsp(project), process=fsp(PROCESS_NAME))
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -68,7 +69,7 @@ class DTIRepo(BaseRepository):
                     AND Step = 'MaskQC'
                     AND (Outcome = 'Pass' OR Outcome = 'Edit')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -93,7 +94,7 @@ class DTIRepo(BaseRepository):
                 AND Step = 'SegQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
 
         sql2 = r"""
         SELECT
@@ -114,7 +115,7 @@ class DTIRepo(BaseRepository):
                 AND Step = 'SegQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(fsp(project), fsp(PROCESS_NAME))  # Need this second query for getting redone edited cases
+        """.format(fsp(project), fsp(PROCESS_TITLE))  # Need this second query for getting redone edited cases
 
         todo = self.connection.fetchall(sql)
         todo2 = self.connection.fetchall(sql2)
@@ -141,7 +142,7 @@ class DTIRepo(BaseRepository):
                 AND Step = 'WarpQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -158,7 +159,7 @@ class DTIRepo(BaseRepository):
             AND Process = {process}
             AND Step = 'MaskQC'
             AND Outcome = 'edit'
-        """.format(code=fsp(code), project=fsp(project), process=fsp(PROCESS_NAME))
+        """.format(code=fsp(code), project=fsp(project), process=fsp(PROCESS_TITLE))
 
         edited = self.connection.fetchone(sql)
         return edited is not None  # Returns true if edited, false if not edited
@@ -183,7 +184,7 @@ class DTIRepo(BaseRepository):
                 AND Step = 'ApplyMask'
                 AND Outcome = 'Redone'
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_NAME))
+        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
