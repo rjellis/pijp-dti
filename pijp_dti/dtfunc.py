@@ -130,6 +130,7 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
         if bval[i] != 0:
             affines.append(reg_aff)
     reg_dat = np.stack(reg_dat, axis=-1)
+    reg_map = np.stack(reg_map, axis=-1)
     gtab = gradients.gradient_table(bval, bvec)
     new_gtab = gradients.reorient_bvecs(gtab, affines)
     reg_bvecs = new_gtab.bvecs
