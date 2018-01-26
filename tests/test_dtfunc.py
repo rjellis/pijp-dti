@@ -80,7 +80,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(dat.shape + (4,), segmented.shape)
 
-    def apply_tissue_mask(self):
+    def test_apply_tissue_mask(self):
 
         dat = np.random.rand(42, 42, 42)
         segmented = np.random.rand(42, 42, 42, 4)
@@ -88,6 +88,31 @@ class Test(unittest.TestCase):
         segmented_dat = dtfunc.apply_tissue_mask(dat, segmented)
 
         self.assertEqual(dat.shape, segmented_dat.shape)
+
+    def test_affine_registration(self):
+
+        static = np.random.rand(42, 42, 42)
+        moving = np.random.rand(42, 42, 42)
+        static_affine = np.random.rand(4, 4)
+        moving_affine = np.random.rand(4, 4)
+
+        reg, reg_aff, aff_map = dtfunc.affine_registration(static, moving, static_affine, moving_affine)
+
+        self.assertEqual(static.shape, reg.shape)
+
+    def test_sym_diff_registration(self):
+
+        static = np.random.rand(42, 42, 42)
+        moving = np.random.rand(42, 42, 42)
+        static_affine = np.random.rand(4, 4)
+        moving_affine = np.random.rand(4, 4)
+
+        # DIV BY 0 Error somewhere in dipy.align.imwarp
+        # TODO: fix random data
+        warped, warped_mapping = dtfunc.sym_diff_registration(static, moving, static_affine, moving_affine)
+
+        self.assertEqual(static.shape, warped.shape)
+
 
 if __name__ == "__main__":
     unittest.main()
