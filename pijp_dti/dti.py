@@ -184,6 +184,7 @@ class Stage(DTIStep):
 
             if len(nib.load(self.fdwi).get_data().shape) != 4:
                 self.outcome = 'Error'
+                self.logger.info('DWI must have 4 dimensions')
                 self.comments = 'DWI must have 4 dimensions'
                 self.next_step = None
 
@@ -191,12 +192,15 @@ class Stage(DTIStep):
             self.outcome = 'Error'
             self.comments = 'ProcessingError: Could not find staging data.'
             self.next_step = None
+            shutil.rmtree(get_case_dir(self.project, self.code))
+
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
             self.logger.info('Failed to find  .bval or .bvec')
             self.next_step = None
+            shutil.rmtree(get_case_dir(self.project, self.code))
 
         except FileExistsError as e:
             self.outcome = 'Error'
