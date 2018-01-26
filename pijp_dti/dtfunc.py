@@ -41,7 +41,7 @@ def denoise(dat):
     """Denoise a data set using Non Local Means.
 
     Args:
-        dat (ndarray): 3D numpy ndarray
+        dat (ndarray): 4D numpy ndarray
 
     Returns:
         denoise_dat (ndarray): The denoised ndarray
