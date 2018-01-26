@@ -1,6 +1,6 @@
 numpy
 scipy
 matplotlib
-dipy>=0.13.0
-nibabel>=2.2.0
+dipy
+nibabel
 pymssql
