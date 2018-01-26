@@ -32,6 +32,22 @@ class DTIRepo(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
+    def get_staged_cases(self, project):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        From 
+            ProcessingLog
+        WHERE Project = {project}
+            AND Process = {process}
+            AND Step = 'Stage'
+            AND Outcome = 'Done' 
+        """.format(project=fsp(project), process=fsp(PROCESS_NAME))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
     def get_masks_to_qc(self, project):
         sql = r"""
         SELECT DISTINCT 
