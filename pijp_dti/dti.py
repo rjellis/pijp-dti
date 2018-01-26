@@ -29,7 +29,7 @@ VERSION = "0.2.0"
 
 
 def get_process_dir(project):
-    return os.path.join(get_project_dir(project), 'pijp_dti')
+    return os.path.join(get_project_dir(project), 'pijp-dti')
 
 
 def get_case_dir(project, code):
