@@ -1,15 +1,11 @@
-import os
 import unittest
 
 import numpy as np
-import nibabel as nib
-from dipy.io import read_bvals_bvecs
 
 from pijp_dti import dtfunc
 
 
 class Test(unittest.TestCase):
-
 
     def test_mask(self):
 
@@ -44,7 +40,7 @@ class Test(unittest.TestCase):
 
     def test_b0_avg(self):
 
-        dat = np.random.rand(42, 42, 42 ,42)
+        dat = np.random.rand(42, 42, 42, 42)
         aff = np.random.rand(4, 4)
         bval = np.zeros(42)
 
@@ -60,7 +56,7 @@ class Test(unittest.TestCase):
         bval = np.zeros(42)
         bvec = np.random.rand(42, 3)
 
-        reg_dat, reg_bvec, reg_map  = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+        reg_dat, reg_bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
         print(reg_map.shape)
 
         self.assertEqual(dat.shape, reg_dat.shape)
