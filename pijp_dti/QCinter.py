@@ -59,7 +59,6 @@ class Application(tk.Frame):
 
         # Widget Initialization
         self.canvas = tk.Canvas(master=self.master)
-        self.button_skip = tk.Button(master=self.master)
         self.button_quit = tk.Button(master=self.master)
         self.button_submit = tk.Button(master=self.master)
         self.button_pass = tk.Button(master=self.master)
@@ -69,7 +68,6 @@ class Application(tk.Frame):
         self.button_skip = tk.Button(master=self.master)
         self.button_reset = tk.Button(master=self.master)
         self.entry_comment = tk.Entry(master=self.master)
-        self.label_result = tk.Label(master=self.master)
         self.label_step = tk.Label(master=self.master)
         self.label_top = tk.Label(master=self.master)
         self.label_slice = tk.Label(master=self.master)
@@ -81,18 +79,29 @@ class Application(tk.Frame):
 
         # Configuration
         self.master.config(background=self.default_bg)
-        self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
-                                command=self.open_mask_editor)
-        self.button_reset.config(fg=self.default_fg, bg=self.default_bg, text='Reset Mask', command=self.reset_mask)
-        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Pass', command=self._pass,
-                                activebackground='lightgreen', activeforeground='white')
-        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail', command=self._fail,
-                                activebackground='indian red', activeforeground='white')
-        self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit,
-                                activebackground='lightgoldenrod', activeforeground='black')
-        self.button_submit.config(fg='green', bg=self.default_bg, text='Submit', command=self.submit)
-        self.button_quit.config(fg='red', bg=self.default_bg, text='Quit', command=self._quit)
-        self.button_skip.config(fg='goldenrod', bg=self.default_bg, text='Skip', command=self.skip)
+        self.button_open.config(fg=self.default_fg, bg=self.default_bg,
+                                text='Open in FSLView', command=self.open_mask_editor)
+        self.button_reset.config(fg='red4', bg='salmon',
+                                 highlightbackground='red4', highlightthickness=3,
+                                 text='Reset Mask', command=self.reset_mask)
+        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg,
+                                activebackground='lightgreen', activeforeground='white',
+                                text='Pass', command=self._pass,)
+        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg,
+                                activebackground='indian red', activeforeground='white',
+                                text='Fail', command=self._fail)
+        self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg,
+                                activebackground='lightgoldenrod', activeforeground='black',
+                                text='Edited', command=self.edit)
+        self.button_submit.config(fg='green', bg=self.default_bg,
+                                  highlightbackground='green',
+                                  text='Submit', command=self.submit)
+        self.button_quit.config(fg='red', bg=self.default_bg,
+                                highlightbackground='red',
+                                text='Quit', command=self._quit)
+        self.button_skip.config(fg='goldenrod', bg=self.default_bg,
+                                highlightbackground='goldenrod',
+                                text='Skip', command=self.skip)
         self.entry_comment.config(textvariable=v, foreground='gray')
         self.label_top.config(fg=self.default_fg, bg=self.default_bg, text=self.code, font=16)
         self.label_step.config(fg='lightgreen', bg=self.default_bg, text=self.step)
@@ -123,21 +132,21 @@ class Application(tk.Frame):
         self.label_slice.grid(column=0, row=0, sticky='news', padx=5, pady=5)
         self.label_top.grid(column=1, row=0, sticky='ew', padx=5, pady=5, columnspan=2)
         self.label_step.grid(column=3, row=0, sticky='ew', padx=5, pady=5, columnspan=1)
-        self.button_open.grid(column=1, row=1, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
-        self.button_reset.grid(column=3, row=1, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=1)
-        self.button_pass.grid(column=1, row=2, stick='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
-        self.button_edit.grid(column=1, row=3, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
-        self.button_fail.grid(column=1, row=4, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_open.grid(column=2, row=1, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_reset.grid(column=1, row=1, sticky='w', padx=0, ipadx=0, ipady=0, columnspan=1)
+        self.button_pass.grid(column=2, row=2, stick='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_edit.grid(column=2, row=3, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
+        self.button_fail.grid(column=2, row=4, sticky='ew', pady=0, ipadx=5, ipady=10, columnspan=2)
         self.entry_comment.grid(column=1, row=5, sticky='sew', padx=5, pady=10, columnspan=3)
         self.button_submit.grid(column=1, row=6, sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
         self.button_skip.grid(column=2, row=6,  sticky='ew', padx=5, pady=0, ipady=10, ipadx=10, columnspan=1)
         self.button_quit.grid(column=3, row=6, sticky='ew', padx=5, pady=0, ipady=10, ipadx=20, columnspan=1)
-        self.slider.grid(column=0, row=8, sticky='w', columnspan=1, padx=5, pady=5)
+        self.slider.grid(column=0, row=8, sticky='w', columnspan=1, padx=20, pady=5)
 
         # Event Bindings
         self.entry_comment.bind("<Key>", self.change_comment_text_color_and_clear)
-        self.master.bind("<ButtonPress-4>", self.scroll_fig_forward)
-        self.master.bind("<ButtonPress-5>", self.scroll_fig_backward)
+        self.master.bind_all("<Button-4>", self.scroll_fig_forward)
+        self.master.bind_all("<Button-5>", self.scroll_fig_backward)
         self.slider.bind("<ButtonRelease-1>", self.refresh_fig)
 
         # Miscellaneous Settings
@@ -245,6 +254,10 @@ class Application(tk.Frame):
         if messagebox.askokcancel("QC Tool", "Are you sure you want to reset the mask?\nAll edits will be lost.",
                                   icon="warning", parent=self.master):
                 shutil.copyfile(self.auto_mask, self.final_mask)
+                self.button_fail.config(bg=self.default_button_bg, fg=self.default_button_fg)
+                self.button_pass.config(bg=self.default_button_bg, fg=self.default_button_fg)
+                self.button_edit.config(bg=self.default_button_bg, fg=self.default_button_fg)
+                self.result = None
                 self.refresh_fig()
 
     def refresh_fig(self, event=None):
@@ -317,12 +330,12 @@ def get_mask_editor():
 def open_mask_editor(img, mask, step):
         mask_editor = get_mask_editor()
         if step == 'WarpQC':
-            cmap='Random-Rainbow'
+            cmap = 'Random-Rainbow'
         else:
-            cmap='Red'
+            cmap = 'Red'
 
         cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l {cmap}".format(mask_editor=mask_editor, img=img,
-                                                                                 overlay=mask, cmap=cmap)
+                                                                                overlay=mask, cmap=cmap)
         args = cmd.split()
         return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
