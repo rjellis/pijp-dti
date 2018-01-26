@@ -9,7 +9,6 @@ class Test(unittest.TestCase):
     project = 'PPMI'
     code = 'PPMI_007_S_3107m12_i296434'
     args = None
-    comments = 'testing'
 
     def test_stage(self):
 
