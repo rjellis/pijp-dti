@@ -123,12 +123,14 @@ def register(b0, dat, b0_aff, aff, bval, bvec):
     affines = []
     reg_map = []
     reg_dat = []
+
     for i in range(0, dat.shape[3]):
         reg_dir, reg_aff, reg_map_slice = affine_registration(b0, dat[..., i], b0_aff, aff, rigid=True)
         reg_dat.append(reg_dir)
         reg_map.append(reg_map_slice.affine)
         if bval[i] != 0:
-            affines.append(reg_aff)
+            affines.append(reg_aff)  # Only want to update b-vectors with non-zero b-values
+
     reg_dat = np.stack(reg_dat, axis=-1)
     reg_map = np.stack(reg_map, axis=-1)
     gtab = gradients.gradient_table(bval, bvec)
