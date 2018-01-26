@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pijp_dti
 from pijp.repositories import BaseRepository
-from pijp import dbprocs
 from pijp.dbprocs import format_string_parameter as fsp
 
 PROCESS_TITLE = pijp_dti.__process_title__
@@ -55,8 +54,8 @@ class DTIRepo(BaseRepository):
             ScanCode AS Code
         FROM 
             ProcessingLog pl 
-        WHERE Project = {0}
-            AND Process = {1}
+        WHERE Project = {project}
+            AND Process = {process}
             AND Step = 'RoiStats'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
@@ -64,12 +63,12 @@ class DTIRepo(BaseRepository):
                     ScanCode
                 FROM 
                     ProcessingLog pl 
-                WHERE Project = {0}
-                    AND Process = {1}
+                WHERE Project = {project}
+                    AND Process = {process}
                     AND Step = 'MaskQC'
                     AND (Outcome = 'Pass' OR Outcome = 'Edit')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -80,8 +79,8 @@ class DTIRepo(BaseRepository):
             ScanCode AS Code
         FROM 
             ProcessingLog
-        WHERE Project = {0}
-            AND Process = {1}
+        WHERE Project = {project}
+            AND Process = {process}
             AND Step = 'MaskQC'
             AND Outcome = 'Pass'
             AND ScanCode NOT IN(
@@ -89,20 +88,20 @@ class DTIRepo(BaseRepository):
                     ScanCode
                 FROM
                     ProcessingLog
-                WHERE Project = {0}
-                AND Process = {1}
+                WHERE Project = {project}
+                AND Process = {process}
                 AND Step = 'SegQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         sql2 = r"""
         SELECT
             ScanCode AS Code
         FROM
             ProcessingLog
-        WHERE Project = {0}
-            AND Process = {1}
+        WHERE Project = {project}
+            AND Process = {process}
             AND Step = 'RoiStats'
             AND Outcome = 'Redone'
             AND ScanCode NOT IN(
@@ -110,12 +109,13 @@ class DTIRepo(BaseRepository):
                     ScanCode
                 FROM 
                     ProcessingLog
-                WHERE Project = {0}
-                AND Process = {1}
+                WHERE Project = {project}
+                AND Process = {process}
                 AND Step = 'SegQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(fsp(project), fsp(PROCESS_TITLE))  # Need this second query for getting redone edited cases
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))  # Need this second query for getting redone
+        # edited cases
 
         todo = self.connection.fetchall(sql)
         todo2 = self.connection.fetchall(sql2)
@@ -128,8 +128,8 @@ class DTIRepo(BaseRepository):
             ScanCode AS Code
         FROM 
             ProcessingLog
-        WHERE Project = {0}
-            AND Process = {1}
+        WHERE Project = {project}
+            AND Process = {process}
             AND Step = 'SegQC'
             AND Outcome = 'Pass'
             AND ScanCode NOT IN(
@@ -137,12 +137,12 @@ class DTIRepo(BaseRepository):
                     ScanCode
                 FROM
                     ProcessingLog
-                WHERE Project = {0}
-                AND Process = {1}
+                WHERE Project = {project}
+                AND Process = {process}
                 AND Step = 'WarpQC'
                 AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -170,8 +170,8 @@ class DTIRepo(BaseRepository):
             ScanCode AS Code
         FROM 
             ProcessingLog pl 
-        WHERE Project = {0}
-            AND Process = {1}
+        WHERE Project = {project}
+            AND Process = {process}
             AND Step = 'MaskQC'
             AND Outcome = 'edit'
             AND ScanCode NOT IN(
@@ -179,12 +179,12 @@ class DTIRepo(BaseRepository):
                     ScanCode
                 FROM
                     ProcessingLog
-                WHERE Project = {0}
-                AND Process = {1}
+                WHERE Project = {project}
+                AND Process = {process}
                 AND Step = 'ApplyMask'
                 AND Outcome = 'Redone'
             )
-        """.format(dbprocs.format_string_parameter(project), fsp(PROCESS_TITLE))
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -221,14 +221,14 @@ class DTIRepo(BaseRepository):
     def remove_roi_stats(self, project, code):
         project_id = self.get_project_id(project)
         sql = r"""
-        DELETE FROM pijp_dti WHERE ProjectID = {0} AND Code = {1} 
-        """.format(project_id['ProjectID'], fsp(code))
+        DELETE FROM pijp_dti WHERE ProjectID = {project_id} AND Code = {code} 
+        """.format(project_id=project_id['ProjectID'], code=fsp(code))
 
         self.connection.execute_non_query(sql)
 
     def get_project_id(self, project):
         sql = r"""
-        SELECT ProjectID FROM Projects WHERE ProjectName = {0}
+        SELECT ProjectID FROM Projects WHERE ProjectName = {}
         """.format(fsp(project))
 
         project_id = self.connection.fetchone(sql)
