@@ -1,8 +1,9 @@
 from setuptools import setup
+import pijp_dti
 
 setup(
     name='pijp-dti',
-    version='0.2.0',
+    version=pijp_dti.__version__,
     author='Ryan Ellis',
     author_email='ellis2012ryan@gmail.com',
     packages=['pijp_dti', ],
