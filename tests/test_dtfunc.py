@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
 
         avg_b0 = dtfunc.b0_avg(dat, aff, bval)
 
-        self.assertEqual([42, 42, 42], avg_b0.shape)
+        self.assertEqual((42, 42, 42), avg_b0.shape)
 
     def test_register(self):
 
@@ -57,11 +57,37 @@ class Test(unittest.TestCase):
         bvec = np.random.rand(42, 3)
 
         reg_dat, reg_bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
-        print(reg_map.shape)
 
         self.assertEqual(dat.shape, reg_dat.shape)
         self.assertEqual(bvec.shape, reg_bvec.shape)
 
+    def test_fit_dti(self):
+        dat = np.random.rand(42, 42, 42, 42)
+        bval = np.zeros(42)
+        bvec = np.random.rand(42, 3)
+
+        evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec)
+
+        self.assertEqual(dat[..., 0].shape, tenfit.fa.shape)  # fa should be 3D
+        self.assertEqual(dat[..., 0].shape + (3,), evals.shape)  # should have 3 eigenvalues per voxel for 3D image
+        self.assertEqual(dat[..., 0].shape + (3, 3), evecs.shape)  # should have 3 eigenvectors per voxel for 3D image
+
+    def test_segment_tissue(self):
+
+        dat = np.random.rand(42, 42, 42)
+
+        segmented = dtfunc.segment_tissue(dat)
+
+        self.assertEqual(dat.shape + (4,), segmented.shape)
+
+    def apply_tissue_mask(self):
+
+        dat = np.random.rand(42, 42, 42)
+        segmented = np.random.rand(42, 42, 42, 4)
+
+        segmented_dat = dtfunc.apply_tissue_mask(dat, segmented)
+
+        self.assertEqual(dat.shape, segmented_dat.shape)
 
 if __name__ == "__main__":
     unittest.main()
