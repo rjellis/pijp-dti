@@ -32,6 +32,22 @@ class DTIRepo(BaseRepository):
         todo = self.connection.fetchall(sql)
         return todo
 
+    def get_staged_cases(self, project):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        From 
+            ProcessingLog
+        WHERE Project = {project}
+            AND Process = {process}
+            AND Step = 'Stage'
+            AND (Outcome = 'Done' or Outcome = 'Error')
+        """.format(project=fsp(project), process=fsp(PROCESS_NAME))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
     def get_masks_to_qc(self, project):
         sql = r"""
         SELECT DISTINCT 
@@ -88,15 +104,17 @@ class DTIRepo(BaseRepository):
             AND Process = {1}
             AND Step = 'RoiStats'
             AND Outcome = 'Redone'
-        And ScanCode NOT IN(
-            SELECT ScanCode
-            FROM ProcessingLog
-            WHERE Project = {0}
-            AND Process = {1}
-            AND Step = 'SegQC'
-            AND (Outcome = 'Pass' OR Outcome = 'Fail')
+            AND ScanCode NOT IN(
+                SELECT 
+                    ScanCode
+                FROM 
+                    ProcessingLog
+                WHERE Project = {0}
+                AND Process = {1}
+                AND Step = 'SegQC'
+                AND (Outcome = 'Pass' OR Outcome = 'Fail')
             )
-        """.format(fsp(project), fsp(PROCESS_NAME))  # Need this second queue for getting redone edited cases
+        """.format(fsp(project), fsp(PROCESS_NAME))  # Need this second query for getting redone edited cases
 
         todo = self.connection.fetchall(sql)
         todo2 = self.connection.fetchall(sql2)

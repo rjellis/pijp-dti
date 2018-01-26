@@ -84,9 +84,9 @@ class Application(tk.Frame):
         self.button_open.config(fg=self.default_fg, bg=self.default_bg, text='Open in FSLView',
                                 command=self.open_mask_editor)
         self.button_reset.config(fg=self.default_fg, bg=self.default_bg, text='Reset Mask', command=self.reset_mask)
-        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._pass,
+        self.button_pass.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Pass', command=self._pass,
                                 activebackground='lightgreen', activeforeground='white')
-        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, command=self._fail,
+        self.button_fail.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Fail', command=self._fail,
                                 activebackground='indian red', activeforeground='white')
         self.button_edit.config(fg=self.default_button_fg, bg=self.default_button_bg, text='Edited', command=self.edit,
                                 activebackground='lightgoldenrod', activeforeground='black')
@@ -135,9 +135,6 @@ class Application(tk.Frame):
         self.slider.grid(column=0, row=8, sticky='w', columnspan=1, padx=5, pady=5)
 
         # Event Bindings
-        self.canvas.bind("<ButtonPress-1>", self.start_move)
-        self.canvas.bind("<ButtonRelease-1>", self.stop_move)
-        self.canvas.bind("<B1-Motion>", self.on_motion)
         self.entry_comment.bind("<Key>", self.change_comment_text_color_and_clear)
         self.master.bind("<ButtonPress-4>", self.scroll_fig_forward)
         self.master.bind("<ButtonPress-5>", self.scroll_fig_backward)
@@ -157,15 +154,19 @@ class Application(tk.Frame):
         self.canvas.show()
         self.canvas.get_tk_widget().grid(column=col, row=row, columnspan=cspan, rowspan=rspan, sticky='news', padx=25,
                                          pady=25)
+        self.canvas.get_tk_widget().bind("<ButtonPress-1>", self.start_move)
+        self.canvas.get_tk_widget().bind("<ButtonRelease-1>", self.stop_move)
+        self.canvas.get_tk_widget().bind("<B1-Motion>", self.on_motion)
         self.canvas = self.canvas._tkcanvas
 
     def draw_fig(self):
         self.image_dat = rescale(self.image_dat)
         self.image_dat = np.stack((self.image_dat, self.image_dat, self.image_dat), axis=-1)
         self.masked = mask_image(self.image_dat, self.mask_dat, hue=[1, 0, 0], alpha=self.alpha)
-        self.projection = plt.imshow(np.rot90(self.masked[:, :, self.masked.shape[2]//2, :], 1), interpolation=None)
         self.index = self.masked.shape[2]//2
+        self.projection = plt.imshow(np.rot90(self.masked[:, :, self.index, :], 1), interpolation=None)
         self.label_slice.config(text='Slice {}'.format(self.index))
+        self.fig.tight_layout()
 
     def _pass(self):
         if not masks_are_same(self.auto_mask, self.final_mask) and self.step == 'MaskQC':
@@ -316,13 +317,12 @@ def get_mask_editor():
 def open_mask_editor(img, mask, step):
         mask_editor = get_mask_editor()
         if step == 'WarpQC':
-            cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Random-Rainbow".format(mask_editor=mask_editor,
-                                                                                            img=img,
-                                                                                            overlay=mask)
+            cmap='Random-Rainbow'
         else:
-            cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l Red".format(mask_editor=mask_editor, img=img,
-                                                                                 overlay=mask)
+            cmap='Red'
 
+        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l {cmap}".format(mask_editor=mask_editor, img=img,
+                                                                                 overlay=mask, cmap=cmap)
         args = cmd.split()
         return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
