@@ -24,12 +24,11 @@ from pijp_dti import mosaic, QCinter
 from pijp_dti.repo import DTIRepo
 
 LOGGER = logging.getLogger(__name__)
-PROCESS_TITLE = 'pijp-dti'
-VERSION = "0.2.0"
+PROCESS_TITLE = 'pijp-dti-dev'
 
 
 def get_process_dir(project):
-    return os.path.join(get_project_dir(project), 'pijp_dti')
+    return os.path.join(get_project_dir(project), 'pijp-dti-dev')
 
 
 def get_case_dir(project, code):
