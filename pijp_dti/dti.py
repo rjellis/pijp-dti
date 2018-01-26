@@ -24,7 +24,7 @@ from pijp_dti import mosaic, QCinter
 from pijp_dti.repo import DTIRepo
 
 LOGGER = logging.getLogger(__name__)
-PROCESS_TITLE = 'pijp-dti-dev'
+PROCESS_TITLE = 'pijp-dti'
 
 
 def get_process_dir(project):
