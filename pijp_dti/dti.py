@@ -15,7 +15,7 @@ import pymssql
 from dipy.io import read_bvals_bvecs
 from pijp import util
 from pijp.core import Step, get_project_dir
-from pijp.repositories import DicomRepository, ProcessingLog
+from pijp.repositories import DicomRepository
 from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcessingError
 from pijp.engine import run_module, run_file
 
@@ -192,15 +192,12 @@ class Stage(DTIStep):
             self.outcome = 'Error'
             self.comments = 'ProcessingError: Could not find staging data.'
             self.next_step = None
-            shutil.rmtree(get_case_dir(self.project, self.code))
-
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
             self.logger.info('Failed to find  .bval or .bvec')
             self.next_step = None
-            shutil.rmtree(get_case_dir(self.project, self.code))
 
         except FileExistsError as e:
             self.outcome = 'Error'
