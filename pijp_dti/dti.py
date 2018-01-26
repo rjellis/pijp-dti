@@ -223,12 +223,12 @@ class Stage(DTIStep):
 
     @classmethod
     def get_queue(cls, project_name):
-        plog = ProcessingLog()
-        attempted = plog.get_step_attempted(project_name, cls.process_name, cls.step_name)
-        attempted_codes = [row['Code'] for row in attempted]
+        staged = DTIRepo().get_staged_cases(project_name)
         dtis = DTIRepo().get_project_dtis(project_name)
+
+        staged_codes = [row['Code'] for row in staged]
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis if row['Code'] not in
-                attempted_codes]
+                staged_codes]
         return todo
 
 
