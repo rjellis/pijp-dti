@@ -270,16 +270,12 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
                                          verbosity=0)
     params0 = None
 
-    c_of_mass = imaffine.transform_centers_of_mass(
-        static, static_affine,
-        moving, moving_affine)
-
     if rigid:
         rig_map = affreg.optimize(
             static, moving,
             transforms.RigidTransform3D(),
             params0, static_affine,
-            moving_affine, c_of_mass.affine)
+            moving_affine, 'mass')
         dat_reg = rig_map.transform(moving)
         return dat_reg, rig_map.affine, rig_map
 
@@ -288,7 +284,7 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
             static, moving,
             transforms.AffineTransform3D(),
             params0, static_affine,
-            moving_affine, c_of_mass.affine)
+            moving_affine, 'mass')
         dat_reg = aff_map.transform(moving)
         return dat_reg, aff_map.affine, aff_map
 
