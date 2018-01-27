@@ -1,5 +1,4 @@
 import unittest
-
 import numpy as np
 
 from pijp_dti import dtfunc
@@ -107,8 +106,6 @@ class Test(unittest.TestCase):
         static_affine = np.random.rand(4, 4)
         moving_affine = np.random.rand(4, 4)
 
-        # DIV BY 0 Error somewhere in dipy.align.imwarp
-        # TODO: fix random data
         warped, warped_mapping = dtfunc.sym_diff_registration(static, moving, static_affine, moving_affine)
 
         self.assertEqual(static.shape, warped.shape)
