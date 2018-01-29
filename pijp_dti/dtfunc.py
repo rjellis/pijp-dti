@@ -34,6 +34,17 @@ def mask(dat):
 
 
 def apply_mask(dat, bin_mask):
+    """Apply the binary mask.
+
+    Args:
+        dat (ndarray): The image to be masked
+        bin_mask (ndarray): boolean mask
+
+    Returns:
+        masked (ndarray): The image with the mask applied
+
+    """
+
     return otsu.applymask(dat, bin_mask)
 
 
@@ -184,7 +195,7 @@ def segment_tissue(dat):
 
 
 def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
-    """Masks the data
+    """Masks the data using the segmented tissue
 
     Args:
         dat (ndarray)
@@ -216,21 +227,21 @@ def roi_stats(dat, overlay, labels, zooms):
                       mean, standard deviation].
 
     """
-    intensities_by_roi = dict()
+    roi_voxels = dict()
     stats = [['name', 'min', 'max', 'mean', 'sd', 'median', 'volume']]
     vox_size = zooms[0] * zooms[1] * zooms[2]  # The size of voxels in mm
     for roi_labels in labels.values():
-        intensities_by_roi[roi_labels] = []  # A list of ROI lists containing voxel intensities
+        roi_voxels[roi_labels] = []  # A dynamic list for each of the ROI's
 
     for coord, val in np.ndenumerate(dat):
         key = overlay[coord]  # Get the integer value from the overlay image
         if key in labels:  # Find the label name for that integer value
             roi_name = labels[key]
             if val != 0:
-                intensities_by_roi[roi_name].append(val)  # Add the intensity of the voxel to the list for the ROI
+                roi_voxels[roi_name].append(val)  # Add the intensity of the voxel to the list for the ROI
 
-    for rois in intensities_by_roi.keys():
-        npa = np.asarray(intensities_by_roi[rois])
+    for rois in roi_voxels.keys():
+        npa = np.asarray(roi_voxels[rois])
         try:
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
                           (len(npa)*vox_size)])
