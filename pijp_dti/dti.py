@@ -518,8 +518,8 @@ class MaskQC(DTIStep):
             if not os.path.isfile(self.b0) or not os.path.isfile(self.auto_mask) or not os.path.isfile(self.final_mask):
                 raise FileNotFoundError
 
-            result, comments, root = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask,
-                                                              self.step_name)
+            result, comments = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask,
+                                                        self.step_name)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -539,6 +539,7 @@ class MaskQC(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.logger.error("Can't find files for {}!".format(self.step_name))
+            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)
@@ -621,6 +622,7 @@ class SegQC(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.logger.error("Can't find files for {}!".format(self.step_name))
+            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)
@@ -694,6 +696,7 @@ class WarpQC(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.logger.error("Can't find files for {}!".format(self.step_name))
+            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)
