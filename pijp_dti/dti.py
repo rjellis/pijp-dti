@@ -512,8 +512,12 @@ class MaskQC(DTIStep):
 
     def run(self):
         try:
-            (result, comments) = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask,
-                                                          self.step_name)
+
+            if not os.path.isfile(self.b0) or not os.path.isfile(self.auto_mask) or not os.path.isfile(self.final_mask):
+                raise FileNotFoundError
+
+            result, comments, root = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask,
+                                                              self.step_name)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
