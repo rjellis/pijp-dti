@@ -192,19 +192,20 @@ class Stage(DTIStep):
         except ProcessingError:
             self.outcome = 'Error'
             self.comments = 'ProcessingError: Could not find staging data.'
+            self.logger.error("Could not find the staging data for {}.".format(self.code))
             self.next_step = None
 
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.info('Failed to find  .bval or .bvec')
+            self.logger.error("Can't find files for {}!".format(self.step_name))
             self.next_step = None
 
         except FileExistsError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.info('Staging directory is not empty. Use --force to reset the case. This will delete '
-                             'everything in the case directory!')
+            self.logger.error('Staging directory is not empty. Use --force to reset the case. This will delete '
+                              'everything in the case directory!')
             self.next_step = None
 
     def reset(self):
@@ -284,6 +285,7 @@ class Register(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.next_step = None
+            self.logger.error("Can't find files for {}!".format(self.step_name))
 
 
 class Mask(DTIStep):
@@ -335,6 +337,7 @@ class ApplyMask(DTIStep):
             self.outcome = 'Error'
             self.comments = str(e)
             self.next_step = None
+            self.logger.error("Can't find files for {}!".format(self.step_name))
 
     @classmethod
     def get_queue(cls, project_name):
@@ -512,7 +515,6 @@ class MaskQC(DTIStep):
 
     def run(self):
         try:
-
             if not os.path.isfile(self.b0) or not os.path.isfile(self.auto_mask) or not os.path.isfile(self.final_mask):
                 raise FileNotFoundError
 
@@ -536,6 +538,7 @@ class MaskQC(DTIStep):
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
+            self.logger.error("Can't find files for {}!".format(self.step_name))
 
         finally:
             os.remove(self.review_flag)
@@ -569,6 +572,7 @@ class SegQC(DTIStep):
     step_name = "SegQC"
     step_cli = 'segqc'
     interactive = True
+    prev_step = 'MaskQC'
 
     def __init__(self, project, code, args):
         super(SegQC, self).__init__(project, code, args)
@@ -594,6 +598,9 @@ class SegQC(DTIStep):
 
     def run(self):
         try:
+            if not os.path.isfile(self.b0) or not os.path.isfile(self.segmented_wm):
+                raise FileNotFoundError
+
             (result, comments) = QCinter.run_qc_interface(self.code, self.b0, self.segmented_wm, self.segmented_wm,
                                                           self.step_name)
             self.outcome = result
@@ -609,6 +616,12 @@ class SegQC(DTIStep):
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.logger.error("Can't find files for {}!".format(self.step_name))
+
         finally:
             os.remove(self.review_flag)
 
@@ -658,6 +671,9 @@ class WarpQC(DTIStep):
 
     def run(self):
         try:
+            if not os.path.isfile(self.fa) or not os.path.isfile(self.warped_wm_labels):
+                raise FileNotFoundError
+
             (result, comments) = QCinter.run_qc_interface(self.code, self.fa, self.warped_wm_labels,
                                                           self.warped_wm_labels, self.step_name)
             self.outcome = result
@@ -673,6 +689,12 @@ class WarpQC(DTIStep):
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
+
+        except FileNotFoundError as e:
+            self.outcome = 'Error'
+            self.comments = str(e)
+            self.logger.error("Can't find files for {}!".format(self.step_name))
+
         finally:
             os.remove(self.review_flag)
 
@@ -713,6 +735,7 @@ class StoreInDatabase(DTIStep):
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'
             self.comments = str(e)
+            self.logger.error("Code {} is already in the database! Use --force to reset.".format(self.code))
 
     def reset(self):
         self.logger.info("Removing {} from database".format(self.code))
