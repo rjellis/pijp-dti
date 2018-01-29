@@ -142,7 +142,7 @@ class DTIStep(Step):
 
 
 class Stage(DTIStep):
-    """Convert Dicoms and set up the pipeline
+    """Convert Dicoms and set up the pipeline.
     """
     process_name = PROCESS_TITLE
     step_name = "Stage"
@@ -236,7 +236,7 @@ class Stage(DTIStep):
 
 
 class Denoise(DTIStep):
-    """Denoise the DWI using Local PCA
+    """Denoise the DWI using Local PCA.
     """
     process_name = PROCESS_TITLE
     step_name = "Denoise"
@@ -257,7 +257,7 @@ class Denoise(DTIStep):
 
 
 class Register(DTIStep):
-    """Rigidly register the diffusion weighted directions to an averaged b0 volume
+    """Rigidly register the diffusion weighted directions to an averaged b0 volume.
     """
     process_name = PROCESS_TITLE
     step_name = "Register"
@@ -289,7 +289,7 @@ class Register(DTIStep):
 
 
 class Mask(DTIStep):
-    """Skull strip the average b0 volume
+    """Skull strip the average b0 volume.
     """
     process_name = PROCESS_TITLE
     step_name = "Mask"
@@ -311,7 +311,7 @@ class Mask(DTIStep):
 
 
 class ApplyMask(DTIStep):
-    """Apply the auto mask (or the edited one if it exists)
+    """Apply the skull stripped mask to the registered image.
     """
     process_name = PROCESS_TITLE
     step_name = "ApplyMask"
@@ -347,7 +347,7 @@ class ApplyMask(DTIStep):
 
 
 class TensorFit(DTIStep):
-    """Fit the diffusion tensor model
+    """Fit the diffusion tensor model.
     """
     process_name = PROCESS_TITLE
     step_name = "TensorFit"
@@ -378,7 +378,7 @@ class TensorFit(DTIStep):
 
 
 class Warp(DTIStep):
-    """Warp the template FA and labels_lookup to the subject space
+    """Warp the template FA and template Labels to the subject space.
     """
     process_name = PROCESS_TITLE
     step_name = "Warp"
@@ -411,7 +411,8 @@ class Warp(DTIStep):
 
 
 class Segment(DTIStep):
-
+    """Segment the tissue for the average b0 volume.
+    """
     process_name = PROCESS_TITLE
     step_name = "Segment"
     step_cli = "seg"
@@ -440,7 +441,7 @@ class Segment(DTIStep):
 
 
 class RoiStats(DTIStep):
-    """Generate CSV files for the statistics of various anisotropy measures in certain regions of interest
+    """Generate CSV files for DTI statistics.
     """
     process_name = PROCESS_TITLE
     step_name = "RoiStats"
@@ -484,7 +485,7 @@ class RoiStats(DTIStep):
 
 
 class MaskQC(DTIStep):
-    """Launch a GUI to view a mosaic of all the slices with the skull stripped mask overlaid on the denoised image.
+    """Launch a GUI to QC the skull stripping.
     """
     process_name = PROCESS_TITLE
     step_name = "MaskQC"
@@ -568,7 +569,8 @@ class MaskQC(DTIStep):
 
 
 class SegQC(DTIStep):
-
+    """Launch a GUI to QC the segmentation.
+    """
     process_name = PROCESS_TITLE
     step_name = "SegQC"
     step_cli = 'segqc'
@@ -642,7 +644,7 @@ class SegQC(DTIStep):
 
 
 class WarpQC(DTIStep):
-    """Launch a GUI to view a mosaic of some of the slices with the warped ROI labels_lookup overlaid on the FA image.
+    """Launch a GUI to QC the non-linear registration.
     """
     process_name = PROCESS_TITLE
     step_name = "WarpQC"
@@ -716,7 +718,7 @@ class WarpQC(DTIStep):
 
 
 class StoreInDatabase(DTIStep):
-    """Store the currently processed information in the database
+    """Store the ROI statistics in the database.
     """
     process_name = PROCESS_TITLE
     step_name = "StoreInDatabase"
@@ -746,6 +748,9 @@ class StoreInDatabase(DTIStep):
 
 
 class SaveInMNI(DTIStep):
+    """Warp the subject's anisotropy measures to MNI space.
+    """
+
     process_name = PROCESS_TITLE
     step_name = "SaveInMNI"
     step_cli = "mni"
