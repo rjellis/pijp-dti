@@ -1,6 +1,6 @@
 import unittest
 
-from pijp_dti import QCinter
+from pijp_dti import qc_inter
 
 CODE = 'NRC-FRA018-0003-V0-a1001'
 IMG_PATH = '/m/InProcess/External/NRC/pijp-dti/{code}/2Register/{code}_b0.nii.gz'.format(code=CODE)
@@ -9,9 +9,9 @@ AUTO_PATH = '/m/InProcess/External/NRC/pijp-dti/{code}/3Mask/{code}_auto_mask.ni
 
 class Test(unittest.TestCase):
 
-    def test_qc_tool(self):
+    def test_qc_inter(self):
         step = 'MaskQC'
-        QCinter.run_qc_interface(CODE, IMG_PATH, AUTO_PATH, MSK_PATH, step)
+        qc_inter.run(CODE, IMG_PATH, AUTO_PATH, MSK_PATH, step)
 
 if __name__ == "__main__":
     unittest.main()

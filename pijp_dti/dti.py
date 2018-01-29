@@ -20,8 +20,8 @@ from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcess
 from pijp.engine import run_module, run_file
 
 import pijp_dti
-from pijp_dti import dtfunc
-from pijp_dti import mosaic, QCinter
+from pijp_dti import dti_func
+from pijp_dti import mosaic, qc_inter
 from pijp_dti.repo import DTIRepo
 
 LOGGER = logging.getLogger(__name__)
@@ -272,7 +272,7 @@ class Denoise(DTIStep):
         self.logger.info("Denoising the DWI")
         dat, aff = self._load_nii(self.fdwi)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        denoised = dtfunc.denoise_pca(dat, bval, bvec)
+        denoised = dti_func.denoise_pca(dat, bval, bvec)
         self._save_nii(denoised, aff, self.denoised)
 
 
@@ -293,9 +293,9 @@ class Register(DTIStep):
             dat, aff = self._load_nii(self.denoised)
             bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
             self.logger.info('Averaging the b0 volume')
-            b0 = dtfunc.b0_avg(dat, aff, bval)
+            b0 = dti_func.b0_avg(dat, aff, bval)
             self.logger.info('Registering the DWI to its averaged b0 volume')
-            reg_dat, bvec, reg_map = dtfunc.register(b0, dat, aff, aff, bval, bvec)
+            reg_dat, bvec, reg_map = dti_func.register(b0, dat, aff, aff, bval, bvec)
             self._save_nii(b0, aff, self.b0)
             self._save_nii(reg_dat, aff, self.reg)
             np.save(self.fbvec_reg, bvec)
@@ -323,7 +323,7 @@ class Mask(DTIStep):
     def run(self):
         dat, aff = self._load_nii(self.b0)
         self.logger.info('Masking the average b0 volume')
-        mask = dtfunc.mask(dat)
+        mask = dti_func.mask(dat)
         self._save_nii(mask, aff, self.auto_mask)
         mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
         shutil.copyfile(self.auto_mask, self.final_mask)
@@ -347,7 +347,7 @@ class ApplyMask(DTIStep):
             self.logger.info('Applying the mask')
             reg, reg_aff = self._load_nii(self.reg)
             mask, mask_aff = self._load_nii(self.final_mask)
-            masked = dtfunc.apply_mask(reg, mask)
+            masked = dti_func.apply_mask(reg, mask)
             self._save_nii(masked, mask_aff, self.masked)
             if DTIRepo().is_edited(self.project, self.code):
                 self.outcome = 'Redone'
@@ -383,7 +383,7 @@ class TensorFit(DTIStep):
         dat, aff = self._load_nii(self.masked)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
         bvec_reg = np.load(self.fbvec_reg)
-        evals, evecs, tenfit = dtfunc.fit_dti(dat, bval, bvec_reg)
+        evals, evecs, tenfit = dti_func.fit_dti(dat, bval, bvec_reg)
         self._save_nii(tenfit.fa, aff, self.fa)
         self._save_nii(tenfit.md, aff, self.md)
         self._save_nii(tenfit.ga, aff, self.ga)
@@ -414,7 +414,7 @@ class Warp(DTIStep):
         template, template_aff = self._load_nii(self.template)
         temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
 
-        warped_template, mapping = dtfunc.sym_diff_registration(
+        warped_template, mapping = dti_func.sym_diff_registration(
             fa, template,
             fa_aff, template_aff)
 
@@ -446,10 +446,10 @@ class Segment(DTIStep):
         mask, maff = self._load_nii(self.final_mask)
         b0, baff = self._load_nii(self.b0)
         warped, waff = self._load_nii(self.warped_labels)
-        masked_b0 = dtfunc.apply_mask(b0, mask)
-        segmented = dtfunc.segment_tissue(masked_b0)
-        segmented_wm = dtfunc.apply_tissue_mask(masked_b0, segmented, prob=1)
-        warped_wm_labels = dtfunc.apply_tissue_mask(warped, segmented, prob=1)
+        masked_b0 = dti_func.apply_mask(b0, mask)
+        segmented = dti_func.segment_tissue(masked_b0)
+        segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
+        warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
         self._save_nii(segmented, baff, self.segmented)
         self._save_nii(segmented_wm, baff, self.segmented_wm)
         self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
@@ -489,7 +489,7 @@ class RoiStats(DTIStep):
                     'rd': [rd, self.rd_roi]}
 
         for idx in measures.values():
-            stats = dtfunc.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
+            stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
             self._write_array(stats, idx[1])
 
         if DTIRepo().is_edited(self.project, self.code):
@@ -538,8 +538,8 @@ class MaskQC(DTIStep):
             if not os.path.isfile(self.b0) or not os.path.isfile(self.auto_mask) or not os.path.isfile(self.final_mask):
                 raise FileNotFoundError
 
-            result, comments = QCinter.run_qc_interface(self.code, self.b0, self.auto_mask, self.final_mask,
-                                                        self.step_name)
+            result, comments = qc_inter.run(self.code, self.b0, self.auto_mask, self.final_mask,
+                                            self.step_name)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -623,8 +623,8 @@ class SegQC(DTIStep):
             if not os.path.isfile(self.b0) or not os.path.isfile(self.segmented_wm):
                 raise FileNotFoundError
 
-            (result, comments) = QCinter.run_qc_interface(self.code, self.b0, self.segmented_wm, self.segmented_wm,
-                                                          self.step_name)
+            (result, comments) = qc_inter.run(self.code, self.b0, self.segmented_wm, self.segmented_wm,
+                                              self.step_name)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -697,8 +697,8 @@ class WarpQC(DTIStep):
             if not os.path.isfile(self.fa) or not os.path.isfile(self.warped_wm_labels):
                 raise FileNotFoundError
 
-            (result, comments) = QCinter.run_qc_interface(self.code, self.fa, self.warped_wm_labels,
-                                                          self.warped_wm_labels, self.step_name)
+            (result, comments) = qc_inter.run(self.code, self.fa, self.warped_wm_labels,
+                                              self.warped_wm_labels, self.step_name)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -788,7 +788,7 @@ class SaveInMNI(DTIStep):
         rd, aff = self._load_nii(self.rd)
         ad, aff = self._load_nii(self.ad)
         # Have to redo warping... want to eventually do the transform just with the inverse_warp_map
-        warped_template, mapping = dtfunc.sym_diff_registration(fa, template, aff, template_aff)
+        warped_template, mapping = dti_func.sym_diff_registration(fa, template, aff, template_aff)
         fa_warp = mapping.transform_inverse(fa)
         md_warp = mapping.transform_inverse(md)
         ga_warp = mapping.transform_inverse(ga)

@@ -26,7 +26,7 @@ class DTIRepo(BaseRepository):
         ON
             se.StudyInstanceUID = st.StudyInstanceUID
         WHERE st.StudyCode = {project} 
-            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%'
+            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%' OR SeriesDescription Like '%DTI_gated%'
         """.format(project=fsp(project))
 
         todo = self.connection.fetchall(sql)

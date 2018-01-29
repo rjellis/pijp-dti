@@ -365,7 +365,7 @@ def mask_image(img, mask, hue, alpha=1):
     return img
 
 
-def run_qc_interface(code, img, auto_mask, final_mask, step):
+def run(code, img, auto_mask, final_mask, step):
     """Opens a GUI for reviewing an image with an overlay
     Args:
         code (string): The code of the case being reviewed
