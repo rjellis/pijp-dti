@@ -52,28 +52,33 @@ class DTIStep(Step):
         super(DTIStep, self).__init__(project, code, args)
 
         self.working_dir = get_case_dir(project, code)
-        self.logdir = os.path.join(get_process_dir(project), 'logs', code)
+        self.log_dir = os.path.join(get_process_dir(project), 'logs', code)
+
+        # 0Stage
         self.stage_dir = os.path.join(self.working_dir, '0Stage')
-        self.den_dir = os.path.join(self.working_dir, '1Denoise')
-        self.reg_dir = os.path.join(self.working_dir, '2Register')
-        self.mask_dir = os.path.join(self.working_dir, '3Mask')
-        self.tenfit_dir = os.path.join(self.working_dir, '4Tenfit')
-        self.warp_dir = os.path.join(self.working_dir, '5Warp')
-        self.seg_dir = os.path.join(self.working_dir, '6Segment')
-        self.roiavg_dir = os.path.join(self.working_dir, '7Stats')
-        self.qc_dir = os.path.join(self.working_dir, '8QC')
-        self.mni_dir = os.path.join(self.working_dir, '9MNI')
         self.fdwi = os.path.join(self.stage_dir, self.code + '.nii.gz')
         self.fbval = os.path.join(self.stage_dir, self.code + '.bval')
         self.fbvec = os.path.join(self.stage_dir, self.code + '.bvec')
+
+        # 1Denoise
+        self.den_dir = os.path.join(self.working_dir, '1Denoise')
+        self.denoised = os.path.join(self.den_dir, self.code + '_denoised.nii.gz')
+
+        # 2Register
+        self.reg_dir = os.path.join(self.working_dir, '2Register')
         self.b0 = os.path.join(self.reg_dir, self.code + '_b0.nii.gz')
         self.reg = os.path.join(self.reg_dir, self.code + '_reg.nii.gz')
         self.fbvec_reg = os.path.join(self.reg_dir, self.code + '_bvec_reg.npy')
         self.reg_map = os.path.join(self.reg_dir, self.code + '_reg_map.npy')
-        self.denoised = os.path.join(self.den_dir, self.code + '_denoised.nii.gz')
+
+        # 3Mask
+        self.mask_dir = os.path.join(self.working_dir, '3Mask')
         self.auto_mask = os.path.join(self.mask_dir, self.code + '_auto_mask.nii.gz')
         self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
         self.final_mask = os.path.join(self.mask_dir, self.code + '_final_mask.nii.gz')
+
+        # 4Tenfit
+        self.tenfit_dir = os.path.join(self.working_dir, '4Tenfit')
         self.fa = os.path.join(self.tenfit_dir, self.code + '_fa.nii.gz')
         self.md = os.path.join(self.tenfit_dir, self.code + '_md.nii.gz')
         self.ga = os.path.join(self.tenfit_dir, self.code + '_ga.nii.gz')
@@ -81,32 +86,47 @@ class DTIStep(Step):
         self.rd = os.path.join(self.tenfit_dir, self.code + '_rd.nii.gz')
         self.evals = os.path.join(self.tenfit_dir, self.code + '_evals.nii.gz')
         self.evecs = os.path.join(self.tenfit_dir, self.code + '_evecs.nii.gz')
+
+        # 5Warp
+        self.warp_dir = os.path.join(self.working_dir, '5Warp')
         self.warp_map = os.path.join(self.warp_dir, self.code + '_warp_map.npy')
         self.inverse_warp_map = os.path.join(self.warp_dir, self.code + '_inverse_warp_map.npy')
         self.warped_fa = os.path.join(self.warp_dir, self.code + '_inverse_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.warp_dir, self.code + '_warped_labels.nii.gz')
+
+        # 6Segment
+        self.seg_dir = os.path.join(self.working_dir, '6Segment')
         self.segmented = os.path.join(self.seg_dir, self.code + '_segmented.nii.gz')
         self.segmented_wm = os.path.join(self.seg_dir, self.code + '_segmented_wm.nii.gz')
         self.warped_wm_labels = os.path.join(self.seg_dir, self.code + '_warped_wm_labels.nii.gz')
+
+        # 7Stats
+        self.roiavg_dir = os.path.join(self.working_dir, '7Stats')
         self.fa_roi = os.path.join(self.roiavg_dir, self.code + '_fa_roi.csv')
         self.md_roi = os.path.join(self.roiavg_dir, self.code + '_md_roi.csv')
         self.ga_roi = os.path.join(self.roiavg_dir, self.code + '_ga_roi.csv')
         self.ad_roi = os.path.join(self.roiavg_dir, self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.roiavg_dir, self.code + '_rd_roi.csv')
+
+        # 8QC
+        self.qc_dir = os.path.join(self.working_dir, '8QC')
         self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
         self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
         self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
+
+        # 9MNI
+        self.mni_dir = os.path.join(self.working_dir, '9MNI')
         self.fa_warp = os.path.join(self.mni_dir, self.code + '_fa_in_mni.nii.gz')
         self.md_warp = os.path.join(self.mni_dir, self.code + '_md_in_mni.nii.gz')
         self.ga_warp = os.path.join(self.mni_dir, self.code + '_ga_in_mni.nii.gz')
         self.ad_warp = os.path.join(self.mni_dir, self.code + '_ad_in_mni.nii.gz')
         self.rd_warp = os.path.join(self.mni_dir, self.code + '_rd_in_mni.nii.gz')
-        self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
         self.labels_lookup = os.path.join(fpath, 'templates', 'labels.npy')
+        self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
     def _load_nii(self, fname):
         self.logger.info('loading {}'.format(fname.split('/')[-1]))
@@ -165,6 +185,7 @@ class Stage(DTIStep):
 
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
+
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
@@ -241,7 +262,6 @@ class Denoise(DTIStep):
     process_name = PROCESS_TITLE
     step_name = "Denoise"
     step_cli = "denoise"
-
     prev_step = [Stage]
 
     def __init__(self, project, code, args):
@@ -294,7 +314,6 @@ class Mask(DTIStep):
     process_name = PROCESS_TITLE
     step_name = "Mask"
     step_cli = "mask"
-
     prev_step = [Register]
 
     def __init__(self, project, code, args):
