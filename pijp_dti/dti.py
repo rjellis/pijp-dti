@@ -173,10 +173,8 @@ class Stage(DTIStep):
         self.next_step = Denoise
 
     def run(self):
-
         self.logger.info("Staging pipeline")
         self.logger.info("Finding DICOM files")
-
         try:
             source = DicomRepository().get_series_files(self.code)
 
@@ -293,7 +291,7 @@ class Register(DTIStep):
             dat, aff = self._load_nii(self.denoised)
             bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
             self.logger.info('Averaging the b0 volume')
-            b0 = dti_func.b0_avg(dat, aff, bval)
+            b0 = dti_func.average_b0(dat, aff, bval)
             self.logger.info('Registering the DWI to its averaged b0 volume')
             reg_dat, bvec, reg_map = dti_func.register(b0, dat, aff, aff, bval, bvec)
             self._save_nii(b0, aff, self.b0)

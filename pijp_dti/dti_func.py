@@ -8,7 +8,7 @@ from dipy.reconst import dti
 from dipy.segment import mask as otsu
 from dipy.segment.tissue import TissueClassifierHMRF
 
-from pijp_dti.nifti_io import fill_holes, extract_largest_component
+from pijp_dti.nifti_io import fill_holes, extract_largest_component, rescale
 
 
 def mask(dat):
@@ -25,12 +25,12 @@ def mask(dat):
 
     """
 
-    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
+    rescaled_dat = rescale(dat)
+    mask_dat, bin_dat = otsu.median_otsu(rescaled_dat, median_radius=2, numpass=4, dilate=2)
     bin_mask = fill_holes(bin_dat)
     bin_mask = extract_largest_component(bin_mask)
-    masked = apply_mask(dat, bin_mask)
 
-    return masked
+    return bin_mask
 
 
 def apply_mask(dat, bin_mask):
@@ -44,7 +44,6 @@ def apply_mask(dat, bin_mask):
         masked (ndarray): The image with the mask applied
 
     """
-
     return otsu.applymask(dat, bin_mask)
 
 
@@ -87,7 +86,7 @@ def denoise_pca(dat, bval, bvec):
     return denoise_dat
 
 
-def b0_avg(dat, aff, bval):
+def average_b0(dat, aff, bval):
     """Obtain the average b0 image from a 4D DWI image.
 
     Args:
@@ -110,9 +109,9 @@ def b0_avg(dat, aff, bval):
             b0s_reg.append(b0_reg)
 
     b0s_reg = np.stack(b0s_reg, axis=-1)
-    avg_b0 = np.mean(b0s_reg, axis=-1)
+    b0_avg = np.mean(b0s_reg, axis=-1)
 
-    return avg_b0
+    return b0_avg
 
 
 def register(b0, dat, b0_aff, aff, bval, bvec):
@@ -290,7 +289,6 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     dat_reg = aff_map.transform(moving)
 
     return dat_reg, aff_map.affine, aff_map
-
 
 
 def sym_diff_registration(static, moving, static_affine, moving_affine):
