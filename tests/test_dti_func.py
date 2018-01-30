@@ -37,13 +37,13 @@ class Test(unittest.TestCase):
 
         self.assertEqual(dat.shape, denoised.shape)
 
-    def test_b0_avg(self):
+    def test_average_b0(self):
 
         dat = np.random.rand(42, 42, 42, 42)
         aff = np.random.rand(4, 4)
         bval = np.zeros(42)
 
-        avg_b0 = dti_func.b0_avg(dat, aff, bval)
+        avg_b0 = dti_func.average_b0(dat, aff, bval)
 
         self.assertEqual((42, 42, 42), avg_b0.shape)
 
