@@ -45,6 +45,9 @@ def get_dcm2niix():
         raise Exception("dcm2niix not found: %s" % dcm2niix)
     return dcm2niix
 
+def get_dcm2nii():
+
+    return '/home/vhasfcellisr/bin/dcm2nii'
 
 class DTIStep(Step):
 
