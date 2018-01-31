@@ -45,9 +45,10 @@ def get_dcm2niix():
         raise Exception("dcm2niix not found: %s" % dcm2niix)
     return dcm2niix
 
-def get_dcm2nii():
 
+def get_dcm2nii():
     return '/home/vhasfcellisr/bin/dcm2nii'
+
 
 class DTIStep(Step):
 
@@ -180,13 +181,11 @@ class Stage(DTIStep):
         self.logger.info("Finding DICOM files")
         try:
             source = DicomRepository().get_series_files(self.code)
-
             if source is None or len(source) == 0:
                 raise ProcessingError
 
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
-
             for dr in dirs:
                 if not os.path.isdir(dr):
                     os.makedirs(dr)
@@ -197,11 +196,7 @@ class Stage(DTIStep):
                 raise FileExistsError
 
             else:
-                dcm2niix = get_dcm2niix()
-                dcm_dir = self._copy_files(source)
-                self.logger.info("Converting DICOM files to NIfTI")
-                cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
-                self._run_cmd(cmd)
+                self.convert_with_dcm2nii(source)
 
             read_bvals_bvecs(self.fbval, self.fbvec)
 
@@ -230,6 +225,29 @@ class Stage(DTIStep):
                               'everything in the case directory!')
             self.next_step = None
 
+    def convert_with_dcm2niix(self, source):
+        self.logger.info('Converting with dcm2niix')
+        dcm2niix = get_dcm2niix()
+        dcm_dir = self._copy_files(source)
+        self.logger.info("Converting DICOM files to NIfTI")
+        cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
+        self._run_cmd(cmd)
+
+    def convert_with_dcm2nii(self, source):
+        self.logger.info('Converting with dcm2nii')
+        dcm2nii = get_dcm2nii()
+        dcm_dir = self._copy_files(source)
+        self.logger.info("Converting DICOM files to NIfTI")
+        cmd = '{} -o {} {}'.format(dcm2nii, self.stage_dir, dcm_dir)
+        self._run_cmd(cmd)
+        for file in os.listdir(self.stage_dir):  # rename the dcm2nii files
+            abs_path = os.path.join(self.stage_dir, file)
+            ext = file.split('.')
+            ext.pop(0)
+            ext = '.' + '.'.join(ext)
+            shutil.copyfile(abs_path, os.path.join(self.stage_dir, self.code + ext))
+            os.remove(abs_path)
+
     def reset(self):
         shutil.rmtree(get_case_dir(self.project, self.code))
 
@@ -243,7 +261,6 @@ class Stage(DTIStep):
             shutil.copyfile(src, dst)
             if not os.path.exists(dst):
                 raise Exception("Failed to copy file: %s" % dst)
-
         return os.path.join(tmp, os.path.basename(source[0]))
 
     @classmethod
@@ -379,7 +396,6 @@ class TensorFit(DTIStep):
         self.next_step = Warp
 
     def run(self):
-
         self.logger.info('Fitting the tensor')
         dat, aff = self._load_nii(self.masked)
         bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
