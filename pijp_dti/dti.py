@@ -226,7 +226,7 @@ class Stage(DTIStep):
             self.next_step = None
 
     def convert_with_dcm2niix(self, source):
-        self.logger.info('Converting with dcm2niix')
+        self.logger.info('Using dcm2niix')
         dcm2niix = get_dcm2niix()
         dcm_dir = self._copy_files(source)
         self.logger.info("Converting DICOM files to NIfTI")
@@ -234,7 +234,7 @@ class Stage(DTIStep):
         self._run_cmd(cmd)
 
     def convert_with_dcm2nii(self, source):
-        self.logger.info('Converting with dcm2nii')
+        self.logger.info('Using dcm2nii')
         dcm2nii = get_dcm2nii()
         dcm_dir = self._copy_files(source)
         self.logger.info("Converting DICOM files to NIfTI")
