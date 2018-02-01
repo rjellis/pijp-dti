@@ -56,7 +56,7 @@ class DTIStep(Step):
         super(DTIStep, self).__init__(project, code, args)
 
         self.working_dir = get_case_dir(project, code)
-        self.log_dir = os.path.join(get_process_dir(project), 'logs', code)
+        self.logdir = os.path.join(get_process_dir(project), 'logs', code)
 
         # 0Stage
         self.stage_dir = os.path.join(self.working_dir, '0Stage')
@@ -166,8 +166,7 @@ class DTIStep(Step):
 
 
 class Stage(DTIStep):
-    """Convert Dicoms and set up the pipeline.
-    """
+    """Convert Dicoms and set up the pipeline."""
     process_name = PROCESS_TITLE
     step_name = "Stage"
     step_cli = "stage"
@@ -196,7 +195,7 @@ class Stage(DTIStep):
                 raise FileExistsError
 
             else:
-                self.convert_with_dcm2nii(source)
+                self.convert_with_dcm2niix(source)
 
             read_bvals_bvecs(self.fbval, self.fbvec)
 
@@ -215,7 +214,7 @@ class Stage(DTIStep):
         except FileNotFoundError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.error("Can't find files for {}!".format(self.step_name))
+            self.logger.error("Can't find files for {}!".format(self.step_name) + '\n' + str(e))
             self.next_step = None
 
         except FileExistsError as e:
@@ -275,8 +274,7 @@ class Stage(DTIStep):
 
 
 class Denoise(DTIStep):
-    """Denoise the DWI using Local PCA.
-    """
+    """Denoise the DWI using Local PCA."""
     process_name = PROCESS_TITLE
     step_name = "Denoise"
     step_cli = "denoise"
@@ -295,8 +293,7 @@ class Denoise(DTIStep):
 
 
 class Register(DTIStep):
-    """Rigidly register the diffusion weighted directions to an averaged b0 volume.
-    """
+    """Rigidly register the DWI to its averaged b0 volume."""
     process_name = PROCESS_TITLE
     step_name = "Register"
     step_cli = "register"
@@ -327,8 +324,7 @@ class Register(DTIStep):
 
 
 class Mask(DTIStep):
-    """Skull strip the average b0 volume.
-    """
+    """Skull strip the average b0 volume."""
     process_name = PROCESS_TITLE
     step_name = "Mask"
     step_cli = "mask"
@@ -348,8 +344,7 @@ class Mask(DTIStep):
 
 
 class ApplyMask(DTIStep):
-    """Apply the skull stripped mask to the registered image.
-    """
+    """Apply the skull stripped mask to the registered image."""
     process_name = PROCESS_TITLE
     step_name = "ApplyMask"
     step_cli = "apply"
@@ -384,8 +379,7 @@ class ApplyMask(DTIStep):
 
 
 class TensorFit(DTIStep):
-    """Fit the diffusion tensor model.
-    """
+    """Fit the diffusion tensor model."""
     process_name = PROCESS_TITLE
     step_name = "TensorFit"
     step_cli = "tenfit"
@@ -414,8 +408,7 @@ class TensorFit(DTIStep):
 
 
 class Warp(DTIStep):
-    """Warp the template FA and template Labels to the subject space.
-    """
+    """Warp the template FA and template Labels to the subject space."""
     process_name = PROCESS_TITLE
     step_name = "Warp"
     step_cli = "warp"
@@ -447,8 +440,7 @@ class Warp(DTIStep):
 
 
 class Segment(DTIStep):
-    """Segment the tissue for the average b0 volume.
-    """
+    """Segment the tissue for the average b0 volume."""
     process_name = PROCESS_TITLE
     step_name = "Segment"
     step_cli = "seg"
@@ -477,8 +469,7 @@ class Segment(DTIStep):
 
 
 class RoiStats(DTIStep):
-    """Generate CSV files for DTI statistics.
-    """
+    """Generate CSV files for DTI statistics."""
     process_name = PROCESS_TITLE
     step_name = "RoiStats"
     step_cli = "stats"
@@ -521,8 +512,7 @@ class RoiStats(DTIStep):
 
 
 class MaskQC(DTIStep):
-    """Launch a GUI to QC the skull stripping.
-    """
+    """Launch a GUI to QC the skull stripping."""
     process_name = PROCESS_TITLE
     step_name = "MaskQC"
     step_cli = "maskqc"
@@ -605,8 +595,7 @@ class MaskQC(DTIStep):
 
 
 class SegQC(DTIStep):
-    """Launch a GUI to QC the segmentation.
-    """
+    """Launch a GUI to QC the segmentation."""
     process_name = PROCESS_TITLE
     step_name = "SegQC"
     step_cli = 'segqc'
@@ -680,8 +669,7 @@ class SegQC(DTIStep):
 
 
 class WarpQC(DTIStep):
-    """Launch a GUI to QC the non-linear registration.
-    """
+    """Launch a GUI to QC the non-linear registration."""
     process_name = PROCESS_TITLE
     step_name = "WarpQC"
     step_cli = "warpqc"
@@ -754,8 +742,7 @@ class WarpQC(DTIStep):
 
 
 class StoreInDatabase(DTIStep):
-    """Store the ROI statistics in the database.
-    """
+    """Store the ROI statistics in the database."""
     process_name = PROCESS_TITLE
     step_name = "StoreInDatabase"
     step_cli = "store"
@@ -784,9 +771,7 @@ class StoreInDatabase(DTIStep):
 
 
 class SaveInMNI(DTIStep):
-    """Warp the subject's anisotropy measures to MNI space.
-    """
-
+    """Warp the subject's anisotropy measures to MNI space."""
     process_name = PROCESS_TITLE
     step_name = "SaveInMNI"
     step_cli = "mni"
