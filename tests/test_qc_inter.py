@@ -11,7 +11,7 @@ class Test(unittest.TestCase):
 
     def test_qc_inter(self):
         step = 'MaskQC'
-        qc_inter.run(CODE, IMG_PATH, AUTO_PATH, MSK_PATH, step)
+        print(qc_inter.run(CODE, IMG_PATH, AUTO_PATH, MSK_PATH, step))
 
 if __name__ == "__main__":
     unittest.main()
