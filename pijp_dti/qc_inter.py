@@ -112,6 +112,8 @@ class Application(tk.Frame):
             text='Skip', command=self.skip)
 
         self.entry_comment.config(textvariable=v, foreground='gray')
+        self.entry_comment.focus_set()
+
         self.label_top.config(
             fg=self.default_fg, bg=self.default_bg,
             text=self.code, font=16)
@@ -221,6 +223,8 @@ class Application(tk.Frame):
             messagebox.showerror("Error", "Edits detected!")
         else:
             self.result = 'fail'
+            if self.entry_comment.get() != 'Enter a comment:':
+                self.comment = self.entry_comment.get()
             self.button_fail.config(bg='red', fg='white')
             self.button_pass.config(bg=self.default_button_bg, fg=self.default_button_fg)
             self.button_edit.config(bg=self.default_button_bg, fg=self.default_button_fg)
@@ -232,6 +236,8 @@ class Application(tk.Frame):
                 self.open_mask_editor()
         else:
             self.result = 'edit'
+            if self.entry_comment.get() != 'Enter a comment:':
+                self.comment = self.entry_comment.get()
             self.button_edit.config(bg='goldenrod', fg='black')
             self.button_fail.config(bg=self.default_button_bg, fg=self.default_button_fg)
             self.button_pass.config(bg=self.default_button_bg, fg=self.default_button_fg)
@@ -253,7 +259,7 @@ class Application(tk.Frame):
 
         else:
             if messagebox.askokcancel("QC Tool", "Are you sure you want to submit?", parent=self.master):
-                if self.comment != 'Enter a comment:':
+                if self.entry_comment.get() != 'Enter a comment:':
                     self.comment = self.entry_comment.get()
                 self.master.quit()
 
@@ -417,7 +423,5 @@ def run(code, img, auto_mask, final_mask, step):
     app.mainloop()
     result = app.result
     comment = app.comment
-    if comment == 'Enter a comment:':
-        comment = None
     root.destroy()
     return result, comment
