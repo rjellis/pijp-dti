@@ -101,14 +101,17 @@ class Application(tk.Frame):
         self.button_submit.config(
             fg='green', bg=self.default_bg,
             highlightbackground='green',
+            activebackground='green',
             text='Submit', command=self.submit)
         self.button_quit.config(
             fg='red', bg=self.default_bg,
             highlightbackground='red',
+            activebackground='red',
             text='Quit', command=self._quit)
         self.button_skip.config(
             fg='goldenrod', bg=self.default_bg,
             highlightbackground='goldenrod',
+            activebackground='goldenrod',
             text='Skip', command=self.skip)
 
         self.entry_comment.config(textvariable=v, foreground='gray')
