@@ -41,13 +41,16 @@ def get_case_dir(project, code):
 
 def get_dcm2niix():
     dcm2niix = util.configuration['dcm2niix']
-    if not os.path.exists(dcm2niix):
-        raise Exception("dcm2niix not found: %s" % dcm2niix)
+    if not os.path.isfile(dcm2niix):
+        raise FileNotFoundError
     return dcm2niix
 
 
 def get_dcm2nii():
-    return '/home/vhasfcellisr/bin/dcm2nii'
+    dcm2nii = util.configuration['dcm2nii']
+    if not os.path.isfile(dcm2nii):
+        raise FileNotFoundError
+    return dcm2nii
 
 
 class DTIStep(Step):
@@ -133,16 +136,30 @@ class DTIStep(Step):
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
     def _load_nii(self, fname):
-        self.logger.info('loading {}'.format(fname.split('/')[-1]))
-        img = nib.load(fname)
-        dat = img.get_data()
-        aff = img.affine
-        return dat, aff
+        try:
+            self.logger.info('loading {}'.format(fname.split('/')[-1]))
+            img = nib.load(fname)
+            dat = img.get_data()
+            aff = img.affine
+            return dat, aff
+
+        except FileNotFoundError as e:
+            self.logger.info(str(e))
+            self.outcome = 'Error'
+            self.comments = str(e)
+            raise e
 
     def _load_bval_bvec(self, fbval, fbvec):
-        self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
-        bval, bvec = read_bvals_bvecs(fbval, fbvec)
-        return bval, bvec
+        try:
+            self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
+            bval, bvec = read_bvals_bvecs(fbval, fbvec)
+            return bval, bvec
+
+        except IOError as e:
+            self.logger.info(str(e))
+            self.outcome = 'Error'
+            self.comments = str(e)
+            raise e
 
     def _save_nii(self, dat, aff, fname):
         img = nib.Nifti1Image(dat, aff)
@@ -205,16 +222,16 @@ class Stage(DTIStep):
                 self.comments = 'DWI must have 4 dimensions'
                 self.next_step = None
 
+        except FileNotFoundError:
+            self.next_step = None
+
+        except IOError:
+            self.next_step = None
+
         except ProcessingError:
             self.outcome = 'Error'
             self.comments = 'ProcessingError: Could not find staging data.'
             self.logger.error("Could not find the staging data for {}.".format(self.code))
-            self.next_step = None
-
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
-            self.logger.error("Can't find files for {}!".format(self.step_name) + '\n' + str(e))
             self.next_step = None
 
         except FileExistsError as e:
@@ -285,11 +302,17 @@ class Denoise(DTIStep):
         self.next_step = Register
 
     def run(self):
-        self.logger.info("Denoising the DWI")
-        dat, aff = self._load_nii(self.fdwi)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        denoised = dti_func.denoise_pca(dat, bval, bvec)
-        self._save_nii(denoised, aff, self.denoised)
+        try:
+            self.logger.info("Denoising the DWI")
+            dat, aff = self._load_nii(self.fdwi)
+            bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+            denoised = dti_func.denoise_pca(dat, bval, bvec)
+            self._save_nii(denoised, aff, self.denoised)
+
+        except FileNotFoundError:
+            self.next_step = None
+        except IOError:
+            self.next_step = None
 
 
 class Register(DTIStep):
@@ -316,11 +339,10 @@ class Register(DTIStep):
             np.save(self.fbvec_reg, bvec)
             np.save(self.reg_map, reg_map)
 
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
+        except FileNotFoundError:
             self.next_step = None
-            self.logger.error("Can't find files for {}!".format(self.step_name))
+        except IOError:
+            self.next_step = None
 
 
 class Mask(DTIStep):
@@ -335,12 +357,16 @@ class Mask(DTIStep):
         self.next_step = ApplyMask
 
     def run(self):
-        dat, aff = self._load_nii(self.b0)
-        self.logger.info('Masking the average b0 volume')
-        mask = dti_func.mask(dat)
-        self._save_nii(mask, aff, self.auto_mask)
-        mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
-        shutil.copyfile(self.auto_mask, self.final_mask)
+        try:
+            dat, aff = self._load_nii(self.b0)
+            self.logger.info('Masking the average b0 volume')
+            mask = dti_func.mask(dat)
+            self._save_nii(mask, aff, self.auto_mask)
+            mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
+            shutil.copyfile(self.auto_mask, self.final_mask)
+
+        except FileNotFoundError:
+            self.next_step = None
 
 
 class ApplyMask(DTIStep):
@@ -365,11 +391,8 @@ class ApplyMask(DTIStep):
             if DTIRepo().is_edited(self.project, self.code):
                 self.outcome = 'Redone'
 
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
+        except FileNotFoundError:
             self.next_step = None
-            self.logger.error("Can't find files for {}!".format(self.step_name))
 
     @classmethod
     def get_queue(cls, project_name):
@@ -390,21 +413,27 @@ class TensorFit(DTIStep):
         self.next_step = Warp
 
     def run(self):
-        self.logger.info('Fitting the tensor')
-        dat, aff = self._load_nii(self.masked)
-        bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-        bvec_reg = np.load(self.fbvec_reg)
-        evals, evecs, tenfit = dti_func.fit_dti(dat, bval, bvec_reg)
-        self._save_nii(tenfit.fa, aff, self.fa)
-        self._save_nii(tenfit.md, aff, self.md)
-        self._save_nii(tenfit.ga, aff, self.ga)
-        self._save_nii(tenfit.ad, aff, self.ad)
-        self._save_nii(tenfit.rd, aff, self.rd)
-        self._save_nii(evals, aff, self.evals)
-        self._save_nii(evecs, aff, self.evecs)
+        try:
+            self.logger.info('Fitting the tensor')
+            dat, aff = self._load_nii(self.masked)
+            bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+            bvec_reg = np.load(self.fbvec_reg)
+            evals, evecs, tenfit = dti_func.fit_dti(dat, bval, bvec_reg)
+            self._save_nii(tenfit.fa, aff, self.fa)
+            self._save_nii(tenfit.md, aff, self.md)
+            self._save_nii(tenfit.ga, aff, self.ga)
+            self._save_nii(tenfit.ad, aff, self.ad)
+            self._save_nii(tenfit.rd, aff, self.rd)
+            self._save_nii(evals, aff, self.evals)
+            self._save_nii(evecs, aff, self.evecs)
 
-        if DTIRepo().is_edited(self.project, self.code):
-                self.outcome = 'Redone'
+            if DTIRepo().is_edited(self.project, self.code):
+                    self.outcome = 'Redone'
+
+        except FileNotFoundError:
+            self.next_step = None
+        except IOError:
+            self.next_step = None
 
 
 class Warp(DTIStep):
@@ -419,24 +448,28 @@ class Warp(DTIStep):
         self.next_step = Segment
 
     def run(self):
-        self.logger.info('Generating nonlinear registration map for FA')
-        fa, fa_aff = self._load_nii(self.fa)
-        template, template_aff = self._load_nii(self.template)
-        temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
+        try:
+            self.logger.info('Generating nonlinear registration map for FA')
+            fa, fa_aff = self._load_nii(self.fa)
+            template, template_aff = self._load_nii(self.template)
+            temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
 
-        warped_template, mapping = dti_func.sym_diff_registration(
-            fa, template,
-            fa_aff, template_aff)
+            warped_template, mapping = dti_func.sym_diff_registration(
+                fa, template,
+                fa_aff, template_aff)
 
-        warped_labels = mapping.transform(temp_labels, interpolation='nearest')
-        warped_fa = mapping.transform_inverse(fa)
-        np.save(self.warp_map, mapping.get_forward_field())
-        np.save(self.inverse_warp_map, mapping.get_backward_field())
-        self._save_nii(warped_fa, template_aff, self.warped_fa)
-        self._save_nii(warped_labels, fa_aff, self.warped_labels)
+            warped_labels = mapping.transform(temp_labels, interpolation='nearest')
+            warped_fa = mapping.transform_inverse(fa)
+            np.save(self.warp_map, mapping.get_forward_field())
+            np.save(self.inverse_warp_map, mapping.get_backward_field())
+            self._save_nii(warped_fa, template_aff, self.warped_fa)
+            self._save_nii(warped_labels, fa_aff, self.warped_labels)
 
-        if DTIRepo().is_edited(self.project, self.code):
-                self.outcome = 'Redone'
+            if DTIRepo().is_edited(self.project, self.code):
+                    self.outcome = 'Redone'
+
+        except FileNotFoundError:
+            self.next_step = None
 
 
 class Segment(DTIStep):
@@ -451,21 +484,25 @@ class Segment(DTIStep):
         self.next_step = RoiStats
 
     def run(self):
-        self.logger.info('Segmenting tissue for the average b0 of the masked volume')
-        mask, maff = self._load_nii(self.final_mask)
-        b0, baff = self._load_nii(self.b0)
-        warped, waff = self._load_nii(self.warped_labels)
-        masked_b0 = dti_func.apply_mask(b0, mask)
-        segmented = dti_func.segment_tissue(masked_b0)
-        segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
-        warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
-        self._save_nii(segmented, baff, self.segmented)
-        self._save_nii(segmented_wm, baff, self.segmented_wm)
-        self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
-        mosaic.get_seg_mosaic(self.b0, self.segmented_wm, self.seg_mosaic)
-        mosaic.get_warp_mosaic(self.fa, self.warped_wm_labels, self.warp_mosaic)
-        if DTIRepo().is_edited(self.project, self.code):
-                self.outcome = 'Redone'
+        try:
+            self.logger.info('Segmenting tissue for the average b0 of the masked volume')
+            mask, maff = self._load_nii(self.final_mask)
+            b0, baff = self._load_nii(self.b0)
+            warped, waff = self._load_nii(self.warped_labels)
+            masked_b0 = dti_func.apply_mask(b0, mask)
+            segmented = dti_func.segment_tissue(masked_b0)
+            segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
+            warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
+            self._save_nii(segmented, baff, self.segmented)
+            self._save_nii(segmented_wm, baff, self.segmented_wm)
+            self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
+            mosaic.get_seg_mosaic(self.b0, self.segmented_wm, self.seg_mosaic)
+            mosaic.get_warp_mosaic(self.fa, self.warped_wm_labels, self.warp_mosaic)
+            if DTIRepo().is_edited(self.project, self.code):
+                    self.outcome = 'Redone'
+
+        except FileNotFoundError:
+            self.next_step = None
 
 
 class RoiStats(DTIStep):
@@ -479,29 +516,33 @@ class RoiStats(DTIStep):
         super(RoiStats, self).__init__(project, code, args)
 
     def run(self):
-        self.logger.info('Calculating roi statistics')
-        fa, aff = self._load_nii(self.fa)
-        md, aff = self._load_nii(self.md)
-        ga, aff = self._load_nii(self.ga)
-        ad, aff = self._load_nii(self.ad)
-        rd, aff = self._load_nii(self.rd)
-        warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
-        roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
-        original = nib.load(self.fdwi)
-        zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
+        try:
+            self.logger.info('Calculating roi statistics')
+            fa, aff = self._load_nii(self.fa)
+            md, aff = self._load_nii(self.md)
+            ga, aff = self._load_nii(self.ga)
+            ad, aff = self._load_nii(self.ad)
+            rd, aff = self._load_nii(self.rd)
+            warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
+            roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
+            original = nib.load(self.fdwi)
+            zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
 
-        measures = {'fa': [fa, self.fa_roi],
-                    'md': [md, self.md_roi],
-                    'ga': [ga, self.ga_roi],
-                    'ad': [ad, self.ad_roi],
-                    'rd': [rd, self.rd_roi]}
+            measures = {'fa': [fa, self.fa_roi],
+                        'md': [md, self.md_roi],
+                        'ga': [ga, self.ga_roi],
+                        'ad': [ad, self.ad_roi],
+                        'rd': [rd, self.rd_roi]}
 
-        for idx in measures.values():
-            stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
-            self._write_array(stats, idx[1])
+            for idx in measures.values():
+                stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
+                self._write_array(stats, idx[1])
 
-        if DTIRepo().is_edited(self.project, self.code):
-                self.outcome = 'Redone'
+            if DTIRepo().is_edited(self.project, self.code):
+                    self.outcome = 'Redone'
+
+        except FileNotFoundError:
+            self.next_step = None
 
     def _write_array(self, array, csv_path):
         with open(csv_path, 'w') as csv_file:
@@ -753,27 +794,31 @@ class SaveInMNI(DTIStep):
         super(SaveInMNI, self).__init__(project, code, args)
 
     def run(self):
-        self.logger.info("Saving in MNI space")
+        try:
+            self.logger.info("Saving in MNI space")
 
-        # inverse_warp_map = np.load(self.inverse_warp_map)
-        template, template_aff = self._load_nii(self.template)
-        fa, aff = self._load_nii(self.fa)
-        md, aff = self._load_nii(self.md)
-        ga, aff = self._load_nii(self.ga)
-        rd, aff = self._load_nii(self.rd)
-        ad, aff = self._load_nii(self.ad)
-        # Have to redo warping... want to eventually do the transform just with the inverse_warp_map
-        warped_template, mapping = dti_func.sym_diff_registration(fa, template, aff, template_aff)
-        fa_warp = mapping.transform_inverse(fa)
-        md_warp = mapping.transform_inverse(md)
-        ga_warp = mapping.transform_inverse(ga)
-        rd_warp = mapping.transform_inverse(rd)
-        ad_warp = mapping.transform_inverse(ad)
-        self._save_nii(fa_warp, aff, self.fa_warp)
-        self._save_nii(md_warp, aff, self.md_warp)
-        self._save_nii(ga_warp, aff, self.ga_warp)
-        self._save_nii(rd_warp, aff, self.rd_warp)
-        self._save_nii(ad_warp, aff, self.ad_warp)
+            # inverse_warp_map = np.load(self.inverse_warp_map)
+            template, template_aff = self._load_nii(self.template)
+            fa, aff = self._load_nii(self.fa)
+            md, aff = self._load_nii(self.md)
+            ga, aff = self._load_nii(self.ga)
+            rd, aff = self._load_nii(self.rd)
+            ad, aff = self._load_nii(self.ad)
+            # Have to redo warping... want to eventually do the transform just with the inverse_warp_map
+            warped_template, mapping = dti_func.sym_diff_registration(fa, template, aff, template_aff)
+            fa_warp = mapping.transform_inverse(fa)
+            md_warp = mapping.transform_inverse(md)
+            ga_warp = mapping.transform_inverse(ga)
+            rd_warp = mapping.transform_inverse(rd)
+            ad_warp = mapping.transform_inverse(ad)
+            self._save_nii(fa_warp, aff, self.fa_warp)
+            self._save_nii(md_warp, aff, self.md_warp)
+            self._save_nii(ga_warp, aff, self.ga_warp)
+            self._save_nii(rd_warp, aff, self.rd_warp)
+            self._save_nii(ad_warp, aff, self.ad_warp)
+
+        except FileNotFoundError:
+            self.next_step = None
 
 
 def run():
