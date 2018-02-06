@@ -8,7 +8,7 @@ from dipy.reconst import dti
 from dipy.segment import mask as otsu
 from dipy.segment.tissue import TissueClassifierHMRF
 
-from pijp_dti.nifti_io import fill_holes, extract_largest_component
+from pijp_dti.nifti_io import fill_holes, extract_largest_component, rescale
 
 
 def mask(dat):
@@ -25,15 +25,25 @@ def mask(dat):
 
     """
 
-    mask_dat, bin_dat = otsu.median_otsu(dat, median_radius=2, numpass=4, dilate=2)
+    rescaled_dat = rescale(dat)
+    mask_dat, bin_dat = otsu.median_otsu(rescaled_dat, median_radius=2, numpass=4, dilate=2)
     bin_mask = fill_holes(bin_dat)
     bin_mask = extract_largest_component(bin_mask)
-    masked = apply_mask(dat, bin_mask)
 
-    return masked
+    return bin_mask
 
 
 def apply_mask(dat, bin_mask):
+    """Apply the binary mask.
+
+    Args:
+        dat (ndarray): The image to be masked
+        bin_mask (ndarray): boolean mask
+
+    Returns:
+        masked (ndarray): The image with the mask applied
+
+    """
     return otsu.applymask(dat, bin_mask)
 
 
@@ -41,7 +51,7 @@ def denoise(dat):
     """Denoise a data set using Non Local Means.
 
     Args:
-        dat (ndarray): 4D numpy ndarray
+        dat (ndarray): 3D or 4D numpy ndarray
 
     Returns:
         denoise_dat (ndarray): The denoised ndarray
@@ -50,9 +60,13 @@ def denoise(dat):
     sigma = noise_estimate.estimate_sigma(dat)
     denoise_dat = []
 
-    for i in range(0, dat.shape[3]):
-        denoise_dat.append(non_local_means.non_local_means(dat[..., i], sigma[i]))
-    denoise_dat = np.stack(denoise_dat, axis=-1)
+    if len(dat.shape) == 4:
+        for i in range(0, dat.shape[3]):
+            denoise_dat.append(non_local_means.non_local_means(dat[..., i], sigma[i]))
+        denoise_dat = np.stack(denoise_dat, axis=-1)
+    elif len(dat.shape) == 3:
+        denoise_dat = non_local_means.non_local_means(dat, sigma)
+
     return denoise_dat
 
 
@@ -76,7 +90,7 @@ def denoise_pca(dat, bval, bvec):
     return denoise_dat
 
 
-def b0_avg(dat, aff, bval):
+def average_b0(dat, aff, bval):
     """Obtain the average b0 image from a 4D DWI image.
 
     Args:
@@ -99,9 +113,9 @@ def b0_avg(dat, aff, bval):
             b0s_reg.append(b0_reg)
 
     b0s_reg = np.stack(b0s_reg, axis=-1)
-    avg_b0 = np.mean(b0s_reg, axis=-1)
+    b0_avg = np.mean(b0s_reg, axis=-1)
 
-    return avg_b0
+    return b0_avg
 
 
 def register(b0, dat, b0_aff, aff, bval, bvec):
@@ -184,7 +198,7 @@ def segment_tissue(dat):
 
 
 def apply_tissue_mask(dat, segmented, tissue=1, prob=50):
-    """Masks the data
+    """Masks the data using the segmented tissue
 
     Args:
         dat (ndarray)
@@ -216,21 +230,21 @@ def roi_stats(dat, overlay, labels, zooms):
                       mean, standard deviation].
 
     """
-    intensities_by_roi = dict()
+    roi_voxels = dict()
     stats = [['name', 'min', 'max', 'mean', 'sd', 'median', 'volume']]
     vox_size = zooms[0] * zooms[1] * zooms[2]  # The size of voxels in mm
     for roi_labels in labels.values():
-        intensities_by_roi[roi_labels] = []  # A list of ROI lists containing voxel intensities
+        roi_voxels[roi_labels] = []  # A dynamic list for each of the ROI's
 
     for coord, val in np.ndenumerate(dat):
         key = overlay[coord]  # Get the integer value from the overlay image
         if key in labels:  # Find the label name for that integer value
             roi_name = labels[key]
             if val != 0:
-                intensities_by_roi[roi_name].append(val)  # Add the intensity of the voxel to the list for the ROI
+                roi_voxels[roi_name].append(val)  # Add the intensity of the voxel to the list for the ROI
 
-    for rois in intensities_by_roi.keys():
-        npa = np.asarray(intensities_by_roi[rois])
+    for rois in roi_voxels.keys():
+        npa = np.asarray(roi_voxels[rois])
         try:
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
                           (len(npa)*vox_size)])
@@ -279,7 +293,6 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     dat_reg = aff_map.transform(moving)
 
     return dat_reg, aff_map.affine, aff_map
-
 
 
 def sym_diff_registration(static, moving, static_affine, moving_affine):
