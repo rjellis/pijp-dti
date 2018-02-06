@@ -542,9 +542,6 @@ class MaskQC(DTIStep):
 
     def run(self):
         try:
-            if not os.path.isfile(self.b0) or not os.path.isfile(self.auto_mask) or not os.path.isfile(self.final_mask):
-                raise FileNotFoundError
-
             result, comments = qc_inter.run(self.code, self.b0, self.auto_mask, self.final_mask,
                                             self.step_name)
             self.outcome = result
@@ -561,12 +558,6 @@ class MaskQC(DTIStep):
                 self.outcome = 'Cancelled'
                 self.comments = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
-
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
-            self.logger.error("Can't find files for {}!".format(self.step_name))
-            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)
@@ -626,9 +617,6 @@ class SegQC(DTIStep):
 
     def run(self):
         try:
-            if not os.path.isfile(self.b0) or not os.path.isfile(self.segmented_wm):
-                raise FileNotFoundError
-
             (result, comments) = qc_inter.run(self.code, self.b0, self.segmented_wm, self.segmented_wm,
                                               self.step_name)
             self.outcome = result
@@ -644,12 +632,6 @@ class SegQC(DTIStep):
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
-
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
-            self.logger.error("Can't find files for {}!".format(self.step_name))
-            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)
@@ -699,9 +681,6 @@ class WarpQC(DTIStep):
 
     def run(self):
         try:
-            if not os.path.isfile(self.fa) or not os.path.isfile(self.warped_wm_labels):
-                raise FileNotFoundError
-
             (result, comments) = qc_inter.run(self.code, self.fa, self.warped_wm_labels,
                                               self.warped_wm_labels, self.step_name)
             self.outcome = result
@@ -717,12 +696,6 @@ class WarpQC(DTIStep):
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
-
-        except FileNotFoundError as e:
-            self.outcome = 'Error'
-            self.comments = str(e)
-            self.logger.error("Can't find files for {}!".format(self.step_name))
-            raise CancelProcessingError
 
         finally:
             os.remove(self.review_flag)

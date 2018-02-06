@@ -416,15 +416,21 @@ def run(code, img, auto_mask, final_mask, step):
         result (string): The result selected in the UI (pass, fail, edit, cancelled)
         comment (string): The text entered in the UI's comment entry box
     """
-    root = tk.Tk()
-    root.minsize(855, 600)
-    center_window(root)
-    app = Application(code, img, auto_mask, final_mask, step, root)
-    app.create_widgets()
-    app.create_figure()
-    app.draw_fig()
-    app.mainloop()
-    result = app.result
-    comment = app.comment
-    root.destroy()
+
+    try:
+        root = tk.Tk()
+        root.minsize(855, 600)
+        center_window(root)
+        app = Application(code, img, auto_mask, final_mask, step, root)
+        app.create_widgets()
+        app.create_figure()
+        app.draw_fig()
+        app.mainloop()
+        result = app.result
+        comment = app.comment
+        root.destroy()
+    except FileNotFoundError as e:
+        result = 'Error'
+        comment = str(e)
+
     return result, comment
