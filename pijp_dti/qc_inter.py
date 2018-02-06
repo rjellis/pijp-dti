@@ -285,9 +285,12 @@ class Application(tk.Frame):
             self.master.quit()
 
     def open_mask_editor(self):
-        p = open_mask_editor(self.img, self.final_mask, self.step)
-        p.wait()
-        self.refresh_fig()
+        try:
+            p = open_mask_editor(self.img, self.final_mask, self.step)
+            p.wait()
+            self.refresh_fig()
+        except FileNotFoundError:
+            messagebox.showerror("QC Tool", "FLSView not found!")
 
     def reset_mask(self):
         if messagebox.askokcancel("QC Tool", "Are you sure you want to reset the mask?\nAll edits will be lost.",
@@ -362,7 +365,7 @@ def center_window(master):
 def get_mask_editor():
     mask_editor = util.configuration['fslview']
     if not os.path.exists(mask_editor):
-        raise Exception("fslview not found")
+        raise FileNotFoundError
     return mask_editor
 
 
