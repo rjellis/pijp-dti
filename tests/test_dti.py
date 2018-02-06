@@ -6,8 +6,8 @@ from pijp_dti import dti
 
 class Test(unittest.TestCase):
 
-    project = 'PPMI'
-    code = 'PPMI_007_S_3107m48_i498877'
+    project = 'SampleProject'
+    code = 'SampleCode'
     args = None
 
     def test_stage(self):
