@@ -363,7 +363,7 @@ def center_window(master):
 
 
 def get_mask_editor():
-    mask_editor = util.configuration['fslview']
+    mask_editor = util.configuration['fsleyes']
     if not os.path.exists(mask_editor):
         raise FileNotFoundError
     return mask_editor
@@ -372,12 +372,14 @@ def get_mask_editor():
 def open_mask_editor(img, mask, step):
         mask_editor = get_mask_editor()
         if step == 'WarpQC':
-            cmap = 'Random-Rainbow'
+            cmap = 'random'
         else:
-            cmap = 'Red'
+            cmap = 'red'
 
-        cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l {cmap}".format(mask_editor=mask_editor, img=img,
+        cmd = "{mask_editor} -xh -yh {img} {overlay} -a 40 -cm Red".format(mask_editor=mask_editor, img=img,
                                                                                 overlay=mask, cmap=cmap)
+        # cmd = "{mask_editor} -m single {img} {overlay} -t 0.5 -l {cmap}".format(mask_editor=mask_editor, img=img,
+        #                                                                        overlay=mask, cmap=cmap)
         args = cmd.split()
         return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
