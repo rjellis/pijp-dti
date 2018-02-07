@@ -639,6 +639,11 @@ class MaskQC(DTIStep):
                 self.comments = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
 
+        except FileNotFoundError as e:
+            self.outcome = 'fail'
+            self.comments = str(e)
+            self.logger.info('Failed! ' + str(e))
+
         finally:
             os.remove(self.review_flag)
 
@@ -713,6 +718,11 @@ class SegQC(DTIStep):
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
 
+        except FileNotFoundError as e:
+            self.outcome = 'fail'
+            self.comments = str(e)
+            self.logger.info('Failed! ' + str(e))
+
         finally:
             os.remove(self.review_flag)
 
@@ -776,6 +786,11 @@ class WarpQC(DTIStep):
             if result == 'skipped':
                 self.outcome = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
+
+        except FileNotFoundError as e:
+            self.outcome = 'fail'
+            self.comments = str(e)
+            self.logger.info('Failed! ' + str(e))
 
         finally:
             os.remove(self.review_flag)
