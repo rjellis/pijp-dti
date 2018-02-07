@@ -69,7 +69,7 @@ to remove extraneous pieces of the mask.
 **Applies the generated or edited b0 mask to the DWI**
 
 Saves a copy of the automatic mask (as the final mask)
-and applies the binary mask to the copy.
+and applies the final mask to the registered DWI.
 
 ## 6. TensorFit
 
@@ -89,25 +89,22 @@ anisotropy are also calculated:
 
 Each measure of anisotropy is a 3D volume in the same space as the subject.
 
-The anisotropy measures, warped FA, warped labels_lookup, eigenvectors, and
+The anisotropy measures, eigenvectors, and
 eigenvalues are all saved as compressed Nifti files. The forward and
-inverse mappings are saved as numpy files. The eigenvalue nifti image has three volumes
-because every voxel has three eigenvalues. Likewise, the eigenvector nifti image has
-nine volumes because every voxel has three eigenvectors of length 3.
+inverse mappings are saved as numpy files.
 
 ## 7. Warp
 
 An Atlas's FA is non-linearly registered to the subject FA using
-symmetric diffeomorphic registration. While FA is chosen for the
-registration, the generated mapping applies to all the other anisotropy
-measures as well. Forward mapping warps the template space to the subject space.
-Inverse mapping warps the subject space to the template space.
+symmetric diffeomorphic registration. Forward mapping warps the template
+space to the subject space. Inverse mapping warps the subject space
+to the template space.
 
 ## 8. Segment
 
 The registered b0 image is segmented into 4 tissue classes: background, white matter,
-gray matter, and CSF. The white matter segmentation is applied as a mask to the warped labels
-for clarity during QC.
+gray matter, and CSF. The white matter segmentation is then
+applied as a mask to the warped labels.
 
 ## 9. RoiStats
 
@@ -119,8 +116,7 @@ region of interest. The minimum value, maximum value, mean, standard
 deviation, median and volume are calculated for each region of interest.
 A comma separated value file (CSV) is generated for each anisotropy measure.
 CSV format: (name, min, max, mean, std. dev, median, volume).
-The white matter segmentation mask is applied before calculation. It thresholds
-where the probability for white matter is greater than or equal to 40%.
+The white matter segmentation mask is applied before calculation.
 The ROI statistics are only calculated over the non-zero voxels.
 
 ## Interactive Steps
@@ -130,13 +126,13 @@ The ROI statistics are only calculated over the non-zero voxels.
 **Open a GUI to QC the automated skull stripping**
 
 Selecting **'Pass', 'Fail', or 'Edit'** sets the result for the case being QC'd.
-Runs SegQC if 'pass' is selected.
+Runs SegQC if 'pass' is submitted.
 
 ### SegQC
 
 **Open a GUI to QC the tissue segmentation**
 
-Runs WarpQC if 'pass' is selected. Queues up cases where MaskQC is passed or edited
+Runs WarpQC if 'pass' is submitted. Queues up cases where MaskQC is passed or edited
 cases where RoiStats has an outcome of 'Redone.'
 
 ### WarpQC
@@ -144,7 +140,7 @@ cases where RoiStats has an outcome of 'Redone.'
 **Open a GUI to QC the nonlinear registration**
 
 Queues up cases where SegQC has passed.
-If 'pass' is selected, the results from RoiStats are stored in the Database.
+If 'pass' is submitted, the results from RoiStats are stored in the Database.
 
 ### StoreInDatabase
 
@@ -152,25 +148,55 @@ Store the CSV's from RoiStats in the database after passing WarpQC.
 
 # How To Use
 
-1) Use step `stage` to run the pipeline for some code(s)
+1) Use `stage` to run the pipeline for some code(s)
 
-       ```
-       examples:
+```
+examples:
        dti.py -p SampleProject -c SampleCode -s stage
-       ```
-2) Use step `maskqc` to QC the completed code(s)
+       dti.py -p SampleProject -s stage -n 10
+```
 
-sample command for QC:
+This will run the code(s) through steps 1-9 unless `--nocontinue` was used.
+The code(s) will be ready for QC once step 9 (RoiStats) is complete.
 
-`dti.py -p SampleProject -s maskqc`
+2) Use `maskqc` to QC the completed code(s)
 
-This will queue up all cases ready for MaskQC. A window will open with the
-middle slice of the average b0 image, with a red mask overlaid. Use the **Pass, Edit, or Fail**
-buttons on the right to select a result. Select **Open in FSLView** if you wish to edit the
-mask or view the case with a more advanced viewer. When you are done editing or selecting a result,
-use the **Submit** button to submit the case. This button will close the current window. If you wish to
-exit the QC Tool at any time, use the **Quit** button. This will close the QC Tool and stop the queue.
-Running the MaskQC command again will continue where you left off.
-If you wish to open a single case, use the option `-c` followed by the desired code in the command.
+   ```
+   dti.py -p SampleProject -s maskqc
+   ````
 
+Only submit the result of `edit` after you have completely finished editing the mask.
+If you are not done editing but want to exit, just save the mask in FSLeyes and exit
+the QC Tool without submitting.
+
+**When saving the edited mask, be sure you are saving as "SampleCode_final_mask.nii.gz" in
+  SampleCode's "3Mask" directory!**
+
+
+
+3) Use `apply` to rerun the pipeline for the code(s) with an edited mask
+
+   ```
+   dti.py -p SampleProject -s apply
+   ```
+
+This will rerun the code(s) through steps 5-9. Once step 9 is complete, the
+code(s) will be ready for `segqc`.
+
+4) Use `segqc` to QC the redone code(s)
+
+   ```
+   dti.py -p SampleProject -s segqc
+   ```
+
+This will also queue codes that have passed `maskqc` but have not been `segqc`'d.
+`segqc` will automatically run for the case if `maskqc` is passed, unless `--nocontinue`
+was used. Likewise, `warpqc` will automatically run if `segqc` is passed.
+
+
+### Notes
+
+- Generally, step 2 (Denoise) and step 3 (Register) take the longest to complete
+- Exiting the QC Tool will cancel the queue and stop the pipeline
+- In queue mode, `maskqc` will first reopen the last code that was cancelled (but not skipped)
 
