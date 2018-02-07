@@ -150,9 +150,17 @@ If 'pass' is selected, the results from RoiStats are stored in the Database.
 
 Store the CSV's from RoiStats in the database after passing WarpQC.
 
-# How To Use QC Tool
+# How To Use
 
-sample command:
+1) Use step `stage` to run the pipeline for some code(s)
+
+       ```
+       examples:
+       dti.py -p SampleProject -c SampleCode -s stage
+       ```
+2) Use step `maskqc` to QC the completed code(s)
+
+sample command for QC:
 
 `dti.py -p SampleProject -s maskqc`
 
