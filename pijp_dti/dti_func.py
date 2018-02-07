@@ -246,6 +246,7 @@ def roi_stats(dat, overlay, labels, zooms):
     for rois in roi_voxels.keys():
         npa = np.asarray(roi_voxels[rois])
         try:
+            # Name, Min, Max, Mean, Std. Dev, Median, Volume
             stats.append([rois, npa.min(), npa.max(), npa.mean(), npa.std(), np.median(npa),
                           (len(npa)*vox_size)])
 
