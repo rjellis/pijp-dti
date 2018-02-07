@@ -24,6 +24,7 @@ from pijp_dti import dti_func
 from pijp_dti import mosaic, qc_inter
 from pijp_dti.repo import DTIRepo
 
+
 LOGGER = logging.getLogger(__name__)
 PROCESS_TITLE = pijp_dti.__process_title__
 
@@ -40,14 +41,14 @@ def get_case_dir(project, code):
 
 
 def get_dcm2niix():
-    dcm2niix = util.configuration['dcm2niix']
+    dcm2niix = util.configuration['dcm2niix']['path']
     if not os.path.isfile(dcm2niix):
         raise FileNotFoundError
     return dcm2niix
 
 
 def get_dcm2nii():
-    dcm2nii = util.configuration['dcm2nii']
+    dcm2nii = util.configuration['dcm2nii']['path']
     if not os.path.isfile(dcm2nii):
         raise FileNotFoundError
     return dcm2nii
