@@ -125,14 +125,14 @@ The ROI statistics are only calculated over the non-zero voxels.
 
 **Open a GUI to QC the automated skull stripping**
 
-Selecting **'Pass', 'Fail', or 'Edit'** sets the result for the case being QC'd.
-Runs SegQC if 'pass' is submitted.
+Selecting **Pass, Fail, or Edit** sets the result for the case being QC'd.
+Runs SegQC if **Pass** is submitted.
 
 ### SegQC
 
 **Open a GUI to QC the tissue segmentation**
 
-Runs WarpQC if 'pass' is submitted. Queues up cases where MaskQC is passed or edited
+Runs WarpQC if **Pass** is submitted. Queues up cases where MaskQC is passed or edited
 cases where RoiStats has an outcome of 'Redone.'
 
 ### WarpQC
@@ -140,7 +140,7 @@ cases where RoiStats has an outcome of 'Redone.'
 **Open a GUI to QC the nonlinear registration**
 
 Queues up cases where SegQC has passed.
-If 'pass' is submitted, the results from RoiStats are stored in the Database.
+If **Pass** is submitted, the results from RoiStats are stored in the Database.
 
 ### StoreInDatabase
 
@@ -165,7 +165,7 @@ The code(s) will be ready for QC once step 9 (RoiStats) is complete.
    dti.py -p SampleProject -s maskqc
    ````
 
-Only submit the result of `edit` after you have completely finished editing the mask.
+Only submit the result of **Edit** after you have completely finished editing the mask.
 If you are not done editing but want to exit, just save the mask in FSLeyes and exit
 the QC Tool without submitting.
 
