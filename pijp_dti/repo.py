@@ -42,7 +42,7 @@ class DTIRepo(BaseRepository):
         WHERE Project = {project}
             AND Process = {process}
             AND Step = 'Stage'
-            AND (Outcome = 'Done' or Outcome = 'Error')
+            AND (Outcome = 'Done' or Outcome = 'Error' or Outcome = 'Queued')
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
