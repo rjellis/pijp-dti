@@ -629,6 +629,9 @@ class MaskQC(DTIStep):
             if result == 'pass':
                 self.next_step = SegQC
 
+            if result == 'edit':
+                self.next_step = ApplyMask
+
             if result == 'cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
