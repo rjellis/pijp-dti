@@ -7,8 +7,6 @@ import nibabel as nib
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -81,7 +79,7 @@ class Application(tk.Frame):
         self.master.config(background=self.default_bg)
         self.button_open.config(
             fg=self.default_fg, bg=self.default_bg,
-            text='Open in FSLView', command=self.open_mask_editor)
+            text='Open in FSLeyes', command=self.open_mask_editor)
         self.button_reset.config(
             fg='red4', bg='salmon',
             highlightbackground='red4', highlightthickness=3,
