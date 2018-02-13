@@ -37,20 +37,6 @@ class Mosaic(object):
 
         return fig
 
-    def animate(self):
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.axis('off')
-        ims = []
-        fig.set_facecolor('black')
-        for i in range(0, self.img.shape[2]):
-
-            im = plt.imshow(np.rot90(self.img[:, :, i, :], 1), animated=True, interpolation=None)
-            t = ax.annotate("Slice {}".format(i+1), (0, 0), (0, -1))
-            ims.append([im, t])
-        return fig, ims
-
     def plot_one_slice_with_overlay(self, overlay, alpha=1.0, cmap_img='gray',
                                     cmap_overlay='nipy_spectral', mosaic_path=None):
         fig = plt.figure()
@@ -113,12 +99,3 @@ def get_warp_mosaic(image_path, label_path, mosaic_path=None, alpha=0.2):
     image = nib.load(image_path).get_data()
     label = nib.load(label_path).get_data()
     return Mosaic(image).plot_one_slice_with_overlay(label, alpha=alpha, mosaic_path=mosaic_path)
-
-
-def get_animation(image_path, mask_path):
-    image = nib.load(image_path).get_data()
-    mask = nib.load(mask_path).get_data()
-    image = rescale(image)
-    image = np.stack((image, image, image), axis=-1)
-    masked = mask_image(image, mask, hue=[1, 0, 0], alpha=0.5)
-    return Mosaic(masked).animate()
