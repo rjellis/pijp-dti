@@ -126,7 +126,6 @@ The ROI statistics are only calculated over the non-zero voxels.
 **Open a GUI to QC the automated skull stripping**
 
 Selecting **Pass, Fail, or Edit** sets the result for the case being QC'd.
-Runs SegQC if **Pass** is submitted.
 
 ### SegQC
 
@@ -156,8 +155,9 @@ examples:
        dti.py -p SampleProject -s stage -n 10
 ```
 
-This will run the code(s) through steps 1-9 unless `--nocontinue` was used.
-The code(s) will be ready for QC once step 9 (RoiStats) is complete.
+This will run the code(s) through steps 1-4 unless `--nocontinue` was used.
+The code(s) will be ready for MaskQC once step 4 (Mask) is complete.
+
 
 2) Use `maskqc` to QC the completed code(s)
 
@@ -173,23 +173,12 @@ the QC Tool without submitting.
   SampleCode's "3Mask" directory!**
 
 
-
-3) Use `apply` to rerun the pipeline for the code(s) with an edited mask
-
-   ```
-   dti.py -p SampleProject -s apply
-   ```
-
-This will rerun the code(s) through steps 5-9. Once step 9 is complete, the
-code(s) will be ready for `segqc`.
-
-4) Use `segqc` to QC the redone code(s)
+3) Use `segqc` to start the final QC
 
    ```
    dti.py -p SampleProject -s segqc
    ```
 
-This will also queue codes that have passed `maskqc` but have not been `segqc`'d.
 `segqc` will automatically run for the case if `maskqc` is passed, unless `--nocontinue`
 was used. Likewise, `warpqc` will automatically run if `segqc` is passed.
 
