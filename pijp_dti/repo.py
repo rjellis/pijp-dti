@@ -56,7 +56,7 @@ class DTIRepo(BaseRepository):
             ProcessingLog pl 
         WHERE Project = {project}
             AND Process = {process}
-            AND Step = 'RoiStats'
+            AND Step = 'Mask'
             AND Outcome = 'Done'
             AND ScanCode NOT IN(
                 SELECT 
@@ -66,7 +66,7 @@ class DTIRepo(BaseRepository):
                 WHERE Project = {project}
                     AND Process = {process}
                     AND Step = 'MaskQC'
-                    AND (Outcome = 'Pass' OR Outcome = 'Edit')
+                    AND (Outcome = 'Pass' OR Outcome = 'Edit' OR Outcome = 'Fail')
             )
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
@@ -95,98 +95,8 @@ class DTIRepo(BaseRepository):
             )
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
-        sql2 = r"""
-        SELECT
-            ScanCode AS Code
-        FROM
-            ProcessingLog
-        WHERE Project = {project}
-            AND Process = {process}
-            AND Step = 'RoiStats'
-            AND Outcome = 'Redone'
-            AND ScanCode NOT IN(
-                SELECT 
-                    ScanCode
-                FROM 
-                    ProcessingLog
-                WHERE Project = {project}
-                AND Process = {process}
-                AND Step = 'SegQC'
-                AND (Outcome = 'Pass' OR Outcome = 'Fail')
-            )
-        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))  # Need this second query for getting redone
-        # edited cases
-
         todo = self.connection.fetchall(sql)
-        todo2 = self.connection.fetchall(sql2)
 
-        return todo + todo2
-
-    def get_warps_to_qc(self, project):
-        sql = r"""
-        SELECT
-            ScanCode AS Code
-        FROM 
-            ProcessingLog
-        WHERE Project = {project}
-            AND Process = {process}
-            AND Step = 'SegQC'
-            AND Outcome = 'Pass'
-            AND ScanCode NOT IN(
-                SELECT
-                    ScanCode
-                FROM
-                    ProcessingLog
-                WHERE Project = {project}
-                AND Process = {process}
-                AND Step = 'WarpQC'
-                AND (Outcome = 'Pass' OR Outcome = 'Fail')
-            )
-        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
-
-        todo = self.connection.fetchall(sql)
-        return todo
-
-    def is_edited(self, project, code):
-        sql = r"""
-        SELECT
-            ScanCode
-        FROM
-            ProcessingLog
-        WHERE
-            ScanCode = {code}
-            AND Project = {project}
-            AND Process = {process}
-            AND Step = 'MaskQC'
-            AND Outcome = 'edit'
-        """.format(code=fsp(code), project=fsp(project), process=fsp(PROCESS_TITLE))
-
-        edited = self.connection.fetchone(sql)
-        return edited is not None  # Returns true if edited, false if not edited
-
-    def get_edited_masks(self, project):
-        sql = r"""
-        SELECT 
-            ScanCode AS Code
-        FROM 
-            ProcessingLog pl 
-        WHERE Project = {project}
-            AND Process = {process}
-            AND Step = 'MaskQC'
-            AND Outcome = 'edit'
-            AND ScanCode NOT IN(
-                SELECT
-                    ScanCode
-                FROM
-                    ProcessingLog
-                WHERE Project = {project}
-                AND Process = {process}
-                AND Step = 'ApplyMask'
-                AND Outcome = 'Redone'
-            )
-        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
-
-        todo = self.connection.fetchall(sql)
         return todo
 
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
