@@ -366,7 +366,6 @@ class Mask(DTIStep):
 
     def __init__(self, project, code, args):
         super(Mask, self).__init__(project, code, args)
-        self.next_step = ApplyMask
 
     def run(self):
         try:
@@ -384,211 +383,6 @@ class Mask(DTIStep):
 
         except FileNotFoundError:
             self.next_step = None
-
-
-class ApplyMask(DTIStep):
-    """Apply the skull stripped mask to the registered image."""
-    process_name = PROCESS_TITLE
-    step_name = "ApplyMask"
-    step_cli = "apply"
-
-    prev_step = [Mask]
-
-    def __init__(self, project, code, args):
-        super(ApplyMask, self).__init__(project, code, args)
-        self.next_step = TensorFit
-
-    def run(self):
-        try:
-            # Loading
-            reg, reg_aff = self._load_nii(self.reg)
-            mask, mask_aff = self._load_nii(self.final_mask)
-
-            # Running
-            self.logger.info('Applying the mask')
-            masked = dti_func.apply_mask(reg, mask)
-
-            # Saving
-            self._save_nii(masked, mask_aff, self.masked)
-
-            if DTIRepo().is_edited(self.project, self.code):
-                self.outcome = 'Redone'
-
-        except FileNotFoundError:
-            self.next_step = None
-
-    @classmethod
-    def get_queue(cls, project_name):
-        masks = DTIRepo().get_edited_masks(project_name)
-        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in masks]
-        return todo
-
-
-class TensorFit(DTIStep):
-    """Fit the diffusion tensor model."""
-    process_name = PROCESS_TITLE
-    step_name = "TensorFit"
-    step_cli = "tenfit"
-    prev_step = [ApplyMask]
-
-    def __init__(self, project, code, args):
-        super(TensorFit, self).__init__(project, code, args)
-        self.next_step = Warp
-
-    def run(self):
-        try:
-            # Loading
-            dat, aff = self._load_nii(self.masked)
-            bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-            bvec_reg = np.load(self.fbvec_reg)
-
-            # Running
-            self.logger.info('Fitting the tensor')
-            evals, evecs, tenfit = dti_func.fit_dti(dat, bval, bvec_reg)
-
-            # Saving
-            self._save_nii(tenfit.fa, aff, self.fa)
-            self._save_nii(tenfit.md, aff, self.md)
-            self._save_nii(tenfit.ga, aff, self.ga)
-            self._save_nii(tenfit.ad, aff, self.ad)
-            self._save_nii(tenfit.rd, aff, self.rd)
-            self._save_nii(evals, aff, self.evals)
-            self._save_nii(evecs, aff, self.evecs)
-
-            if DTIRepo().is_edited(self.project, self.code):
-                    self.outcome = 'Redone'
-
-        except FileNotFoundError:
-            self.next_step = None
-        except IOError:
-            self.next_step = None
-
-
-class Warp(DTIStep):
-    """Warp the template FA and template Labels to the subject space."""
-    process_name = PROCESS_TITLE
-    step_name = "Warp"
-    step_cli = "warp"
-    prev_step = [TensorFit]
-
-    def __init__(self, project, code, args):
-        super(Warp, self).__init__(project, code, args)
-        self.next_step = Segment
-
-    def run(self):
-        try:
-            # Loading
-            fa, fa_aff = self._load_nii(self.fa)
-            template, template_aff = self._load_nii(self.template)
-            temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
-
-            # Runnning
-            self.logger.info('Generating nonlinear registration map for FA')
-            warped_template, mapping = dti_func.sym_diff_registration(
-                fa, template,
-                fa_aff, template_aff)
-            warped_labels = mapping.transform(temp_labels, interpolation='nearest')
-            warped_fa = mapping.transform_inverse(fa)
-
-            # Saving
-            np.save(self.warp_map, mapping.get_forward_field())
-            np.save(self.inverse_warp_map, mapping.get_backward_field())
-            self._save_nii(warped_fa, template_aff, self.warped_fa)
-            self._save_nii(warped_labels, fa_aff, self.warped_labels)
-
-            if DTIRepo().is_edited(self.project, self.code):
-                    self.outcome = 'Redone'
-
-        except FileNotFoundError:
-            self.next_step = None
-
-
-class Segment(DTIStep):
-    """Segment the tissue for the average b0 volume."""
-    process_name = PROCESS_TITLE
-    step_name = "Segment"
-    step_cli = "seg"
-    prev_step = Warp
-
-    def __init__(self, project, code, args):
-        super(Segment, self).__init__(project, code, args)
-        self.next_step = RoiStats
-
-    def run(self):
-        try:
-            # Loading
-            mask, maff = self._load_nii(self.final_mask)
-            b0, baff = self._load_nii(self.b0)
-            warped, waff = self._load_nii(self.warped_labels)
-
-            # Running
-            self.logger.info('Segmenting tissue for the average b0 of the masked volume')
-            masked_b0 = dti_func.apply_mask(b0, mask)
-            segmented = dti_func.segment_tissue(masked_b0)
-            segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
-            warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
-
-            # Saving
-            self._save_nii(segmented, baff, self.segmented)
-            self._save_nii(segmented_wm, baff, self.segmented_wm)
-            self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
-            mosaic.get_seg_mosaic(self.b0, self.segmented_wm, self.seg_mosaic)
-            mosaic.get_warp_mosaic(self.fa, self.warped_wm_labels, self.warp_mosaic)
-
-            if DTIRepo().is_edited(self.project, self.code):
-                    self.outcome = 'Redone'
-
-        except FileNotFoundError:
-            self.next_step = None
-
-
-class RoiStats(DTIStep):
-    """Generate CSV files for DTI statistics."""
-    process_name = PROCESS_TITLE
-    step_name = "RoiStats"
-    step_cli = "stats"
-    prev_step = [Segment]
-
-    def __init__(self, project, code, args):
-        super(RoiStats, self).__init__(project, code, args)
-
-    def run(self):
-        try:
-            # Loading
-            fa, aff = self._load_nii(self.fa)
-            md, aff = self._load_nii(self.md)
-            ga, aff = self._load_nii(self.ga)
-            ad, aff = self._load_nii(self.ad)
-            rd, aff = self._load_nii(self.rd)
-            warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
-            roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
-            original = nib.load(self.fdwi)
-            zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
-
-            measures = {'fa': [fa, self.fa_roi],
-                        'md': [md, self.md_roi],
-                        'ga': [ga, self.ga_roi],
-                        'ad': [ad, self.ad_roi],
-                        'rd': [rd, self.rd_roi]}
-
-            # Running and Saving
-            self.logger.info('Calculating roi statistics')
-            for idx in measures.values():
-                stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
-                self._write_array(stats, idx[1])
-
-            if DTIRepo().is_edited(self.project, self.code):
-                    self.outcome = 'Redone'
-
-        except FileNotFoundError:
-            self.next_step = None
-
-    def _write_array(self, array, csv_path):
-        with open(csv_path, 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            for line in array:
-                writer.writerow(line)
-        self.logger.info("saving {}".format(csv_path))
 
 
 class MaskQC(DTIStep):
@@ -627,7 +421,7 @@ class MaskQC(DTIStep):
             self.outcome = result
             self.comments = comments
             if result == 'pass':
-                self.next_step = SegQC
+                self.next_step = ApplyMask
 
             if result == 'edit':
                 self.next_step = ApplyMask
@@ -673,13 +467,196 @@ class MaskQC(DTIStep):
                 return next_job
 
 
+class ApplyMask(DTIStep):
+    """Apply the skull stripped mask to the registered image."""
+    process_name = PROCESS_TITLE
+    step_name = "ApplyMask"
+    step_cli = "apply"
+
+    prev_step = [MaskQC]
+
+    def __init__(self, project, code, args):
+        super(ApplyMask, self).__init__(project, code, args)
+        self.next_step = TensorFit
+
+    def run(self):
+        try:
+            # Loading
+            reg, reg_aff = self._load_nii(self.reg)
+            mask, mask_aff = self._load_nii(self.final_mask)
+
+            # Running
+            self.logger.info('Applying the mask')
+            masked = dti_func.apply_mask(reg, mask)
+
+            # Saving
+            self._save_nii(masked, mask_aff, self.masked)
+
+        except FileNotFoundError:
+            self.next_step = None
+
+
+class TensorFit(DTIStep):
+    """Fit the diffusion tensor model."""
+    process_name = PROCESS_TITLE
+    step_name = "TensorFit"
+    step_cli = "tenfit"
+    prev_step = [ApplyMask]
+
+    def __init__(self, project, code, args):
+        super(TensorFit, self).__init__(project, code, args)
+        self.next_step = Warp
+
+    def run(self):
+        try:
+            # Loading
+            dat, aff = self._load_nii(self.masked)
+            bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
+            bvec_reg = np.load(self.fbvec_reg)
+
+            # Running
+            self.logger.info('Fitting the tensor')
+            evals, evecs, tenfit = dti_func.fit_dti(dat, bval, bvec_reg)
+
+            # Saving
+            self._save_nii(tenfit.fa, aff, self.fa)
+            self._save_nii(tenfit.md, aff, self.md)
+            self._save_nii(tenfit.ga, aff, self.ga)
+            self._save_nii(tenfit.ad, aff, self.ad)
+            self._save_nii(tenfit.rd, aff, self.rd)
+            self._save_nii(evals, aff, self.evals)
+            self._save_nii(evecs, aff, self.evecs)
+
+        except FileNotFoundError:
+            self.next_step = None
+        except IOError:
+            self.next_step = None
+
+
+class Warp(DTIStep):
+    """Warp the template FA and template Labels to the subject space."""
+    process_name = PROCESS_TITLE
+    step_name = "Warp"
+    step_cli = "warp"
+    prev_step = [TensorFit]
+
+    def __init__(self, project, code, args):
+        super(Warp, self).__init__(project, code, args)
+        self.next_step = Segment
+
+    def run(self):
+        try:
+            # Loading
+            fa, fa_aff = self._load_nii(self.fa)
+            template, template_aff = self._load_nii(self.template)
+            temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
+
+            # Runnning
+            self.logger.info('Generating nonlinear registration map for FA')
+            warped_template, mapping = dti_func.sym_diff_registration(
+                fa, template,
+                fa_aff, template_aff)
+            warped_labels = mapping.transform(temp_labels, interpolation='nearest')
+            warped_fa = mapping.transform_inverse(fa)
+
+            # Saving
+            np.save(self.warp_map, mapping.get_forward_field())
+            np.save(self.inverse_warp_map, mapping.get_backward_field())
+            self._save_nii(warped_fa, template_aff, self.warped_fa)
+            self._save_nii(warped_labels, fa_aff, self.warped_labels)
+
+        except FileNotFoundError:
+            self.next_step = None
+
+
+class Segment(DTIStep):
+    """Segment the tissue for the average b0 volume."""
+    process_name = PROCESS_TITLE
+    step_name = "Segment"
+    step_cli = "seg"
+    prev_step = Warp
+
+    def __init__(self, project, code, args):
+        super(Segment, self).__init__(project, code, args)
+        self.next_step = RoiStats
+
+    def run(self):
+        try:
+            # Loading
+            mask, maff = self._load_nii(self.final_mask)
+            b0, baff = self._load_nii(self.b0)
+            warped, waff = self._load_nii(self.warped_labels)
+
+            # Running
+            self.logger.info('Segmenting tissue for the average b0 of the masked volume')
+            masked_b0 = dti_func.apply_mask(b0, mask)
+            segmented = dti_func.segment_tissue(masked_b0)
+            segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
+            warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
+
+            # Saving
+            self._save_nii(segmented, baff, self.segmented)
+            self._save_nii(segmented_wm, baff, self.segmented_wm)
+            self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
+            mosaic.get_seg_mosaic(self.b0, self.segmented_wm, self.seg_mosaic)
+            mosaic.get_warp_mosaic(self.fa, self.warped_wm_labels, self.warp_mosaic)
+
+        except FileNotFoundError:
+            self.next_step = None
+
+
+class RoiStats(DTIStep):
+    """Generate CSV files for DTI statistics."""
+    process_name = PROCESS_TITLE
+    step_name = "RoiStats"
+    step_cli = "stats"
+    prev_step = [Segment]
+
+    def __init__(self, project, code, args):
+        super(RoiStats, self).__init__(project, code, args)
+
+    def run(self):
+        try:
+            # Loading
+            fa, aff = self._load_nii(self.fa)
+            md, aff = self._load_nii(self.md)
+            ga, aff = self._load_nii(self.ga)
+            ad, aff = self._load_nii(self.ad)
+            rd, aff = self._load_nii(self.rd)
+            warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
+            roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
+            original = nib.load(self.fdwi)
+            zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
+
+            measures = {'fa': [fa, self.fa_roi],
+                        'md': [md, self.md_roi],
+                        'ga': [ga, self.ga_roi],
+                        'ad': [ad, self.ad_roi],
+                        'rd': [rd, self.rd_roi]}
+
+            # Running and Saving
+            self.logger.info('Calculating roi statistics')
+            for idx in measures.values():
+                stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
+                self._write_array(stats, idx[1])
+
+        except FileNotFoundError:
+            self.next_step = None
+
+    def _write_array(self, array, csv_path):
+        with open(csv_path, 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for line in array:
+                writer.writerow(line)
+        self.logger.info("saving {}".format(csv_path))
+
+
 class SegQC(DTIStep):
     """Launch a GUI to QC the segmentation."""
     process_name = PROCESS_TITLE
     step_name = "SegQC"
     step_cli = 'segqc'
     interactive = True
-    prev_step = 'MaskQC'
 
     def __init__(self, project, code, args):
         super(SegQC, self).__init__(project, code, args)
@@ -718,7 +695,8 @@ class SegQC(DTIStep):
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
             if result == 'skipped':
-                self.outcome = 'Skipped'
+                self.outcome = 'Cancelled'
+                self.comments = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
 
         except FileNotFoundError as e:
@@ -787,7 +765,8 @@ class WarpQC(DTIStep):
                 self.logger.info("Cancelled")
                 raise CancelProcessingError
             if result == 'skipped':
-                self.outcome = 'Skipped'
+                self.outcome = 'Cancelled'
+                self.comments = 'Skipped'
                 self.logger.info("Skipped {}".format(self.code))
 
         except FileNotFoundError as e:
@@ -797,19 +776,6 @@ class WarpQC(DTIStep):
 
         finally:
             os.remove(self.review_flag)
-
-    @classmethod
-    def get_next(cls, project_name, args):
-        cases = DTIRepo().get_warps_to_qc(project_name)
-        LOGGER.info("%s cases in queue." % len(cases))
-
-        cases = [x["Code"] for x in cases]
-        while len(cases) != 0:
-            code = random.choice(cases)
-            cases.remove(code)
-            next_job = WarpQC(project_name, code, args)
-            if not next_job.under_review():
-                return next_job
 
 
 class StoreInDatabase(DTIStep):
