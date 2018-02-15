@@ -20,8 +20,7 @@ from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcess
 from pijp.engine import run_module, run_file
 
 import pijp_dti
-from pijp_dti import dti_func
-from pijp_dti import mosaic, qc_inter
+from pijp_dti import dti_func, mosaic, qc_inter, qc_main
 from pijp_dti.repo import DTIRepo
 
 
@@ -416,8 +415,7 @@ class MaskQC(DTIStep):
 
     def run(self):
         try:
-            result, comments = qc_inter.run(self.code, self.b0, self.auto_mask, self.final_mask,
-                                            self.step_name)
+            result, comments = qc_main.main(self.code, self.b0, self.final_mask, self.auto_mask)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -429,12 +427,8 @@ class MaskQC(DTIStep):
             if result == 'cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
-                raise CancelProcessingError
-
-            if result == 'skipped':
-                self.outcome = 'Cancelled'
-                self.comments = 'Skipped'
-                self.logger.info("Skipped {}".format(self.code))
+                if comments != 'skipped':
+                    raise CancelProcessingError
 
         except FileNotFoundError as e:
             self.outcome = 'fail'
@@ -682,8 +676,7 @@ class SegQC(DTIStep):
 
     def run(self):
         try:
-            (result, comments) = qc_inter.run(self.code, self.b0, self.segmented_wm, self.segmented_wm,
-                                              self.step_name)
+            (result, comments) = qc_main.main(self.code, self.b0, self.segmented_wm, self.segmented_wm)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -693,11 +686,9 @@ class SegQC(DTIStep):
             if result == 'cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
-                raise CancelProcessingError
-            if result == 'skipped':
-                self.outcome = 'Cancelled'
-                self.comments = 'Skipped'
-                self.logger.info("Skipped {}".format(self.code))
+                if comments != 'skipped':
+                    raise CancelProcessingError
+
 
         except FileNotFoundError as e:
             self.outcome = 'fail'
@@ -752,8 +743,8 @@ class WarpQC(DTIStep):
 
     def run(self):
         try:
-            (result, comments) = qc_inter.run(self.code, self.fa, self.warped_wm_labels,
-                                              self.warped_wm_labels, self.step_name)
+            (result, comments) = qc_main.main(self.code, self.fa, self.warped_wm_labels,
+                                              self.warped_wm_labels)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -763,11 +754,8 @@ class WarpQC(DTIStep):
             if result == 'cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
-                raise CancelProcessingError
-            if result == 'skipped':
-                self.outcome = 'Cancelled'
-                self.comments = 'Skipped'
-                self.logger.info("Skipped {}".format(self.code))
+                if comments != 'skipped':
+                    raise CancelProcessingError
 
         except FileNotFoundError as e:
             self.outcome = 'fail'
