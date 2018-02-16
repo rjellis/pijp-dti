@@ -20,7 +20,7 @@ from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcess
 from pijp.engine import run_module, run_file
 
 import pijp_dti
-from pijp_dti import dti_func, mosaic, qc_inter, qc_main
+from pijp_dti import dti_func, mosaic, qc_main
 from pijp_dti.repo import DTIRepo
 
 
