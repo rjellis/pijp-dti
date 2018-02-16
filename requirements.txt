@@ -4,3 +4,4 @@ matplotlib
 dipy
 nibabel
 pymssql
+pyqt5
