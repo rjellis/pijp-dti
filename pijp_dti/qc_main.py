@@ -1,5 +1,4 @@
 import os
-import time
 import shutil
 
 from PyQt5 import QtWidgets, QtCore
@@ -61,7 +60,6 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         msg.setText("Are you sure you want to skip?")
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
 
-
         if self.edited:
             msg.setIcon(msg.Critical)
             msg.setText("Error: Edits detected!")
@@ -94,7 +92,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             if result == msg.Ok:
                 if not os.path.isfile(self.overlay_original_path):
                     msg.setIcon(msg.Critical)
-                    msg.setText("Error: Origional overlay not found!")
+                    msg.setText("Error: Original overlay not found!")
                     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
                     msg.exec_()
                 shutil.copyfile(self.overlay_original_path, self.overlay_path)
@@ -102,7 +100,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
     def open_editor(self):
         try:
-            p = qc_func.open_editor(self.image_path, self.overlay_path)
+            qc_func.open_editor(self.image_path, self.overlay_path)
             self.detect_edits()
 
         except FileNotFoundError:
@@ -126,16 +124,15 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec_()
 
-        elif self.group_button.checkedId() == self.group_button.id(self.button_edit) \
-        and not self.edited:
+        elif (self.group_button.checkedId() == self.group_button.id(self.button_edit)
+              and not self.edited):
             msg.setIcon(msg.Critical)
             msg.setText("Error: No edits detected!")
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec_()
 
-
-        elif self.group_button.checkedId() != self.group_button.id(self.button_edit) \
-        and self.edited:
+        elif (self.group_button.checkedId() != self.group_button.id(self.button_edit)
+              and self.edited):
             msg.setIcon(msg.Critical)
             msg.setText("Error: Edits detected!")
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -178,6 +175,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             self.resize(self.last_width, self.height())
             self.button_hide.setText("Hide")
 
+
 class MyMplCanvas(FigureCanvas):
 
     def __init__(self, image, overlay, parent=None):
@@ -185,7 +183,7 @@ class MyMplCanvas(FigureCanvas):
         self.image = image
         self.overlay = overlay
         self.masked = None
-        self.proj = None
+        self.projection = None
         self.hue = np.array([253, 121, 168])/255
         self.alpha = 0.5
         self.slice = self.image.shape[2]//2
@@ -207,13 +205,11 @@ class MyMplCanvas(FigureCanvas):
 
         FigureCanvas.updateGeometry(self)
 
-
-
         self.compute_initial_figure()
 
     def compute_initial_figure(self):
         self.masked = qc_func.mask_image(self.image, self.overlay, self.hue, self.alpha)
-        self.proj = self.axes.imshow(self.masked[..., self.slice, :])
+        self.projection = self.axes.imshow(self.masked[..., self.slice, :])
 
     def update_slice(self, delta):
         self.slice += delta
@@ -221,20 +217,20 @@ class MyMplCanvas(FigureCanvas):
             self.slice = self.masked.shape[2] - 1
         if self.slice >= self.masked.shape[2]:
             self.slice = 0
-        self.proj.set_data(self.masked[..., self.slice, :])
+        self.projection.set_data(self.masked[..., self.slice, :])
         self.draw()
 
     def update_alpha(self, value):
         self.alpha = value
         self.masked = qc_func.mask_image(self.image, self.overlay, self.hue, self.alpha)
-        self.proj.set_data(self.masked[..., self.slice, :])
+        self.projection.set_data(self.masked[..., self.slice, :])
         self.draw()
 
     def update_figure(self, image, overlay):
         self.image = image
         self.overlay = overlay
         self.masked = qc_func.mask_image(self.image, self.overlay, self.hue, self.alpha)
-        self.proj.set_data(self.masked[..., self.slice, :])
+        self.projection.set_data(self.masked[..., self.slice, :])
         self.draw()
 
     def wheelEvent(self, QWheelEvent):
@@ -249,4 +245,9 @@ def main(code, image_path, overlay_path, overlay_original_path):
     app.exec()
     outcome = form.outcome
     comments = form.comments
+
+    if outcome is None:
+        outcome = 'cancelled'
+        comments = ''
+
     return outcome, comments
