@@ -689,7 +689,6 @@ class SegQC(DTIStep):
                 if comments != 'skipped':
                     raise CancelProcessingError
 
-
         except FileNotFoundError as e:
             self.outcome = 'fail'
             self.comments = str(e)
