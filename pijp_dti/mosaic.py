@@ -1,7 +1,6 @@
 import numpy as np
 import nibabel as nib
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from pijp_dti.nifti_io import rescale
