@@ -13,13 +13,14 @@ from pijp_dti import qc_design, qc_func
 
 class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
-    def __init__(self, code, image_path, overlay_path, overlay_original_path, parent=None):
+    def __init__(self, code, image_path, overlay_path, overlay_original_path, disable_edit, parent=None):
         super(QCApp, self).__init__(parent)
 
         self.code = code
         self.image_path = image_path
         self.overlay_path = overlay_path
         self.overlay_original_path = overlay_original_path
+        self.disable_edit = disable_edit
         self.edited = False
         self.outcome = None
         self.comments = None
@@ -42,10 +43,14 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.button_open.clicked.connect(self.open_editor)
         self.button_clear.clicked.connect(self.clear)
         self.button_hide.clicked.connect(self.hide)
-
         self.group_button = QtWidgets.QButtonGroup(self.centralwidget)
         self.group_button.addButton(self.button_pass)
-        self.group_button.addButton(self.button_edit)
+
+        if self.disable_edit:
+            self.button_edit.deleteLater()
+        else:
+            self.group_button.addButton(self.button_edit)
+
         self.group_button.addButton(self.button_fail)
 
         self.timer = QtCore.QTimer()
@@ -53,6 +58,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.timer.start(5000)
 
         self.label_code.setText(self.code)
+
 
     def skip(self):
         msg = QtWidgets.QMessageBox(self.centralwidget)
@@ -125,14 +131,16 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec_()
 
-        elif (self.group_button.checkedId() == self.group_button.id(self.button_edit)
+        elif (not self.disable_edit and
+              self.group_button.checkedId() == self.group_button.id(self.button_edit)
               and not self.edited):
             msg.setIcon(msg.Critical)
             msg.setText("Error: No edits detected!")
             msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
             msg.exec_()
 
-        elif (self.group_button.checkedId() != self.group_button.id(self.button_edit)
+        elif (not self.disable_edit and
+              self.group_button.checkedId() != self.group_button.id(self.button_edit)
               and self.edited):
             msg.setIcon(msg.Critical)
             msg.setText("Error: Edits detected!")
@@ -239,9 +247,9 @@ class MyMplCanvas(FigureCanvas):
         self.update_slice(delta)
 
 
-def main(code, image_path, overlay_path, overlay_original_path):
+def main(code, image_path, overlay_path, overlay_original_path, disable_edit=False):
     app = QtWidgets.QApplication([])
-    form = QCApp(code, image_path, overlay_path, overlay_original_path)
+    form = QCApp(code, image_path, overlay_path, overlay_original_path, disable_edit)
     form.show()
     app.exec()
     outcome = form.outcome

@@ -491,7 +491,7 @@ class MaskQC(DTIStep):
                     and last_job['Outcome'] == 'Cancelled'
                     and last_job['Comments'] != 'Skipped'):
                 code = last_job["Code"]
-                cases.remove(code)
+                if code in cases: cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
             else:
                 code = random.choice(cases)
@@ -755,7 +755,8 @@ class SegQC(DTIStep):
 
         """
         try:
-            (result, comments) = qc_main.main(self.code, self.b0, self.segmented_wm, self.segmented_wm)
+            (result, comments) = qc_main.main(self.code, self.b0, self.segmented_wm, self.segmented_wm,
+                                              disable_edit=True)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
@@ -827,7 +828,7 @@ class WarpQC(DTIStep):
         """
         try:
             (result, comments) = qc_main.main(self.code, self.fa, self.warped_wm_labels,
-                                              self.warped_wm_labels)
+                                              self.warped_wm_labels, disable_edit=True)
             self.outcome = result
             self.comments = comments
             if result == 'pass':
