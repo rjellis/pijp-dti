@@ -251,4 +251,6 @@ def main(code, image_path, overlay_path, overlay_original_path):
         outcome = 'cancelled'
         comments = ''
 
+    app.exit()
+
     return outcome, comments
