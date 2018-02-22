@@ -15,11 +15,14 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
     def __init__(self, code, image_path, overlay_path, overlay_original_path, parent=None):
         super(QCApp, self).__init__(parent)
+
         self.code = code
         self.image_path = image_path
         self.overlay_path = overlay_path
         self.overlay_original_path = overlay_original_path
         self.edited = False
+        self.outcome = None
+        self.comments = None
 
         self.setupUi(self)
         center_point = QtWidgets.QDesktopWidget().availableGeometry().center()
@@ -27,13 +30,11 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         center_point.setY(center_point.y() - self.height()*0.75)
         self.move(center_point)
         self.last_width = self.width()
-        self.outcome = None
-        self.comments = None
+
         self.image = qc_func.load_image(self.image_path)
         self.overlay = qc_func.load_overlay(self.overlay_path)
         self.plot = MyMplCanvas(self.image, self.overlay, parent=self.centralwidget)
         self.image_frame.addWidget(self.plot)
-        self.plot.setStyleSheet("border: 5px solid 'black';\n")
 
         self.slider_opacity.valueChanged.connect(self.change_alpha)
         self.button_submit.clicked.connect(self.submit)
@@ -212,7 +213,7 @@ class MyMplCanvas(FigureCanvas):
         self.projection = self.axes.imshow(self.masked[..., self.slice, :])
 
     def update_slice(self, delta):
-        self.slice += delta
+        self.slice += np.sign(delta) * 3
         if self.slice < 0:
             self.slice = self.masked.shape[2] - 1
         if self.slice >= self.masked.shape[2]:
@@ -234,7 +235,7 @@ class MyMplCanvas(FigureCanvas):
         self.draw()
 
     def wheelEvent(self, QWheelEvent):
-        delta = QWheelEvent.angleDelta().y() // 120
+        delta = QWheelEvent.angleDelta().y()
         self.update_slice(delta)
 
 
