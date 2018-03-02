@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'pijp-dti.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.10
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -26,6 +26,16 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName("verticalLayout")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.label_type = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_type.sizePolicy().hasHeightForWidth())
+        self.label_type.setSizePolicy(sizePolicy)
+        self.label_type.setStyleSheet("color: rgb(0, 184, 148);\n"
+"font: 81 13pt \"Open Sans\";")
+        self.label_type.setObjectName("label_type")
+        self.verticalLayout_3.addWidget(self.label_type, 0, QtCore.Qt.AlignHCenter)
         self.label_code = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -260,6 +270,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "QC Tool"))
+        self.label_type.setText(_translate("MainWindow", "QCType"))
         self.label_code.setText(_translate("MainWindow", "ScanCode"))
         self.button_open.setText(_translate("MainWindow", "Open Editor"))
         self.button_skip.setText(_translate("MainWindow", "Skip"))
