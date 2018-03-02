@@ -13,10 +13,11 @@ from pijp_dti import qc_design, qc_func
 
 class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
-    def __init__(self, code, image_path, overlay_path, overlay_original_path, disable_edit, parent=None):
+    def __init__(self, code, type, image_path, overlay_path, overlay_original_path, disable_edit, parent=None):
         super(QCApp, self).__init__(parent)
 
         self.code = code
+        self.type = type
         self.image_path = image_path
         self.overlay_path = overlay_path
         self.overlay_original_path = overlay_original_path
@@ -32,9 +33,12 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.move(center_point)
         self.last_width = self.width()
 
+        self.label_code.setText(self.code)
+        self.label_type.setText(self.type)
         self.image = qc_func.load_image(self.image_path)
         self.overlay = qc_func.load_overlay(self.overlay_path)
-        self.plot = MyMplCanvas(self.image, self.overlay, parent=self.centralwidget)
+        self.plot = MyMplCanvas(self.image, self.overlay,
+            parent=self.centralwidget)
         self.image_frame.addWidget(self.plot)
 
         self.slider_opacity.valueChanged.connect(self.change_alpha)
@@ -46,18 +50,16 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.group_button = QtWidgets.QButtonGroup(self.centralwidget)
         self.group_button.addButton(self.button_pass)
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.detect_edits)
+        self.timer.start(5000)
+
         if self.disable_edit:
             self.button_edit.deleteLater()
         else:
             self.group_button.addButton(self.button_edit)
 
         self.group_button.addButton(self.button_fail)
-
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.detect_edits)
-        self.timer.start(5000)
-
-        self.label_code.setText(self.code)
 
 
     def skip(self):
@@ -156,7 +158,9 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
     def detect_edits(self):
         self.label_detect.setText('Detecting edits...')
-        self.label_detect.setStyleSheet("color: rgb(85, 85, 255);\n""font: 81 9pt \"Open Sans\";")
+        self.label_detect.setStyleSheet("color: rgb(85, 85, 255);\n""font: "
+                                        "81 9pt \"Open Sans\";")
+
         if not qc_func.masks_are_same(self.overlay_path, self.overlay_original_path):
             self.label_detect.setText('Edits detected!')
             self.label_detect.setStyleSheet("color: rgb(214, 48, 49);\n""font: 81 9pt \"Open Sans\";")
@@ -247,11 +251,13 @@ class MyMplCanvas(FigureCanvas):
         self.update_slice(delta)
 
 
-def main(code, image_path, overlay_path, overlay_original_path, disable_edit=False):
+def main(code, type, image_path, overlay_path, overlay_original_path, disable_edit=False):
     app = QtWidgets.QApplication([])
-    form = QCApp(code, image_path, overlay_path, overlay_original_path, disable_edit)
+    form = QCApp(code, type, image_path, overlay_path, overlay_original_path, disable_edit)
     form.show()
+
     app.exec()
+    form.timer.stop()
     outcome = form.outcome
     comments = form.comments
 
@@ -259,6 +265,5 @@ def main(code, image_path, overlay_path, overlay_original_path, disable_edit=Fal
         outcome = 'cancelled'
         comments = ''
 
-    app.exit()
-
     return outcome, comments
+
