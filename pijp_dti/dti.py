@@ -125,14 +125,8 @@ class DTIStep(Step):
         self.ad_roi = os.path.join(self.roiavg_dir, self.code + '_ad_roi.csv')
         self.rd_roi = os.path.join(self.roiavg_dir, self.code + '_rd_roi.csv')
 
-        # 8QC
-        self.qc_dir = os.path.join(self.working_dir, '8QC')
-        self.mask_mosaic = os.path.join(self.qc_dir, self.code + '_mask_mosaic.png')
-        self.warp_mosaic = os.path.join(self.qc_dir, self.code + '_warp.png')
-        self.seg_mosaic = os.path.join(self.qc_dir, self.code + '_segment_mosaic.png')
-
-        # 9MNI
-        self.mni_dir = os.path.join(self.working_dir, '9MNI')
+        # 8MNI
+        self.mni_dir = os.path.join(self.working_dir, '8MNI')
         self.fa_warp = os.path.join(self.mni_dir, self.code + '_fa_in_mni.nii.gz')
         self.md_warp = os.path.join(self.mni_dir, self.code + '_md_in_mni.nii.gz')
         self.ga_warp = os.path.join(self.mni_dir, self.code + '_ga_in_mni.nii.gz')
@@ -299,7 +293,7 @@ class Stage(DTIStep):
                 raise ProcessingError
 
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
-                    self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
+                    self.seg_dir, self.roiavg_dir, self.mni_dir]
 
             self.logger.info('Building directories')
 
@@ -491,7 +485,6 @@ class Mask(DTIStep):
 
             # Saving
             self._save_nii(mask, aff, self.auto_mask)
-            mosaic.get_mask_mosaic(self.b0, self.auto_mask, self.mask_mosaic)
             shutil.copyfile(self.auto_mask, self.final_mask)
 
         except FileNotFoundError:
@@ -698,8 +691,6 @@ class Segment(DTIStep):
             self._save_nii(segmented, baff, self.segmented)
             self._save_nii(segmented_wm, baff, self.segmented_wm)
             self._save_nii(warped_wm_labels, waff, self.warped_wm_labels)
-            mosaic.get_seg_mosaic(self.b0, self.segmented_wm, self.seg_mosaic)
-            mosaic.get_warp_mosaic(self.fa, self.warped_wm_labels, self.warp_mosaic)
 
         except FileNotFoundError:
             self.next_step = None
