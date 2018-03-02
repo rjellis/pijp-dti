@@ -45,6 +45,23 @@
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QLabel" name="label_type">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(0, 184, 148);
+font: 81 13pt &quot;Open Sans&quot;;</string>
+          </property>
+          <property name="text">
+           <string>QCType</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QLabel" name="label_code">
           <property name="sizePolicy">
