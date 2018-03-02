@@ -251,13 +251,13 @@ class BaseQCStep(DTIStep):
                                             disable_edit=self.disable_edit)
             self.outcome = result
             self.comments = comments
-            if result == 'pass':
+            if result == 'Pass':
                 self.next_step = self.pass_step
 
-            if result == 'edit':
+            if result == 'Edit':
                 self.next_step = self.edit_step
 
-            if result == 'cancelled':
+            if result == 'Cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
 

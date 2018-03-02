@@ -79,7 +79,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             result = msg.exec_()
 
             if result == msg.Ok:
-                self.outcome = 'cancelled'
+                self.outcome = 'Cancelled'
                 self.comments = 'skipped'
                 self.close()
 
@@ -262,7 +262,7 @@ def main(code, type, image_path, overlay_path, overlay_original_path, disable_ed
     comments = form.comments
 
     if outcome is None:
-        outcome = 'cancelled'
+        outcome = 'Cancelled'
         comments = ''
 
     return outcome, comments
