@@ -3,6 +3,7 @@ import gzip
 import os
 import tempfile
 import shutil
+import pickle
 import subprocess
 import datetime
 import getpass
@@ -106,8 +107,7 @@ class DTIStep(Step):
 
         # 5Warp
         self.warp_dir = os.path.join(self.working_dir, '5Warp')
-        self.warp_map = os.path.join(self.warp_dir, self.code + '_warp_map.npy')
-        self.inverse_warp_map = os.path.join(self.warp_dir, self.code + '_inverse_warp_map.npy')
+        self.warp_map = os.path.join(self.warp_dir, self.code + '_warp_map.p')
         self.warped_fa = os.path.join(self.warp_dir, self.code + '_inverse_warped_fa.nii.gz')
         self.warped_labels = os.path.join(self.warp_dir, self.code + '_warped_labels.nii.gz')
 
@@ -192,6 +192,87 @@ class DTIStep(Step):
             self.logger.error(error.decode('utf-8'))
 
 
+class BaseQCStep(DTIStep):
+
+    def __init__(self, project, code, args):
+        super(BaseQCStep, self).__init__(project, code, args)
+        self.image = None
+        self.type = None
+        self.overlay = None
+        self.overlay_original = None
+        self.disable_edit = None
+        self.pass_step = None
+        self.edit_step = None
+
+    def set_qc_params(self):
+        """Need to set these parameters for QC Main to work
+
+            self.image
+            self.type
+            self.overlay
+            self.overlay_original
+            self.disable_edit
+            self.pass_step
+            self.edit_step
+
+        """
+        self.logger.warning('This set_qc_params(), it does nothing!')
+
+    def under_review(self):
+        if os.path.exists(self.review_flag):
+            self._print_review_info()
+            return True
+        return False
+
+    def _print_review_info(self):
+        flag = open(self.review_flag, 'r')
+        lines = flag.readlines()
+        flag.close()
+        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+
+    def initiate(self):
+        if self.under_review():
+            raise NoLogProcessingError("This case is currently being reviewed.")
+        flag = open(self.review_flag, 'w')
+        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.close()
+
+    def run(self):
+        """Runs the step `MaskQC`.
+
+        Opens a GUI for quality controlling. The qc_main.main method should return a tuple (result, comments). `result`
+        should be a string of 'pass', 'fail', 'edit', or 'cancelled'. `comments` should be a string.
+
+        """
+        try:
+            self.set_qc_params()
+
+            result, comments = qc_main.main(self.code, self.type, self.image, self.overlay, self.overlay_original,
+                                            disable_edit=self.disable_edit)
+            self.outcome = result
+            self.comments = comments
+            if result == 'pass':
+                self.next_step = self.pass_step
+
+            if result == 'edit':
+                self.next_step = self.edit_step
+
+            if result == 'cancelled':
+                self.outcome = 'Cancelled'
+                self.logger.info("Cancelled")
+
+                if comments != 'skipped':
+                    raise CancelProcessingError
+
+        except FileNotFoundError as e:
+            self.outcome = 'fail'
+            self.comments = str(e)
+            self.logger.info('Failed! ' + str(e))
+
+        finally:
+            os.remove(self.review_flag)
+
+
 class Stage(DTIStep):
     """Convert Dicoms and set up the pipeline."""
     process_name = PROCESS_TITLE
@@ -220,13 +301,12 @@ class Stage(DTIStep):
             dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.qc_dir, self.mni_dir]
 
-            for dr in dirs:
-                if not os.path.isdir(dr):
-                    os.makedirs(dr)
-                    self.logger.info('Building directory {}'.format(dr))
+            self.logger.info('Building directories')
+
+            [os.makedirs(dr) for dr in dirs if not os.path.isdir(dr)]
 
             if len(os.listdir(self.stage_dir)) != 0:
-                self.logger.error("{} is not empty!".format(self.stage_dir))
+                self.logger.error("Staging directory is not empty!")
                 raise FileExistsError
 
             else:
@@ -418,7 +498,7 @@ class Mask(DTIStep):
             self.next_step = None
 
 
-class MaskQC(DTIStep):
+class MaskQC(BaseQCStep):
     """Launch a GUI to QC the skull stripping."""
     process_name = PROCESS_TITLE
     step_name = "MaskQC"
@@ -428,55 +508,14 @@ class MaskQC(DTIStep):
     def __init__(self, project, code, args):
         super(MaskQC, self).__init__(project, code, args)
 
-    def under_review(self):
-        if os.path.exists(self.review_flag):
-            self._print_review_info()
-            return True
-        return False
-
-    def _print_review_info(self):
-        flag = open(self.review_flag, 'r')
-        lines = flag.readlines()
-        flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
-
-    def initiate(self):
-        if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
-        flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
-        flag.close()
-
-    def run(self):
-        """Runs the step `MaskQC`.
-
-        Opens a GUI for quality controlling. The qc_main.main method should return a tuple (result, comments). `result`
-        should be a string of 'pass', 'fail', 'edit', or 'cancelled'. `comments` should be a string.
-
-        """
-        try:
-            result, comments = qc_main.main(self.code, self.b0, self.final_mask, self.auto_mask)
-            self.outcome = result
-            self.comments = comments
-            if result == 'pass':
-                self.next_step = ApplyMask
-
-            if result == 'edit':
-                self.next_step = ApplyMask
-
-            if result == 'cancelled':
-                self.outcome = 'Cancelled'
-                self.logger.info("Cancelled")
-                if comments != 'skipped':
-                    raise CancelProcessingError
-
-        except FileNotFoundError as e:
-            self.outcome = 'fail'
-            self.comments = str(e)
-            self.logger.info('Failed! ' + str(e))
-
-        finally:
-            os.remove(self.review_flag)
+    def set_qc_params(self):
+        self.image = self.b0
+        self.type = self.step_name
+        self.overlay = self.final_mask
+        self.overlay_original = self.auto_mask
+        self.disable_edit = False
+        self.pass_step = ApplyMask
+        self.edit_step = ApplyMask
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -489,14 +528,15 @@ class MaskQC(DTIStep):
         while len(cases) != 0:
             if (last_job
                     and last_job['Outcome'] == 'Cancelled'
-                    and last_job['Comments'] != 'Skipped'):
+                    and last_job['Comments'] != 'skipped'):
                 code = last_job["Code"]
-                if code in cases: cases.remove(code)
+                cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
             else:
                 code = random.choice(cases)
                 cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
+
             if not next_job.under_review():
                 return next_job
 
@@ -615,8 +655,7 @@ class Warp(DTIStep):
             warped_fa = mapping.transform_inverse(fa)
 
             # Saving
-            np.save(self.warp_map, mapping.get_forward_field())
-            np.save(self.inverse_warp_map, mapping.get_backward_field())
+            pickle.dump(mapping, open(self.warp_map, "wb"))
             self._save_nii(warped_fa, template_aff, self.warped_fa)
             self._save_nii(warped_labels, fa_aff, self.warped_labels)
 
@@ -719,7 +758,7 @@ class RoiStats(DTIStep):
         self.logger.info("saving {}".format(csv_path))
 
 
-class SegQC(DTIStep):
+class SegQC(BaseQCStep):
     """Launch a GUI to QC the segmentation."""
     process_name = PROCESS_TITLE
     step_name = "SegQC"
@@ -729,53 +768,13 @@ class SegQC(DTIStep):
     def __init__(self, project, code, args):
         super(SegQC, self).__init__(project, code, args)
 
-    def under_review(self):
-        if os.path.exists(self.review_flag):
-            self._print_review_info()
-            return True
-        return False
-
-    def _print_review_info(self):
-        flag = open(self.review_flag, 'r')
-        lines = flag.readlines()
-        flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
-
-    def initiate(self):
-        if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
-        flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
-        flag.close()
-
-    def run(self):
-        """Runs the step `SegQC`
-
-        See MaskQC.
-
-        """
-        try:
-            (result, comments) = qc_main.main(self.code, self.b0, self.segmented_wm, self.segmented_wm,
-                                              disable_edit=True)
-            self.outcome = result
-            self.comments = comments
-            if result == 'pass':
-                self.next_step = WarpQC
-            if result == 'fail':
-                self.next_step = None
-            if result == 'cancelled':
-                self.outcome = 'Cancelled'
-                self.logger.info("Cancelled")
-                if comments != 'skipped':
-                    raise CancelProcessingError
-
-        except FileNotFoundError as e:
-            self.outcome = 'fail'
-            self.comments = str(e)
-            self.logger.info('Failed! ' + str(e))
-
-        finally:
-            os.remove(self.review_flag)
+    def set_qc_params(self):
+        self.image = self.b0
+        self.type = self.step_name
+        self.overlay = self.segmented_wm
+        self.overlay_original = self.segmented_wm
+        self.disable_edit = True
+        self.pass_step = WarpQC
 
     @classmethod
     def get_next(cls, project_name, args):
@@ -791,7 +790,7 @@ class SegQC(DTIStep):
                 return next_job
 
 
-class WarpQC(DTIStep):
+class WarpQC(BaseQCStep):
     """Launch a GUI to QC the non-linear registration."""
     process_name = PROCESS_TITLE
     step_name = "WarpQC"
@@ -801,53 +800,13 @@ class WarpQC(DTIStep):
     def __init__(self, project, code, args):
         super(WarpQC, self).__init__(project, code, args)
 
-    def under_review(self):
-        if os.path.exists(self.review_flag):
-            self._print_review_info()
-            return True
-        return False
-
-    def _print_review_info(self):
-        flag = open(self.review_flag, 'r')
-        lines = flag.readlines()
-        flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
-
-    def initiate(self):
-        if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
-        flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
-        flag.close()
-
-    def run(self):
-        """Runs `WarpQC`
-
-        See MaskQC.
-
-        """
-        try:
-            (result, comments) = qc_main.main(self.code, self.fa, self.warped_wm_labels,
-                                              self.warped_wm_labels, disable_edit=True)
-            self.outcome = result
-            self.comments = comments
-            if result == 'pass':
-                self.next_step = StoreInDatabase
-            if result == 'fail':
-                self.next_step = None
-            if result == 'cancelled':
-                self.outcome = 'Cancelled'
-                self.logger.info("Cancelled")
-                if comments != 'skipped':
-                    raise CancelProcessingError
-
-        except FileNotFoundError as e:
-            self.outcome = 'fail'
-            self.comments = str(e)
-            self.logger.info('Failed! ' + str(e))
-
-        finally:
-            os.remove(self.review_flag)
+    def set_qc_params(self):
+        self.image = self.fa
+        self.type = self.step_name
+        self.overlay = self.warped_wm_labels
+        self.overlay_original = self.warped_wm_labels
+        self.disable_edit = True
+        self.pass_step = StoreInDatabase
 
 
 class StoreInDatabase(DTIStep):
@@ -896,16 +855,15 @@ class SaveInMNI(DTIStep):
     def run(self):
         try:
             # Loading
-            template, template_aff = self._load_nii(self.template)
             fa, aff = self._load_nii(self.fa)
             md, aff = self._load_nii(self.md)
             ga, aff = self._load_nii(self.ga)
             rd, aff = self._load_nii(self.rd)
             ad, aff = self._load_nii(self.ad)
+            mapping = pickle.load(open(self.warp_map, "rb"))
 
             # Running
-            self.logger.info("Saving in MNI space")
-            warped_template, mapping = dti_func.sym_diff_registration(fa, template, aff, template_aff)
+            self.logger.info("Warping to MNI space")
             fa_warp = mapping.transform_inverse(fa)
             md_warp = mapping.transform_inverse(md)
             ga_warp = mapping.transform_inverse(ga)
