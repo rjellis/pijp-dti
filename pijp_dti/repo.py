@@ -150,10 +150,12 @@ class DTIRepo(BaseRepository):
         SELECT ScanCode as Code, Outcome, Comments
         FROM ProcessingLog
         WHERE Project = {project}
+        AND Process = {process}
         AND Step = {step} 
         AND CompletedBy = {user} 
         ORDER BY CompletedOn DESC
-        """.format(project=fsp(project), step=fsp(step), user=fsp(getpass.getuser()))
+        """.format(project=fsp(project), step=fsp(step),
+                   process=fsp(PROCESS_TITLE), user=fsp(getpass.getuser()))
 
         left_off = self.connection.fetchone(sql)
         return left_off
