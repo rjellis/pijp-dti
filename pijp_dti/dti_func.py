@@ -277,7 +277,7 @@ def affine_registration(static, moving, static_affine, moving_affine, rigid=Fals
     nbins = 32  # Number of bins for computing the histograms
     sampling_prop = 100  # percentage of voxels (0, 100]
     metric = imaffine.MutualInformationMetric(nbins, sampling_prop)
-    level_iters = [100, 50, 30]  # Iterations at each resolution (coarse to fine)
+    level_iters = [10000, 1000, 100]  # Iterations at each resolution (coarse to fine)
     sigmas = [3.0, 1.0, 0.0]
     factors = [4, 2, 1]  # Factors that determine resolution
 
@@ -312,7 +312,7 @@ def sym_diff_registration(static, moving, static_affine, moving_affine):
     """
     moving_reg, pre_align, reg_map = affine_registration(static, moving, static_affine, moving_affine)
     metric = metrics.CCMetric(3)  # Cross Correlation Metric for 3 dimensions
-    level_iters = [30, 50, 100]  # Iterations at each resolution (fine
+    level_iters = [100, 100, 30]  # Iterations at each resolution (fine
     #  to coarse)
 
     sdr = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters)
