@@ -86,8 +86,11 @@ class DTIStep(Step):
         self.reg_dir = os.path.join(self.working_dir, '2Register')
         self.b0 = os.path.join(self.reg_dir, self.code + '_b0.nii.gz')
         self.reg = os.path.join(self.reg_dir, self.code + '_reg.nii.gz')
-        self.fbvec_reg = os.path.join(self.reg_dir, self.code + '_bvec_reg.npy')
-        self.reg_map = os.path.join(self.reg_dir, self.code + '_reg_map.npy')
+        self.fbvec_reg = os.path.join(self.reg_dir, self.code +
+                                      '_bvec_reg.csv')
+        self.fbval_csv = os.path.join(self.reg_dir, self.code +
+                                      '_bval.csv')
+        self.reg_map = os.path.join(self.reg_dir, self.code + '_reg_map.p')
 
         # 3Mask
         self.mask_dir = os.path.join(self.working_dir, '3Mask')
@@ -450,8 +453,9 @@ class Register(DTIStep):
             # Saving
             self._save_nii(b0, aff, self.b0)
             self._save_nii(reg_dat, aff, self.reg)
-            np.save(self.fbvec_reg, bvec)
-            np.save(self.reg_map, reg_map)
+            np.savetxt(self.fbvec_reg, bvec, delimiter=",")
+            np.savetxt(self.fbval_csv, bval, delimiter=",")
+            pickle.dump(reg_map, open(self.reg_map, "wb"))
 
         except FileNotFoundError:
             self.next_step = None
