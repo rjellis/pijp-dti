@@ -86,6 +86,8 @@ class DTIStep(Step):
         self.reg_dir = os.path.join(self.working_dir, '2Register')
         self.b0 = os.path.join(self.reg_dir, self.code + '_b0.nii.gz')
         self.reg = os.path.join(self.reg_dir, self.code + '_reg.nii.gz')
+        self.fbvec_orig = os.path.join(self.reg_dir, self.code +
+                                       '_bvec_orig.csv')
         self.fbvec_reg = os.path.join(self.reg_dir, self.code +
                                       '_bvec_reg.csv')
         self.fbval_csv = os.path.join(self.reg_dir, self.code +
@@ -448,14 +450,17 @@ class Register(DTIStep):
             self.logger.info('Averaging the b0 volume')
             b0 = dti_func.average_b0(dat, aff, bval)
             self.logger.info('Registering the DWI to its averaged b0 volume')
-            reg_dat, bvec, reg_map = dti_func.register(b0, dat, aff, aff, bval, bvec)
+            reg_dat, bvec_reg, reg_map = dti_func.register(b0, dat, aff, aff,
+                                                        bval, bvec)
 
             # Saving
             self._save_nii(b0, aff, self.b0)
             self._save_nii(reg_dat, aff, self.reg)
-            np.savetxt(self.fbvec_reg, bvec, delimiter=",")
+            np.savetxt(self.fbvec_reg, bvec_reg, delimiter=",")
             np.savetxt(self.fbval_csv, bval, delimiter=",")
-            pickle.dump(reg_map, open(self.reg_map, "wb"))
+            np.savetxt(self.fbvec_orig, bvec, delimiter=".")
+            with open(self.reg_map, "wb") as f:
+                pickle.dump(reg_map, f)
 
         except FileNotFoundError:
             self.next_step = None
@@ -597,7 +602,7 @@ class TensorFit(DTIStep):
             # Loading
             dat, aff = self._load_nii(self.masked)
             bval, bvec = self._load_bval_bvec(self.fbval, self.fbvec)
-            bvec_reg = np.load(self.fbvec_reg)
+            bvec_reg = np.loadtxt(self.fbvec_reg, delimiter=",")
 
             # Running
             self.logger.info('Fitting the tensor')
@@ -653,7 +658,8 @@ class Warp(DTIStep):
             warped_fa = mapping.transform_inverse(fa)
 
             # Saving
-            pickle.dump(mapping, open(self.warp_map, "wb"))
+            with open(self.warp_map, "wb") as f:
+                pickle.dump(mapping, f)
             self._save_nii(warped_fa, template_aff, self.warped_fa)
             self._save_nii(warped_labels, fa_aff, self.warped_labels)
 
@@ -856,7 +862,8 @@ class SaveInMNI(DTIStep):
             ga, aff = self._load_nii(self.ga)
             rd, aff = self._load_nii(self.rd)
             ad, aff = self._load_nii(self.ad)
-            mapping = pickle.load(open(self.warp_map, "rb"))
+            with open(self.warp_map, "rb") as f:
+                mapping = pickle.load(f)
 
             # Running
             self.logger.info("Warping to MNI space")
