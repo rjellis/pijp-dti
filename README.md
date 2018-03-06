@@ -131,8 +131,7 @@ Selecting **Pass, Fail, or Edit** sets the result for the case being QC'd.
 
 **Open a GUI to QC the tissue segmentation**
 
-Runs WarpQC if **Pass** is submitted. Queues up cases where MaskQC is passed or edited
-cases where RoiStats has an outcome of 'Redone.'
+Runs WarpQC if **Pass** is submitted. Queues up cases where RoiStats is done.
 
 ### WarpQC
 
@@ -156,7 +155,8 @@ examples:
 ```
 
 This will run the code(s) through steps 1-4 unless `--nocontinue` was used.
-The code(s) will be ready for MaskQC once step 4 (Mask) is complete.
+The code(s) will be ready for MaskQC once step 4 (Mask) is complete. The flag `-n 10` tells
+the pipeline to stage 10 cases.
 
 
 2) Use `maskqc` to QC the completed code(s)
@@ -167,9 +167,9 @@ The code(s) will be ready for MaskQC once step 4 (Mask) is complete.
 
 Only submit the result of **Edit** after you have completely finished editing the mask.
 If you are not done editing but want to exit, just save the mask in FSLeyes and exit
-the QC Tool without submitting.
+the QC Tool without submitting. Rerunning this step will reopen the unfinished case.
 
-**When saving the edited mask, be sure you are saving as "SampleCode_final_mask.nii.gz" in
+**When saving the edited mask, be sure you are overwriting "SampleCode_final_mask.nii.gz" in
   SampleCode's "3Mask" directory!**
 
 
