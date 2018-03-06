@@ -21,7 +21,7 @@ from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcess
 from pijp.engine import run_module, run_file
 
 import pijp_dti
-from pijp_dti import dti_func, qc_main, mosaic
+from pijp_dti import dti_func, qc_main
 from pijp_dti.repo import DTIRepo
 
 
@@ -191,7 +191,7 @@ class BaseQCStep(DTIStep):
     def __init__(self, project, code, args):
         super(BaseQCStep, self).__init__(project, code, args)
         self.image = None
-        self.type = None
+        self.mode = None
         self.overlay = None
         self.overlay_original = None
         self.disable_edit = None
@@ -202,7 +202,7 @@ class BaseQCStep(DTIStep):
         """Need to set these parameters for QC Main to work
 
             self.image
-            self.type
+            self.mode
             self.overlay
             self.overlay_original
             self.disable_edit
@@ -241,7 +241,8 @@ class BaseQCStep(DTIStep):
         try:
             self.set_qc_params()
 
-            result, comments = qc_main.main(self.code, self.type, self.image, self.overlay, self.overlay_original,
+            result, comments = qc_main.main(self.code, self.mode, self.image,
+                                            self.overlay, self.overlay_original,
                                             disable_edit=self.disable_edit)
             self.outcome = result
             self.comments = comments
@@ -503,7 +504,7 @@ class MaskQC(BaseQCStep):
 
     def set_qc_params(self):
         self.image = self.b0
-        self.type = self.step_name
+        self.mode = self.step_name
         self.overlay = self.final_mask
         self.overlay_original = self.auto_mask
         self.disable_edit = False
@@ -761,7 +762,7 @@ class SegQC(BaseQCStep):
 
     def set_qc_params(self):
         self.image = self.b0
-        self.type = self.step_name
+        self.mode = self.step_name
         self.overlay = self.segmented_wm
         self.overlay_original = self.segmented_wm
         self.disable_edit = True
@@ -793,7 +794,7 @@ class WarpQC(BaseQCStep):
 
     def set_qc_params(self):
         self.image = self.fa
-        self.type = self.step_name
+        self.mode = self.step_name
         self.overlay = self.warped_wm_labels
         self.overlay_original = self.warped_wm_labels
         self.disable_edit = True

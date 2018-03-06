@@ -13,11 +13,12 @@ from pijp_dti import qc_design, qc_func
 
 class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
-    def __init__(self, code, type, image_path, overlay_path, overlay_original_path, disable_edit, parent=None):
+    def __init__(self, code, mode, image_path, overlay_path,
+                 overlay_original_path, disable_edit, parent=None):
         super(QCApp, self).__init__(parent)
 
         self.code = code
-        self.type = type
+        self.mode = mode
         self.image_path = image_path
         self.overlay_path = overlay_path
         self.overlay_original_path = overlay_original_path
@@ -34,11 +35,11 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.last_width = self.width()
 
         self.label_code.setText(self.code)
-        self.label_type.setText(self.type)
+        self.label_type.setText(self.mode)
         self.image = qc_func.load_image(self.image_path)
         self.overlay = qc_func.load_overlay(self.overlay_path)
         self.plot = MyMplCanvas(self.image, self.overlay,
-            parent=self.centralwidget)
+                                parent=self.centralwidget)
         self.image_frame.addWidget(self.plot)
 
         self.slider_opacity.valueChanged.connect(self.change_alpha)
@@ -60,7 +61,6 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             self.group_button.addButton(self.button_edit)
 
         self.group_button.addButton(self.button_fail)
-
 
     def skip(self):
         msg = QtWidgets.QMessageBox(self.centralwidget)
@@ -251,9 +251,12 @@ class MyMplCanvas(FigureCanvas):
         self.update_slice(delta)
 
 
-def main(code, type, image_path, overlay_path, overlay_original_path, disable_edit=False):
+def main(code, mode, image_path, overlay_path, overlay_original_path,
+         disable_edit=False):
+
     app = QtWidgets.QApplication([])
-    form = QCApp(code, type, image_path, overlay_path, overlay_original_path, disable_edit)
+    form = QCApp(code, mode, image_path, overlay_path, overlay_original_path,
+                 disable_edit)
     form.show()
 
     app.exec()
