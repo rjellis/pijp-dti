@@ -450,8 +450,8 @@ class Register(DTIStep):
             self.logger.info('Averaging the b0 volume')
             b0 = dti_func.average_b0(dat, aff, bval)
             self.logger.info('Registering the DWI to its averaged b0 volume')
-            reg_dat, bvec_reg, reg_map = dti_func.register(b0, dat, aff, aff,
-                                                        bval, bvec)
+            reg_dat, bvec_reg, reg_map = dti_func.register(
+                b0, dat, aff, aff, bval, bvec)
 
             # Saving
             self._save_nii(b0, aff, self.b0)
@@ -650,7 +650,7 @@ class Warp(DTIStep):
             temp_labels, temp_labels_aff = self._load_nii(self.template_labels)
 
             # Runnning
-            self.logger.info('Generating nonlinear registration map for FA')
+            self.logger.info('Warping template to FA')
             warped_template, mapping = dti_func.sym_diff_registration(
                 fa, template,
                 fa_aff, template_aff)
