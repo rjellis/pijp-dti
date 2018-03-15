@@ -1,10 +1,13 @@
+import os
 import csv
 import getpass
 from datetime import datetime
 
-import pijp_dti
-from pijp.repositories import BaseRepository
+from pijp.core import get_project_dir
 from pijp.dbprocs import format_string_parameter as fsp
+from pijp.repositories import BaseRepository
+
+import pijp_dti
 
 PROCESS_TITLE = pijp_dti.__process_title__
 
@@ -159,3 +162,72 @@ class DTIRepo(BaseRepository):
 
         left_off = self.connection.fetchone(sql)
         return left_off
+
+    def get_t2(self, project, code):
+        sql = r"""
+        SELECT
+            SeriesCode AS Code
+        FROM
+            dbo.DicomSeries se
+        INNER JOIN
+            dbo.DicomStudies st
+        ON
+            se.StudyInstanceUID = st.StudyInstanceUID
+        WHERE
+            st.StudyCode = {project}
+            AND ScanCode LIKE '%{code}%'
+            AND SeriesDescription LIKE '%PD%'
+        """.format(project=fsp(project), code=code)
+
+        todo = self.connection.fetchone(sql)
+        if todo is not None:
+            todo = todo["Code"]
+        return todo
+
+    def get_nnicv(self, project, code):
+        code = '-'.join(code.split('-')[0:-1])
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM ProcessingLog
+        WHERE
+            Project = {project}
+            AND Process = 'NNICV'
+            AND ScanCode LIKE '%{code}%'
+        """.format(project=fsp(project), code=code)
+
+        todo = self.connection.fetchone(sql)
+        project_dir = get_project_dir(project)
+        if todo is not None:
+            full_code = todo["Code"]
+            nnicv_path = f"NeuralNetICV/{full_code}/ICV/" \
+                         f"{full_code}_ICV_T2_Automated-Mask.nii.gz"
+            full_path = os.path.join(project_dir, nnicv_path)
+        else:
+            full_path = None
+
+        return full_path
+
+    def get_T2(self, project, code):
+        code = '-'.join(code.split('-')[0:-1])
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM ProcessingLog
+        WHERE
+            Project = {project}
+            AND Process = 'NNICV'
+            AND ScanCode LIKE '%{code}%'
+        """.format(project=fsp(project), code=code)
+
+        todo = self.connection.fetchone(sql)
+        project_dir = get_project_dir(project)
+        if todo is not None:
+            full_code = todo["Code"]
+            nnicv_path = f"NeuralNetICV/{full_code}/stage/" \
+                         f"unregisteredT2_e2.nii.gz"
+            full_path = os.path.join(project_dir, nnicv_path)
+        else:
+            full_path = None
+
+        return full_path
