@@ -96,6 +96,12 @@ class DTIStep(Step):
 
         # 3Mask
         self.mask_dir = os.path.join(self.working_dir, '3Mask')
+        self.nnicv = os.path.join(self.mask_dir, self.code + '_nnicv.nii.gz')
+        self.nnicv_reg = os.path.join(self.mask_dir, self.code +
+                                  '_nnicv_reg.nii.gz')
+        self.t2 = os.path.join(self.mask_dir, self.code + '_t2.nii.gz')
+        self.t2_reg = os.path.join(self.mask_dir, self.code + '_t2_reg.nii.gz')
+
         self.auto_mask = os.path.join(self.mask_dir, self.code + '_auto_mask.nii.gz')
         self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
         self.final_mask = os.path.join(self.mask_dir, self.code + '_final_mask.nii.gz')
@@ -271,6 +277,9 @@ class BaseQCStep(DTIStep):
 
         finally:
             os.remove(self.review_flag)
+
+    def reset(self):
+        os.remove(self.review_flag)
 
 
 class Stage(DTIStep):
@@ -488,10 +497,27 @@ class Mask(DTIStep):
         try:
             # Loading
             dat, aff = self._load_nii(self.b0)
+            nnicv_path = DTIRepo().get_nnicv(self.project, self.code)
+            t2_path = DTIRepo().get_T2(self.project, self.code)
 
-            # Running
-            self.logger.info('Masking the average b0 volume')
-            mask = dti_func.mask(dat)
+            if os.path.isfile(nnicv_path):
+                shutil.copyfile(nnicv_path, self.nnicv)
+                shutil.copyfile(t2_path, self.t2)
+
+                nnicv, naff = self._load_nii(self.nnicv)
+                t2, taff = self._load_nii(self.t2)
+
+                self.logger.info('Registering T2 to average b0')
+                t2_reg, tmap = dti_func.sym_diff_registration(
+                    dat, t2, aff, taff)
+                self.logger.info('Transforming NNICV mask to average b0 space')
+                mask = tmap.transform(nnicv)
+                self._save_nii(t2_reg, aff, self.t2_reg)
+
+            else:
+                # Running
+                self.logger.info('Masking the average b0 volume')
+                mask = dti_func.mask(dat)
 
             # Saving
             self._save_nii(mask, aff, self.auto_mask)
@@ -499,6 +525,14 @@ class Mask(DTIStep):
 
         except FileNotFoundError:
             self.next_step = None
+
+    @classmethod
+    def get_queue(cls, project_name):
+        staged = DTIRepo().get_staged_cases(project_name)
+        staged_codes = [row['Code'] for row in staged]
+        todo = [{'ProjectName': project_name, "Code": row['Code']} for row
+                in staged_codes]
+        return todo
 
 
 class MaskQC(BaseQCStep):
