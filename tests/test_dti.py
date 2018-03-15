@@ -22,7 +22,6 @@ class Test(unittest.TestCase):
         self.assertTrue(os.path.isdir(stage.tenfit_dir))
         self.assertTrue(os.path.isdir(stage.warp_dir))
         self.assertTrue(os.path.isdir(stage.roiavg_dir))
-        self.assertTrue(os.path.isdir(stage.qc_dir))
         self.assertTrue(os.path.isfile(stage.fdwi))
         self.assertTrue(os.path.isfile(stage.fbval))
         self.assertTrue(os.path.isfile(stage.fbvec))
@@ -49,7 +48,6 @@ class Test(unittest.TestCase):
         mask.run()
 
         self.assertTrue(os.path.isfile(mask.auto_mask))
-        self.assertTrue(os.path.isfile(mask.mask_mosaic))
 
     def test_apply_mask(self):
 
@@ -79,7 +77,6 @@ class Test(unittest.TestCase):
         self.assertTrue(os.path.isfile(warp.warped_fa))
         self.assertTrue(os.path.isfile(warp.warped_labels))
         self.assertTrue(os.path.isfile(warp.warp_map))
-        self.assertTrue(os.path.isfile(warp.inverse_warp_map))
 
     def test_segment(self):
 
