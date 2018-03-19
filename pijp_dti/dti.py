@@ -63,7 +63,8 @@ class DTIStep(Step):
         """Base Step __init__ method.
 
         This method initializes all the file path strings used by the
-        different steps.
+        different steps. The various paths are sorted by they directory name
+        where they will be stored.
 
         Args:
             project (str): The name of the project.
@@ -111,6 +112,7 @@ class DTIStep(Step):
             self.mask_dir, self.code + '_auto_mask.nii.gz')
         self.final_mask = os.path.join(
             self.mask_dir, self.code + '_final_mask.nii.gz')
+
         self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
 
         # 4Tenfit
@@ -162,6 +164,7 @@ class DTIStep(Step):
         self.rd_warp = os.path.join(
             self.mni_dir, self.code + '_rd_in_mni.nii.gz')
 
+        # templates
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
         self.template_labels = os.path.join(
@@ -220,6 +223,19 @@ class DTIStep(Step):
 
 
 class BaseQCStep(DTIStep):
+    """The base step for QC steps.
+
+    The BaseQCStep contains the basic attributes and functions used by all
+    qc steps. Attributes are set using `set_qc_params` instead of `__init__` as
+    not interfere with the `pijp` engine.
+
+    Attributes:
+        image (str): Path to the base image.
+        mode (str): The type of QC for the step.
+        overlay (str): Path to the final image overlay (to be edited)
+        overlay_original (str): Path to the original copy of the overlay.
+
+    """
 
     def __init__(self, project, code, args):
         super(BaseQCStep, self).__init__(project, code, args)
@@ -556,10 +572,12 @@ _
                 self.logger.info('Warping NNICV mask to average b0')
                 mask = tmap.transform(nnicv)
                 self._save_nii(t2_reg, aff, self.t2_reg)
+                self.comments = "Using NNICV mask"
 
             else:
                 self.logger.info('Masking the average b0 volume')
                 mask = dti_func.mask(dat)
+                self.comments = "Using Otsu mask"
 
             # Saving
             self._save_nii(mask, aff, self.auto_mask)
@@ -568,12 +586,13 @@ _
         except FileNotFoundError:
             self.next_step = None
 
-    @classmethod
-    def get_queue(cls, project_name):
-        staged = DTIRepo().get_staged_cases(project_name)
-        todo = [{'ProjectName': project_name, "Code": row['Code']} for row
-                in staged]
-        return todo
+    # @classmethod
+    # def get_queue(cls, project_name):
+    #     staged = DTIRepo().get_staged_cases(project_name)
+    #     finished_nnicv = DTIRepo().get_finished_nnicv(project_name)
+    #     to_do = [{'ProjectName': project_name, "Code": row['Code']} for row
+    #             in staged]
+    #     return to_do
 
 
 class MaskQC(BaseQCStep):
