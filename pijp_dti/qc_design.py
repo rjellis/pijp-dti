@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'pijp-dti.ui'
 #
-# Created by: PyQt5 UI code generator 5.10
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -166,7 +166,7 @@ class Ui_MainWindow(object):
 "border-radius: 4px;\n"
 "}")
         self.slider_opacity.setMaximum(100)
-        self.slider_opacity.setSingleStep(15)
+        self.slider_opacity.setSingleStep(20)
         self.slider_opacity.setProperty("value", 50)
         self.slider_opacity.setOrientation(QtCore.Qt.Horizontal)
         self.slider_opacity.setObjectName("slider_opacity")
