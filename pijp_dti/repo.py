@@ -1,13 +1,11 @@
-import os
 import csv
 import getpass
 from datetime import datetime
 
-from pijp.core import get_project_dir
 from pijp.dbprocs import format_string_parameter as fsp
 from pijp.repositories import BaseRepository
-
 import pijp_dti
+
 
 PROCESS_TITLE = pijp_dti.__process_title__
 
@@ -39,13 +37,13 @@ class DTIRepo(BaseRepository):
 
         sql = r"""
         SELECT
-            ScanCode AS Code
+            DISTINCT ScanCode AS Code
         From 
             ProcessingLog
         WHERE Project = {project}
             AND Process = {process}
             AND Step = 'Stage'
-            AND (Outcome = 'Done' or Outcome = 'Error' or Outcome = 'Queued')
+            AND (Outcome = 'Done' OR Outcome = 'Error' OR Outcome = 'Queued')
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
@@ -163,7 +161,9 @@ class DTIRepo(BaseRepository):
         left_off = self.connection.fetchone(sql)
         return left_off
 
-    def get_t2(self, project, code):
+    def get_t1(self, project, code):
+        in_code = code.split('-')
+        subject_code = '-'.join(in_code[0:4])
         sql = r"""
         SELECT
             SeriesCode AS Code
@@ -176,58 +176,27 @@ class DTIRepo(BaseRepository):
         WHERE
             st.StudyCode = {project}
             AND ScanCode LIKE '%{code}%'
-            AND SeriesDescription LIKE '%PD%'
-        """.format(project=fsp(project), code=code)
+            AND SeriesDescription LIKE '%T1%'
+        """.format(project=fsp(project), code=subject_code)
 
         todo = self.connection.fetchone(sql)
         if todo is not None:
             todo = todo["Code"]
         return todo
 
-    def get_nnicv(self, project, code):
-        code = '-'.join(code.split('-')[0:-1])
+    def get_finished_nnicv(self, project):
+
         sql = r"""
         SELECT
             ScanCode AS Code
-        FROM ProcessingLog
-        WHERE
-            Project = {project}
+        FROM 
+            ProcessingLog
+        WHERE Project = {project}
             AND Process = 'NNICV'
-            AND ScanCode LIKE '%{code}%'
-        """.format(project=fsp(project), code=code)
+            AND Step = 'QC'
+            AND Outcome = 'Edit'
+        """   .format(project=fsp(project))
 
-        todo = self.connection.fetchone(sql)
-        project_dir = get_project_dir(project)
-        if todo is not None:
-            full_code = todo["Code"]
-            nnicv_path = f"NeuralNetICV/{full_code}/ICV/" \
-                         f"{full_code}_ICV_T2_Automated-Mask.nii.gz"
-            full_path = os.path.join(project_dir, nnicv_path)
-        else:
-            full_path = None
+        todo = self.connection.fetchall(sql)
+        return todo
 
-        return full_path
-
-    def get_T2(self, project, code):
-        code = '-'.join(code.split('-')[0:-1])
-        sql = r"""
-        SELECT
-            ScanCode AS Code
-        FROM ProcessingLog
-        WHERE
-            Project = {project}
-            AND Process = 'NNICV'
-            AND ScanCode LIKE '%{code}%'
-        """.format(project=fsp(project), code=code)
-
-        todo = self.connection.fetchone(sql)
-        project_dir = get_project_dir(project)
-        if todo is not None:
-            full_code = todo["Code"]
-            nnicv_path = f"NeuralNetICV/{full_code}/stage/" \
-                         f"unregisteredT2_e2.nii.gz"
-            full_path = os.path.join(project_dir, nnicv_path)
-        else:
-            full_path = None
-
-        return full_path
