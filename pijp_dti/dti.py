@@ -17,8 +17,11 @@ from dipy.io import read_bvals_bvecs
 from pijp import util
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository
-from pijp.exceptions import ProcessingError, NoLogProcessingError, CancelProcessingError
 from pijp.engine import run_module, run_file
+from pijp.exceptions import (ProcessingError,
+                             NoLogProcessingError,
+                             CancelProcessingError)
+from pijp_nnicv.nnicv import SkullStripStep
 
 import pijp_dti
 from pijp_dti import dti_func, qc_main
@@ -59,7 +62,8 @@ class DTIStep(Step):
     def __init__(self, project, code, args):
         """Base Step __init__ method.
 
-        This method initializes all the file path strings used by the different steps.
+        This method initializes all the file path strings used by the
+        different steps.
 
         Args:
             project (str): The name of the project.
@@ -80,7 +84,8 @@ class DTIStep(Step):
 
         # 1Denoise
         self.den_dir = os.path.join(self.working_dir, '1Denoise')
-        self.denoised = os.path.join(self.den_dir, self.code + '_denoised.nii.gz')
+        self.denoised = os.path.join(
+            self.den_dir, self.code + '_denoised.nii.gz')
 
         # 2Register
         self.reg_dir = os.path.join(self.working_dir, '2Register')
@@ -98,13 +103,15 @@ class DTIStep(Step):
         self.mask_dir = os.path.join(self.working_dir, '3Mask')
         self.nnicv = os.path.join(self.mask_dir, self.code + '_nnicv.nii.gz')
         self.nnicv_reg = os.path.join(self.mask_dir, self.code +
-                                  '_nnicv_reg.nii.gz')
+                                      '_nnicv_reg.nii.gz')
         self.t2 = os.path.join(self.mask_dir, self.code + '_t2.nii.gz')
         self.t2_reg = os.path.join(self.mask_dir, self.code + '_t2_reg.nii.gz')
 
-        self.auto_mask = os.path.join(self.mask_dir, self.code + '_auto_mask.nii.gz')
+        self.auto_mask = os.path.join(
+            self.mask_dir, self.code + '_auto_mask.nii.gz')
+        self.final_mask = os.path.join(
+            self.mask_dir, self.code + '_final_mask.nii.gz')
         self.masked = os.path.join(self.mask_dir, self.code + '_masked.nii.gz')
-        self.final_mask = os.path.join(self.mask_dir, self.code + '_final_mask.nii.gz')
 
         # 4Tenfit
         self.tenfit_dir = os.path.join(self.working_dir, '4Tenfit')
@@ -118,15 +125,21 @@ class DTIStep(Step):
 
         # 5Warp
         self.warp_dir = os.path.join(self.working_dir, '5Warp')
-        self.warp_map = os.path.join(self.warp_dir, self.code + '_warp_map.p')
-        self.warped_fa = os.path.join(self.warp_dir, self.code + '_inverse_warped_fa.nii.gz')
-        self.warped_labels = os.path.join(self.warp_dir, self.code + '_warped_labels.nii.gz')
+        self.warp_map = os.path.join(
+            self.warp_dir, self.code + '_warp_map.p')
+        self.warped_fa = os.path.join(
+            self.warp_dir, self.code + '_inverse_warped_fa.nii.gz')
+        self.warped_labels = os.path.join(
+            self.warp_dir, self.code + '_warped_labels.nii.gz')
 
         # 6Segment
         self.seg_dir = os.path.join(self.working_dir, '6Segment')
-        self.segmented = os.path.join(self.seg_dir, self.code + '_segmented.nii.gz')
-        self.segmented_wm = os.path.join(self.seg_dir, self.code + '_segmented_wm.nii.gz')
-        self.warped_wm_labels = os.path.join(self.seg_dir, self.code + '_warped_wm_labels.nii.gz')
+        self.segmented = os.path.join(
+            self.seg_dir, self.code + '_segmented.nii.gz')
+        self.segmented_wm = os.path.join(
+            self.seg_dir, self.code + '_segmented_wm.nii.gz')
+        self.warped_wm_labels = os.path.join(
+            self.seg_dir, self.code + '_warped_wm_labels.nii.gz')
 
         # 7Stats
         self.roiavg_dir = os.path.join(self.working_dir, '7Stats')
@@ -138,15 +151,21 @@ class DTIStep(Step):
 
         # 8MNI
         self.mni_dir = os.path.join(self.working_dir, '8MNI')
-        self.fa_warp = os.path.join(self.mni_dir, self.code + '_fa_in_mni.nii.gz')
-        self.md_warp = os.path.join(self.mni_dir, self.code + '_md_in_mni.nii.gz')
-        self.ga_warp = os.path.join(self.mni_dir, self.code + '_ga_in_mni.nii.gz')
-        self.ad_warp = os.path.join(self.mni_dir, self.code + '_ad_in_mni.nii.gz')
-        self.rd_warp = os.path.join(self.mni_dir, self.code + '_rd_in_mni.nii.gz')
+        self.fa_warp = os.path.join(
+            self.mni_dir, self.code + '_fa_in_mni.nii.gz')
+        self.md_warp = os.path.join(
+            self.mni_dir, self.code + '_md_in_mni.nii.gz')
+        self.ga_warp = os.path.join(
+            self.mni_dir, self.code + '_ga_in_mni.nii.gz')
+        self.ad_warp = os.path.join(
+            self.mni_dir, self.code + '_ad_in_mni.nii.gz')
+        self.rd_warp = os.path.join(
+            self.mni_dir, self.code + '_rd_in_mni.nii.gz')
 
         fpath = os.path.dirname(__file__)
         self.template = os.path.join(fpath, 'templates', 'fa_template.nii')
-        self.template_labels = os.path.join(fpath, 'templates', 'fa_labels.nii')
+        self.template_labels = os.path.join(
+            fpath, 'templates', 'fa_labels.nii')
         self.labels_lookup = os.path.join(fpath, 'templates', 'labels.npy')
         self.review_flag = os.path.join(self.working_dir, "qc.inprocess")
 
@@ -166,7 +185,9 @@ class DTIStep(Step):
 
     def _load_bval_bvec(self, fbval, fbvec):
         try:
-            self.logger.info('loading {} {}'.format(fbval.split('/')[-1], fbvec.split('/')[-1]))
+            self.logger.info(f"loading {fbval.split('/')[-1]} "
+                             f"{fbvec.split('/')[-1]}")
+
             bval, bvec = read_bvals_bvecs(fbval, fbvec)
             return bval, bvec
 
@@ -189,7 +210,8 @@ class DTIStep(Step):
     def _run_cmd(self, cmd):
         self.logger.debug(cmd)
         args = cmd.split()
-        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (output, error) = p.communicate()
         if output:
             self.logger.debug(output.decode('utf-8'))
@@ -233,40 +255,43 @@ class BaseQCStep(DTIStep):
         flag = open(self.review_flag, 'r')
         lines = flag.readlines()
         flag.close()
-        self.logger.info('%s is under review by %s starting %s' % (self.code, lines[0].rstrip('\n'), lines[1]))
+        self.logger.info('{} is under review by {} starting {}'.format(
+            self.code, lines[0].rstrip('\n'), lines[1]))
 
     def initiate(self):
         if self.under_review():
-            raise NoLogProcessingError("This case is currently being reviewed.")
+            raise NoLogProcessingError(
+                "This case is currently being reviewed.")
         flag = open(self.review_flag, 'w')
-        flag.write(getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
+        flag.write(
+            getpass.getuser() + '\n' + datetime.datetime.now().strftime('%c'))
         flag.close()
 
     def run(self):
         """Runs the step `MaskQC`.
 
-        Opens a GUI for quality controlling. The qc_main.main method should return a tuple (result, comments). `result`
-        should be a string of 'pass', 'fail', 'edit', or 'cancelled'. `comments` should be a string.
+        Opens a GUI for quality controlling. The qc_main.main method should
+        return a tuple (result, comments). `result` should be a string of
+        'pass', 'fail', 'edit', or 'cancelled'. `comments` should be a string.
 
         """
         try:
             self.set_qc_params()
 
-            result, comments = qc_main.main(self.code, self.mode, self.image,
-                                            self.overlay, self.overlay_original,
-                                            disable_edit=self.disable_edit)
+            result, comments = qc_main.main(
+                self.code, self.mode,
+                self.image, self.overlay, self.overlay_original,
+                disable_edit=self.disable_edit)
             self.outcome = result
             self.comments = comments
+
             if result == 'Pass':
                 self.next_step = self.pass_step
-
             if result == 'Edit':
                 self.next_step = self.edit_step
-
             if result == 'Cancelled':
                 self.outcome = 'Cancelled'
                 self.logger.info("Cancelled")
-
                 if comments != 'skipped':
                     raise CancelProcessingError
 
@@ -295,9 +320,11 @@ class Stage(DTIStep):
     def run(self):
         """Runs the step `Stage`.
 
-        Creates the directories for all the steps. Finds the DICOMs for the code in the database, copies them  to a
-        temporary directory, then finally converts them to the Nifti format using dcm2nii/dcm2niix. The staged files are
-        stored in the `0Stage` directory and are verified as an Diffusion Weighted Image (DWI).
+        Creates the directories for all the steps. Finds the DICOMs for the
+        code in the database, copies them  to a temporary directory,
+        then finally converts them to the Nifti format using dcm2nii/dcm2niix.
+        The staged files are stored in the `0Stage` directory and are
+        verified as an Diffusion Weighted Image (DWI).
 
         """
         self.logger.info("Staging pipeline")
@@ -307,7 +334,8 @@ class Stage(DTIStep):
             if source is None or len(source) == 0:
                 raise ProcessingError
 
-            dirs = [self.stage_dir, self.den_dir, self.reg_dir, self.mask_dir, self.tenfit_dir, self.warp_dir,
+            dirs = [self.stage_dir, self.den_dir, self.reg_dir,
+                    self.mask_dir, self.tenfit_dir, self.warp_dir,
                     self.seg_dir, self.roiavg_dir, self.mni_dir]
 
             self.logger.info('Building directories')
@@ -321,7 +349,7 @@ class Stage(DTIStep):
             else:
                 self._convert_with_dcm2niix(source)
 
-            read_bvals_bvecs(self.fbval, self.fbvec)  # Raises for IOError if fbval/fbvec aren't found
+            read_bvals_bvecs(self.fbval, self.fbvec)  # Raises IOError if not
 
             if len(nib.load(self.fdwi).get_data().shape) != 4:
                 self.outcome = 'Error'
@@ -337,15 +365,17 @@ class Stage(DTIStep):
 
         except ProcessingError:
             self.outcome = 'Error'
-            self.comments = "Could not find the staging data for {}.".format(self.code)
+            self.comments = f"Could not find the staging data for {self.code}."
             self.logger.error(self.comments)
             self.next_step = None
 
         except FileExistsError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.error('Staging directory is not empty. Use --force to reset the case. This will delete '
-                              'everything in the case directory!')
+            self.logger.error(
+                'Staging directory is not empty. '
+                'Use --force to reset the case. '
+                'This will delete everything in the case directory!')
             self.next_step = None
 
     def _convert_with_dcm2niix(self, source):
@@ -353,7 +383,9 @@ class Stage(DTIStep):
         dcm2niix = get_dcm2niix()
         dcm_dir = self._copy_files(source)
         self.logger.info("Converting DICOM files to NIfTI")
-        cmd = '{} -z i -m y -o {} -f {} {}'.format(dcm2niix, self.stage_dir, self.code, dcm_dir)
+        cmd = f"{dcm2niix} -z i -m y -o {self.stage_dir} " \
+              f"-f {self.code} {dcm_dir}"
+
         self._run_cmd(cmd)
 
     def _convert_with_dcm2nii(self, source):
@@ -365,14 +397,16 @@ class Stage(DTIStep):
         self._run_cmd(cmd)
         for file in os.listdir(self.stage_dir):  # rename the dcm2nii files
             abs_path = os.path.join(self.stage_dir, file)
-            ext = file.split('.')  # Want everything after the first '.', to catch '.nii.gz'
+            ext = file.split('.')
             ext.pop(0)
             ext = '.' + '.'.join(ext)
-            shutil.copyfile(abs_path, os.path.join(self.stage_dir, self.code + ext))
+            shutil.copyfile(
+                abs_path, os.path.join(self.stage_dir, self.code + ext))
             os.remove(abs_path)
 
     def reset(self):
-        shutil.rmtree(get_case_dir(self.project, self.code), ignore_errors=True)
+        shutil.rmtree(
+            get_case_dir(self.project, self.code), ignore_errors=True)
 
     def _copy_files(self, source):
         tmp = tempfile.mkdtemp()
@@ -392,8 +426,9 @@ class Stage(DTIStep):
         dtis = DTIRepo().get_project_dtis(project_name)
 
         staged_codes = [row['Code'] for row in staged]
-        todo = [{'ProjectName': project_name, "Code": row['Code']} for row in dtis if row['Code'] not in
-                staged_codes]
+        todo = [{'ProjectName': project_name, "Code": row['Code']}
+                for row in dtis if row['Code'] not in staged_codes]
+
         return todo
 
 
@@ -411,7 +446,8 @@ class Denoise(DTIStep):
     def run(self):
         """Runs the step `Denoise`.
 
-        Loads all the staged data. Denoises the staged DWI by calling a denoising function.
+        Loads all the staged data. Denoises the staged DWI by calling
+        a denoising function.
 
         """
         try:
@@ -446,8 +482,9 @@ class Register(DTIStep):
     def run(self):
         """Runs the step `Register`
 
-        The b0 is generated by finding all the b0's in the DWI and rigidly registers them to the first found b0
-        volume. The rest of the diffusion weighted volumes are then registered to the averaged b0 volume.
+        The b0 is generated by finding all the b0's in the DWI and rigidly
+        registers them to the first found b0 volume. The rest of the diffusion
+        weighted volumes are then registered to the averaged b0 volume.
 
         """
         try:
@@ -489,33 +526,38 @@ class Mask(DTIStep):
 
     def run(self):
         """Runs the step `Mask`.
-
-        Loads the average b0 and generates a binary mask of the brain using a median Otsu method. The generated mask
-        is copied as a `final_mask` for QC editing.
+_
+        Loads the average b0 and generates a binary mask of the brain using
+        a median Otsu method. The generated mask is copied as a `final_mask`
+        for QC editing.
 
         """
         try:
             # Loading
             dat, aff = self._load_nii(self.b0)
-            nnicv_path = DTIRepo().get_nnicv(self.project, self.code)
-            t2_path = DTIRepo().get_T2(self.project, self.code)
 
+            t1_code = DTIRepo().get_t1(self.project, self.code)
+            ssstep = SkullStripStep(self.project, t1_code, self.args)
+            nnicv_path = ssstep.final_icv_mask
+            t2_path = ssstep.t2_path
+
+            # Running
             if os.path.isfile(nnicv_path):
+                self.logger.info('Found NNICV mask!')
                 shutil.copyfile(nnicv_path, self.nnicv)
                 shutil.copyfile(t2_path, self.t2)
 
                 nnicv, naff = self._load_nii(self.nnicv)
                 t2, taff = self._load_nii(self.t2)
 
-                self.logger.info('Registering T2 to average b0')
+                self.logger.info('Warping T2 to average b0')
                 t2_reg, tmap = dti_func.sym_diff_registration(
                     dat, t2, aff, taff)
-                self.logger.info('Transforming NNICV mask to average b0 space')
+                self.logger.info('Warping NNICV mask to average b0')
                 mask = tmap.transform(nnicv)
                 self._save_nii(t2_reg, aff, self.t2_reg)
 
             else:
-                # Running
                 self.logger.info('Masking the average b0 volume')
                 mask = dti_func.mask(dat)
 
@@ -529,9 +571,8 @@ class Mask(DTIStep):
     @classmethod
     def get_queue(cls, project_name):
         staged = DTIRepo().get_staged_cases(project_name)
-        staged_codes = [row['Code'] for row in staged]
         todo = [{'ProjectName': project_name, "Code": row['Code']} for row
-                in staged_codes]
+                in staged]
         return todo
 
 
@@ -593,7 +634,8 @@ class ApplyMask(DTIStep):
     def run(self):
         """Runs the step `ApplyMask`
 
-        Masks the registered DWI using the final mask, whether or not it was edited.
+        Masks the registered DWI using the final mask,  whether or not it
+        was edited.
 
         """
         try:
@@ -626,10 +668,13 @@ class TensorFit(DTIStep):
     def run(self):
         """Runs the step `TensorFit`
 
-        Fits the Diffusion Tensor model using the denoised, registered, and masked DWI. The dti_func.fit_dti method
-        returns `evals`, `evecs`, and a `tenfit` object. `evals` and `evecs` are numpy ndarrays that can be saved as
-        Nifti images. They are used to calculate the various measures of anisotropy. The `tenfit` object already
-        generates these measures (as ndarrays), and they are also saved as Nifti images.
+        Fits the Diffusion Tensor model using the denoised, registered,
+        and  masked DWI. The dti_func.fit_dti method returns `evals`,
+        `evecs`, and a `tenfit` object. `evals` and `evecs` are numpy
+        ndarrays that can be saved as Nifti images. They are used to
+        calculate the various measures of anisotropy. The `tenfit` object
+        already generates these measures (as ndarrays), and they are also
+        saved as Nifti images.
 
         """
         try:
@@ -671,10 +716,12 @@ class Warp(DTIStep):
     def run(self):
         """Runs the step `Warp`
 
-        Loads a template FA in MNI space and its associated label overlay. The values of the label overlay are
-        integers that are mapped to regions of interest (ROI) names in a lookup table. The template FA is warped to
-        the subject FA space using nonlinear registration (symmetric diffeomorphic registration). The same warp mapping
-        is used to transform the templates' overlay labels to the subject space.
+        Loads a template FA in MNI space and its associated label overlay.
+        The values of the label overlay are integers that are mapped to
+        regions of interest (ROI) names in a lookup table. The template FA
+        is warped to the subject FA space using nonlinear registration (
+        symmetric diffeomorphic registration). The same warp mapping is
+        used to transform the templates' overlay labels to the subject space.
 
         """
         try:
@@ -688,7 +735,8 @@ class Warp(DTIStep):
             warped_template, mapping = dti_func.sym_diff_registration(
                 fa, template,
                 fa_aff, template_aff)
-            warped_labels = mapping.transform(temp_labels, interpolation='nearest')
+            warped_labels = mapping.transform(
+                temp_labels, interpolation='nearest')
             warped_fa = mapping.transform_inverse(fa)
 
             # Saving
@@ -715,8 +763,8 @@ class Segment(DTIStep):
     def run(self):
         """Runs the step `Segment`
 
-        Creates a white matter segmentation mask based on the masked average b0. The white matter segmentation is
-        applied to the warped labels.
+        Creates a white matter segmentation mask based on the masked average
+        b0. The white matter segmentation is applied to the warped labels.
 
         """
         try:
@@ -726,11 +774,14 @@ class Segment(DTIStep):
             warped, waff = self._load_nii(self.warped_labels)
 
             # Running
-            self.logger.info('Segmenting tissue for the average b0 of the masked volume')
+            self.logger.info(
+                'Segmenting tissue for the average b0 of the masked volume')
             masked_b0 = dti_func.apply_mask(b0, mask)
             segmented = dti_func.segment_tissue(masked_b0)
-            segmented_wm = dti_func.apply_tissue_mask(masked_b0, segmented, prob=1)
-            warped_wm_labels = dti_func.apply_tissue_mask(warped, segmented, prob=1)
+            segmented_wm = dti_func.apply_tissue_mask(
+                masked_b0, segmented, prob=1)
+            warped_wm_labels = dti_func.apply_tissue_mask(
+                warped, segmented, prob=1)
 
             # Saving
             self._save_nii(segmented, baff, self.segmented)
@@ -754,9 +805,11 @@ class RoiStats(DTIStep):
     def run(self):
         """Runs the step `RoiStats`
 
-        Loads the various measures of anisotropy, the white matter segmented labels, and the lookup table for the
-        labels. The  ROI statistics are only calculated inside the label mask and where value of measure is not zero.
-        The statistics are saved as separate CSVs for each measure.
+        Loads the various measures of anisotropy, the white matter segmented
+        labels, and the lookup table for the labels. The  ROI statistics
+        are only calculated inside the label mask and where value of measure
+        is not zero. The statistics are saved as separate CSVs for each
+        measure.
 
         """
         try:
@@ -767,9 +820,10 @@ class RoiStats(DTIStep):
             ad, aff = self._load_nii(self.ad)
             rd, aff = self._load_nii(self.rd)
             warped_wm_labels, aff = self._load_nii(self.warped_wm_labels)
-            roi_labels = np.load(self.labels_lookup).item()  # dict of int values and ROI names
+            # dict of int values and ROI names
+            roi_labels = np.load(self.labels_lookup).item()
             original = nib.load(self.fdwi)
-            zooms = original.header.get_zooms()  # Returns the size of the voxels in mm
+            zooms = original.header.get_zooms()  # Returns voxel size
 
             measures = {'fa': [fa, self.fa_roi],
                         'md': [md, self.md_roi],
@@ -780,7 +834,8 @@ class RoiStats(DTIStep):
             # Running and Saving
             self.logger.info('Calculating roi statistics')
             for idx in measures.values():
-                stats = dti_func.roi_stats(idx[0], warped_wm_labels, roi_labels, zooms)
+                stats = dti_func.roi_stats(
+                    idx[0], warped_wm_labels, roi_labels, zooms)
                 self._write_array(stats, idx[1])
 
         except FileNotFoundError:
@@ -862,17 +917,19 @@ class StoreInDatabase(DTIStep):
 
         """
         self.logger.info("Storing in database")
-        proj_id = DTIRepo().get_project_id(self.project)  # This returns a dict of {'ProjectID': proj_id}
+        proj_id = DTIRepo().get_project_id(self.project)
         proj_id = proj_id['ProjectID']
 
         try:
-            DTIRepo().set_roi_stats(proj_id, self.code, self.md_roi, self.fa_roi, self.ga_roi,
+            DTIRepo().set_roi_stats(proj_id, self.code, self.md_roi,
+                                    self.fa_roi, self.ga_roi,
                                     self.rd_roi, self.ad_roi)
 
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'
             self.comments = str(e)
-            self.logger.error("Code {} is already in the database! Use --force to reset.".format(self.code))
+            self.logger.error(f"Code {self.code} is already in the database! "
+                              f"Use --force to reset.")
 
     def reset(self):
         self.logger.info("Removing {} from database".format(self.code))
