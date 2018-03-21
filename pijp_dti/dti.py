@@ -286,7 +286,7 @@ class BaseQCStep(DTIStep):
     def run(self):
         """Runs the step `MaskQC`.
 
-        Opens a GUI for quality controlling. The qc_main.main method should
+        Opens a GUI for quality control. The qc_main.main method should
         return a tuple (result, comments). `result` should be a string of
         'pass', 'fail', 'edit', or 'cancelled'. `comments` should be a string.
 
@@ -583,7 +583,7 @@ _
                 self.logger.info('Warping T2 to average b0')
                 t2_reg, tmap = dti_func.sym_diff_registration(
                     dat, t2, aff, taff)
-                self.logger.info('Warping NNICV mask to average b0')
+                self.logger.info('Applying transform to NNICV mask')
                 mask = tmap.transform(nnicv, interpolation='nearest')
                 self._save_nii(t2_reg, aff, self.t2_reg)
                 self.comments = "Using NNICV mask"
