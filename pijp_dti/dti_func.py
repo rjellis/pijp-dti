@@ -8,7 +8,7 @@ from dipy.reconst import dti
 from dipy.segment import mask as otsu
 from dipy.segment.tissue import TissueClassifierHMRF
 
-from pijp_dti.nifti_io import fill_holes, extract_largest_component, rescale
+from pijp_nnicv.nifti_io import fill_holes, extract_largest_component, rescale
 
 
 def mask(dat):
