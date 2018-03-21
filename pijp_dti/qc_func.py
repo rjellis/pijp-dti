@@ -5,7 +5,7 @@ import nibabel as nib
 import numpy as np
 from pijp import util
 
-from pijp_dti import nifti_io
+from pijp_nnicv import nifti_io
 
 
 def load_image(image_path):
@@ -15,6 +15,7 @@ def load_image(image_path):
     image_dat = np.stack((image_dat, image_dat, image_dat), axis=-1)
 
     return np.rot90(image_dat, 1)
+
 
 def load_overlay(overlay_path):
 
@@ -26,12 +27,12 @@ def mask_image(image, mask, hue, alpha=1):
     """
     overlay a binary mask on an image
     Args:
-        img (ndarray):
+        image (ndarray):
         mask (ndarray): boolean or binary array to overlay on img
         hue (list or tuple or ndarray shape [3]): RBG 3-vector
         alpha (float): alpha level of overlay
     Returns:
-        ndarray : masked img
+        img (ndarray): masked img
     """
     factor = np.multiply(hue, alpha)
     img = image.copy()
