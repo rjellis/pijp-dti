@@ -166,18 +166,11 @@ class DTIRepo(BaseRepository):
         subject_code = '-'.join(in_code[0:4])
         sql = r"""
         SELECT
-            SeriesCode AS Code
-        FROM
-            dbo.DicomSeries se
-        INNER JOIN
-            dbo.DicomStudies st
-        ON
-            se.StudyInstanceUID = st.StudyInstanceUID
-        WHERE
-            st.StudyCode = {project}
-            AND ScanCode LIKE '%{code}%'
-            AND SeriesDescription LIKE '%T1%'
-        """.format(project=fsp(project), code=subject_code)
+            Code
+        FROM ImageList.{project}
+        WHERE ScanCode = {code}
+            AND ImageType='T1'
+        """.format(project=project, code=fsp(subject_code))
 
         todo = self.connection.fetchone(sql)
         if todo is not None:
@@ -199,4 +192,3 @@ class DTIRepo(BaseRepository):
 
         todo = self.connection.fetchall(sql)
         return todo
-
