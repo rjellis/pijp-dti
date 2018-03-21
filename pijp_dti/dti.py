@@ -18,8 +18,7 @@ from pijp import util
 from pijp.core import Step, get_project_dir
 from pijp.repositories import DicomRepository
 from pijp.engine import run_module, run_file
-from pijp.exceptions import (ProcessingError,
-                             NoLogProcessingError,
+from pijp.exceptions import (ProcessingError, NoLogProcessingError,
                              CancelProcessingError)
 from pijp_nnicv.nnicv import SkullStripStep
 
@@ -176,6 +175,7 @@ class DTIStep(Step):
         try:
             self.logger.info('loading {}'.format(fname.split('/')[-1]))
             img = nib.load(fname)
+            img = nib.as_closest_canonical(img)
             dat = img.get_data()
             aff = img.affine
             return dat, aff
@@ -202,12 +202,12 @@ class DTIStep(Step):
 
     def _save_nii(self, dat, aff, fname):
         img = nib.Nifti1Image(dat, aff)
-        nii = fname.rstrip('.gz')
-        nib.nifti1.save(img, nii)
-        with open(nii, 'rb') as f_in:
+        path = fname.rstrip('.gz')
+        nib.save(img, path)
+        with open(path, 'rb') as f_in:
             with gzip.open(fname, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(nii)
+        os.remove(path)
         self.logger.info('saving {}'.format(fname.split('/')[-1]))
 
     def _run_cmd(self, cmd):
@@ -355,7 +355,6 @@ class Stage(DTIStep):
                     self.seg_dir, self.roiavg_dir, self.mni_dir]
 
             self.logger.info('Building directories')
-
             [os.makedirs(dr) for dr in dirs if not os.path.isdir(dr)]
 
             if len(os.listdir(self.stage_dir)) != 0:
@@ -365,11 +364,14 @@ class Stage(DTIStep):
             else:
                 self._convert_with_dcm2niix(source)
 
+            dat, aff = self._load_nii(self.fdwi)
+            self._save_nii(dat, aff, self.fdwi)
             read_bvals_bvecs(self.fbval, self.fbvec)  # Raises IOError if not
 
-            if len(nib.load(self.fdwi).get_data().shape) != 4:
+            if len(dat.shape) != 4:
                 self.outcome = 'Error'
-                self.comments = 'DWI must have 4 dimensions'
+                self.comments = (f"{self.fdwi} has {dat.shape} dimension(s). "
+                                 f"DWI must have 4 dimensions.")
                 self.logger.info(self.comments)
                 self.next_step = None
 
@@ -483,6 +485,14 @@ class Denoise(DTIStep):
         except IOError:
             self.next_step = None
 
+    @classmethod
+    def get_queue(cls, project_name):
+        staged = DTIRepo().get_staged_cases(project_name)
+        todo = [{'ProjectName': project_name, "Code": row['Code']}
+                for row in staged]
+
+        return todo
+
 
 class Register(DTIStep):
     """Rigidly register the DWI to its averaged b0 volume."""
@@ -553,11 +563,15 @@ _
             dat, aff = self._load_nii(self.b0)
 
             t1_code = DTIRepo().get_t1(self.project, self.code)
-            ssstep = SkullStripStep(self.project, t1_code, self.args)
-            nnicv_path = ssstep.final_icv_mask
-            t2_path = ssstep.t2_path
+            nnicv_path = ''
+            t2_path = ''
 
-            # Running
+            if t1_code:  # Instantiate NNICV base step, get paths from there
+                ssstep = SkullStripStep(self.project, t1_code, self.args)
+                nnicv_path = ssstep.final_icv_mask
+                t2_path = ssstep.t2_path
+
+                # Running
             if os.path.isfile(nnicv_path):
                 self.logger.info('Found NNICV mask!')
                 shutil.copyfile(nnicv_path, self.nnicv)
@@ -570,7 +584,7 @@ _
                 t2_reg, tmap = dti_func.sym_diff_registration(
                     dat, t2, aff, taff)
                 self.logger.info('Warping NNICV mask to average b0')
-                mask = tmap.transform(nnicv)
+                mask = tmap.transform(nnicv, interpolation='nearest')
                 self._save_nii(t2_reg, aff, self.t2_reg)
                 self.comments = "Using NNICV mask"
 
@@ -585,14 +599,6 @@ _
 
         except FileNotFoundError:
             self.next_step = None
-
-    # @classmethod
-    # def get_queue(cls, project_name):
-    #     staged = DTIRepo().get_staged_cases(project_name)
-    #     finished_nnicv = DTIRepo().get_finished_nnicv(project_name)
-    #     to_do = [{'ProjectName': project_name, "Code": row['Code']} for row
-    #             in staged]
-    #     return to_do
 
 
 class MaskQC(BaseQCStep):
