@@ -485,14 +485,6 @@ class Denoise(DTIStep):
         except IOError:
             self.next_step = None
 
-    @classmethod
-    def get_queue(cls, project_name):
-        staged = DTIRepo().get_staged_cases(project_name)
-        todo = [{'ProjectName': project_name, "Code": row['Code']}
-                for row in staged]
-
-        return todo
-
 
 class Register(DTIStep):
     """Rigidly register the DWI to its averaged b0 volume."""
