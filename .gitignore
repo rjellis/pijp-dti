@@ -2,3 +2,4 @@
 pijp_dti/__pycache__/
 dist/
 pijp_dti.egg-info/
+pijp_dti/templates

@@ -98,7 +98,7 @@ class DTIStep(Step):
         self.mask_dir = os.path.join(self.working_dir, '3Mask')
         self.nnicv = os.path.join(self.mask_dir, self.code + '_nnicv.nii.gz')
         self.nnicv_reg = os.path.join(self.mask_dir, self.code +
-                                  '_nnicv_reg.nii.gz')
+                                      '_nnicv_reg.nii.gz')
         self.t2 = os.path.join(self.mask_dir, self.code + '_t2.nii.gz')
         self.t2_reg = os.path.join(self.mask_dir, self.code + '_t2_reg.nii.gz')
 
