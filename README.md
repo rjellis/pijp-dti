@@ -190,6 +190,7 @@ was used. Likewise, `warpqc` will automatically run if `segqc` is passed.
 - In queue mode, `maskqc` will first reopen the last code that was cancelled (but not skipped)
 
 ### pijp.conf
+
 ```
 {
    "nnicv": {
