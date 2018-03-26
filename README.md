@@ -322,3 +322,31 @@ the pipeline is done!
 - Exiting the QC Tool will cancel the queue and stop the pipeline
 - In queue mode, `maskqc` will first reopen the last code that was cancelled (but not skipped)
 
+### pijp.conf
+
+```
+{
+   "nnicv": {
+     "pb_file_dir": "/home/vhasfclanga/skull_strip/resources/"
+   },
+
+   "ants": {
+     "ANTSPATH": "/opt/ants/ants-2017-12-07/bin",
+     "ANTSVERSION": "ants-2017-12-07"
+   },
+
+   "dcm2niix": {
+     "path": "/usr/local/bin/dcm2niix"
+   },
+
+   "dcm2nii": {
+     "path": "/usr/local/bin/dcm2nii"
+   },
+
+   "fsl": {
+     "path": "/opt/fsl/fsl-5.0.10/bin"
+   },
+
+   "fsleyes": "/opt/fsl/fsl-5.0.10/bin/fsleyes"
+ }
+ ```
