@@ -25,6 +25,9 @@ steps: stage, denoise, register, mask, apply, tenfit, warp, seg, stats, maskqc, 
 ```
 
 # Table of Contents
+
+Steps
+
 1. [Stage](#Stage)
 2. [Denoise](#Denoise)
 3. [Register](#Register)
@@ -38,7 +41,12 @@ steps: stage, denoise, register, mask, apply, tenfit, warp, seg, stats, maskqc, 
 11. [SegQC](#SegQC)
 12. [WarpQC](#WarpQC)
 13. [StoreInDatabase](#Store)
-14. [How To](#HowTo)
+
+Etc.
+
+1. [How To](#HowTo)
+2. [Notes](#Notes)
+3. [pijp.conf](#Conf)
 
 ## 1. Stage <a name="Stage"></a>
 
@@ -272,7 +280,7 @@ Step Flag Name: warpqc
 
 Store the CSV's from RoiStats in the database (Imaging.pijp_dti) after passing WarpQC.
 
-# How To <a name="HowTo"></a>
+### How To <a name="HowTo"></a>
 
 1) Use step `stage` to run the pipeline for some code(s)
 
@@ -316,13 +324,15 @@ the QC Tool without submitting. Rerunning this step in queue mode will reopen th
 was used. Likewise, `warpqc` will automatically run if `segqc` is passed. Once `warpqc` is completed,
 the pipeline is done!
 
-### Notes
+### Notes <a name="Notes"></a>
 
 - Generally, step 2 (Denoise) and step 3 (Register) take the longest to complete
 - Exiting the QC Tool will cancel the queue and stop the pipeline
 - In queue mode, `maskqc` will first reopen the last code that was cancelled (but not skipped)
 
-### pijp.conf
+### pijp.conf <a name="Conf"></a>
+
+These paths need to be specified in the `pijp.conf` file in the /etc directory.
 
 ```
 {
