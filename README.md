@@ -337,7 +337,7 @@ These paths need to be specified in the `pijp.conf` file in the /etc directory.
 ```
 {
    "nnicv": {
-     "pb_file_dir": "/home/vhasfclanga/skull_strip/resources/"
+     "pb_file_dir": "/m/Researchers/AlexLang/neuro/SegCNN/skull_stripping/skull_strip/resources/"
    },
 
    "ants": {
@@ -355,8 +355,5 @@ These paths need to be specified in the `pijp.conf` file in the /etc directory.
 
    "fsl": {
      "path": "/opt/fsl/fsl-5.0.10/bin"
-   },
-
-   "fsleyes": "/opt/fsl/fsl-5.0.10/bin/fsleyes"
  }
  ```
