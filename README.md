@@ -72,7 +72,7 @@ Output Files:
 
 **Denoise the DWI using Local PCA**
 
-Denoises the entire 4D shell using Local PCA.
+Denoises the entire 4D DWI shell using Local PCA.
 
 ```
 Step Flag Name: denoise
@@ -86,15 +86,13 @@ Output Files:
 ## 3. Register <a name="Register"></a>
 
 **Rigidly register the diffusion weighted directions to an averaged
-b0 direction**
+b0**
 
 Creates an average b0 volume and rigidly registers all the diffusion
 directions to the average b0 volume to correct for subject motion.
 The b-vectors are updated to reflect the orientation changes due to registration.
-The average volume and the registered image are saved as a compressed
-Niftis and the transformation matrices and updated b-vectors are saved as CSV's. The average b0 volume
-is created by rigidly registering all of the found b0 directions to the first found b0 direction and averaging the voxel
-intensities.
+The average b0 volume is created by rigidly registering all of the found b0 directions
+to the first found b0 direction and time averaging the voxel intensities.
 
 ```
 Step Flag Name: register
@@ -169,8 +167,7 @@ Output Files:
 
 Calculates the eigenvalues and eigenvectors (and more) by fitting the
 DWI to the diffusion tensor model using Weighted Least Squares.
-In addition to the eigenvalues and eigenvectors, various measures of
-anisotropy are also calculated:
+Various measures of anisotropy are also calculated based on the eigenvalues/eigenvectos:
 
 * Fractional Anisotropy (FA)
 * Mean Diffusivity (MD)
@@ -197,9 +194,9 @@ Output Files:
 ## 8. Warp <a name="Warp"></a>
 
 An Atlas's FA is non-linearly registered to the subject FA using
-symmetric diffeomorphic registration. Forward mapping warps the template
-space to the subject space. Inverse mapping warps the subject space
-to the template space.
+symmetric diffeomorphic registration (with the cross correlation metric).
+Forward mapping warps the template space to the subject space.
+Inverse mapping warps the subject space to the template space.
 
 ```
 Step Flag Name: warp
@@ -320,9 +317,8 @@ the QC Tool without submitting. Rerunning this step in queue mode will reopen th
    dti.py -p SampleProject -s segqc
 ```
 
-`segqc` will automatically run for the case if `maskqc` is passed, unless `--nocontinue`
-was used. Likewise, `warpqc` will automatically run if `segqc` is passed. Once `warpqc` is completed,
-the pipeline is done!
+`warpqc` will automatically run if `segqc` is passed. Once `warpqc` is completed, the results will be
+stored in the database and the pipeline will be done!
 
 ### Notes <a name="Notes"></a>
 
