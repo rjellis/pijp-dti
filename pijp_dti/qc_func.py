@@ -50,7 +50,7 @@ def masks_are_same(auto_mask, final_mask):
 
 
 def get_mask_editor():
-    mask_editor = util.configuration['fsleyes']
+    mask_editor = os.path.join(util.configuration['fsl']['path'], 'fsleyes')
     if not os.path.exists(mask_editor):
         raise FileNotFoundError
     return mask_editor
