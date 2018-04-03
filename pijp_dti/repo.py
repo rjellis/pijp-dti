@@ -2,6 +2,8 @@ import csv
 import getpass
 from datetime import datetime
 
+import pijp_nnicv
+
 from pijp.dbprocs import format_string_parameter as fsp
 from pijp.repositories import BaseRepository
 import pijp_dti
@@ -187,8 +189,106 @@ class DTIRepo(BaseRepository):
         WHERE Project = {project}
             AND Process = 'NNICV'
             AND Step = 'QC'
-            AND Outcome = 'Edit'
-        """   .format(project=fsp(project))
+            AND (Outcome = 'Edit' OR Outcome = 'Pass' OR Outcome = 'Fail')
+        """.format(project=fsp(project))
 
         todo = self.connection.fetchall(sql)
         return todo
+
+    def get_nnicv_status(self, project, code):
+
+        sql = r"""
+        SELECT
+            Outcome, CompletedOn
+        FROM ProcessingLog
+        WHERE Project = {project}
+            AND Process = 'NNICV'
+            AND Step = 'QC'
+            AND ScanCode = {code}  
+        ORDER BY CompletedOn DESC          
+        """.format(project=fsp(project), code=fsp(code))
+
+        status = self.connection.fetchone(sql)
+        if status:
+            status = status["Outcome"]
+        return status
+
+    def get_mask_status(self, project, code):
+
+        sql = r"""
+        SELECT
+            Comments
+        FROM ProcessingLog
+        WHERE Project = {project}
+            AND Process = {process}
+            AND Step = 'Mask'
+            AND ScanCode = {code}      
+        ORDER BY
+            CompletedOn DESC      
+        """.format(
+            project=fsp(project), process=fsp(PROCESS_TITLE), code=fsp(code))
+
+        todo = self.connection.fetchone(sql)
+
+        if todo is not None:
+            status = todo["Comments"]
+        else:
+            status = ""
+
+        return status
+
+    def get_unfinished_nnicv(self, project):
+
+        sql = r"""
+        SELECT 
+            ScanCode AS Code
+        FROM 
+            ProcessingLog 
+        WHERE Project = {project}
+            AND Process = 'NNICV' 
+            AND Step = 'NeuralNet' 
+            AND Outcome = 'Done' 
+            AND ScanCode NOT IN 
+                (SELECT DISTINCT ScanCode 
+                    FROM ProcessingLog 
+                    WHERE Process = 'NNICV' 
+                    AND Step = 'QC'
+                    AND (Outcome = 'Pass' OR Outcome = 'Edit')
+                )
+        """.format(project=fsp(project))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
+    def get_finished_mask_qc(self, project):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM
+            ProcessingLog
+        WHERE Project = {project}
+            AND Process = {process}
+            AND Step = 'QC'
+            AND (Outcome = 'Edit' OR Outcome = 'Pass' Or Outcome = 'Fail')
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
+
+project_name = 'NRC'
+staged = DTIRepo().get_staged_cases(project_name)
+nnicv = DTIRepo().get_finished_nnicv(project_name)
+qced = DTIRepo().get_finished_mask_qc(project_name)
+
+staged_codes = [row['Code'] for row in staged]
+nnicv_codes = [row['Code'] for row in nnicv]
+qced_codes = [row["Code"] for row in qced]
+todo = [{'ProjectName': 'NRC', "Code": row} for row in staged_codes if
+        DTIRepo().get_t1('NRC', row) in nnicv_codes and row not in qced_codes]
+
+print(len(staged_codes))
+print(len(nnicv_codes))
+print(len(qced_codes))
+print(len(todo))
