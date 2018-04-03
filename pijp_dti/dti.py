@@ -612,22 +612,26 @@ _
     def reset(self):
         os.remove(self.final_mask)
 
-    # FIXME!
-    #@classmethod
-    #def get_queue(cls, project_name):
-    #    staged = DTIRepo().get_staged_cases(project_name)
-    #    nnicv = DTIRepo().get_finished_nnicv(project_name)
-    #    qced = DTIRepo().get_qcd_masks(project_name)
-    #
-    #    staged_codes = [row['Code'] for row in staged]
-    #    nnicv_codes = [row['Code'] for row in nnicv]
-    #    qcd_codes = [row["Code"] for row in qced]
-    #    todo = [{'ProjectName': project_name, "Code": row}
-    #            for row in staged_codes
-    #            if DTIRepo().get_t1(project_name, row) in nnicv_codes and
-    #            not in qcd_codes]
-    #
-    #    return todo
+    @classmethod
+    def get_queue(cls, project_name):
+
+        staged = DTIRepo().get_staged_cases(project_name)
+        nnicv = DTIRepo().get_finished_nnicv(project_name)
+        staged_nnicv = DTIRepo().get_staged_nnicv(project_name)
+        finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
+
+        staged_codes = [row['Code'] for row in staged]
+        nnicv_codes = [row['Code'] for row in nnicv]
+        staged_nnicv_codes = [row["Code"] for row in staged_nnicv]
+        finished_mask_qc_codes = [row["Code"] for row in finished_mask_qc]
+
+        todo = [{'ProjectName': project_name, "Code": row}
+                for row in staged_codes
+                if DTIRepo().get_t1(project_name, row) in nnicv_codes
+                and row not in staged_nnicv_codes
+                and row not in finished_mask_qc_codes]
+
+        return todo
 
 
 class MaskQC(BaseQCStep):
