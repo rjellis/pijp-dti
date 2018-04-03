@@ -1,5 +1,4 @@
 import csv
-import gzip
 import os
 import tempfile
 import shutil
@@ -23,7 +22,7 @@ from pijp.exceptions import (ProcessingError, NoLogProcessingError,
 from pijp_nnicv.nnicv import SkullStripStep
 
 import pijp_dti
-from pijp_dti import dti_func, qc_main
+from pijp_dti import dti_func, qc_main, qc_func
 from pijp_dti.repo import DTIRepo
 
 
@@ -201,14 +200,9 @@ class DTIStep(Step):
             raise e
 
     def _save_nii(self, dat, aff, fname):
+        self.logger.info(f"saving {fname.split('/')[-1]}")
         img = nib.Nifti1Image(dat, aff)
-        path = fname.rstrip('.gz')
-        nib.save(img, path)
-        with open(path, 'rb') as f_in:
-            with gzip.open(fname, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
-        os.remove(path)
-        self.logger.info('saving {}'.format(fname.split('/')[-1]))
+        img.to_filename(fname)
 
     def _run_cmd(self, cmd):
         self.logger.debug(cmd)
@@ -295,7 +289,7 @@ class BaseQCStep(DTIStep):
             self.set_qc_params()
 
             result, comments = qc_main.main(
-                self.code, self.mode,
+                self.project, self.code, self.mode,
                 self.image, self.overlay, self.overlay_original,
                 disable_edit=self.disable_edit)
             self.outcome = result
@@ -557,14 +551,17 @@ _
             t1_code = DTIRepo().get_t1(self.project, self.code)
             nnicv_path = ''
             t2_path = ''
+            status = ''
 
             if t1_code:  # Instantiate NNICV base step, get paths from there
                 ssstep = SkullStripStep(self.project, t1_code, self.args)
                 nnicv_path = ssstep.final_icv_mask
                 t2_path = ssstep.t2_path
+                status = DTIRepo().get_nnicv_status(self.project, t1_code)
 
-                # Running
+            # Running
             if os.path.isfile(nnicv_path):
+
                 self.logger.info('Found NNICV mask!')
                 shutil.copyfile(nnicv_path, self.nnicv)
                 shutil.copyfile(t2_path, self.t2)
@@ -578,19 +575,59 @@ _
                 self.logger.info('Applying transform to NNICV mask')
                 mask = tmap.transform(nnicv, interpolation='nearest')
                 self._save_nii(t2_reg, aff, self.t2_reg)
-                self.comments = "Using NNICV mask"
+                if status == 'Pass' or status == 'Edit':
+                    self.comments = "Used NNICV final mask."
+                else:
+                    self.comments = "Used NNICV auto mask."
 
             else:
                 self.logger.info('Masking the average b0 volume')
                 mask = dti_func.mask(dat)
-                self.comments = "Using Otsu mask"
+                if status == "Fail":
+                    self.comments = "Found failed NNICV mask. Used Otsu mask."
+                elif not t1_code:
+                    self.comments = "Couldn't Find T1! Used Otsu mask."
+                else:
+                    self.comments = "Couldn't find NNICV mask! Used Otsu mask."
 
             # Saving
-            self._save_nii(mask, aff, self.auto_mask)
-            shutil.copyfile(self.auto_mask, self.final_mask)
+            if os.path.isfile(self.auto_mask) and os.path.isfile(
+                    self.final_mask):
+                if qc_func.masks_are_same(self.auto_mask, self.final_mask):
+                    self._save_nii(mask, aff, self.auto_mask)
+                    shutil.copyfile(self.auto_mask, self.final_mask)
+                else:
+                    self.outcome = 'Error'
+                    self.logger.error("Mask has already been edited! "
+                                      "Use --force to reset.")
+                    self.comments = "Mask has already been edited!"
+
+            elif not os.path.isfile(self.auto_mask):
+                self._save_nii(mask, aff, self.auto_mask)
+                shutil.copyfile(self.auto_mask, self.final_mask)
 
         except FileNotFoundError:
             self.next_step = None
+
+    def reset(self):
+        os.remove(self.final_mask)
+
+    # FIXME!
+    #@classmethod
+    #def get_queue(cls, project_name):
+    #    staged = DTIRepo().get_staged_cases(project_name)
+    #    nnicv = DTIRepo().get_finished_nnicv(project_name)
+    #    qced = DTIRepo().get_qcd_masks(project_name)
+    #
+    #    staged_codes = [row['Code'] for row in staged]
+    #    nnicv_codes = [row['Code'] for row in nnicv]
+    #    qcd_codes = [row["Code"] for row in qced]
+    #    todo = [{'ProjectName': project_name, "Code": row}
+    #            for row in staged_codes
+    #            if DTIRepo().get_t1(project_name, row) in nnicv_codes and
+    #            not in qcd_codes]
+    #
+    #    return todo
 
 
 class MaskQC(BaseQCStep):
@@ -615,9 +652,15 @@ class MaskQC(BaseQCStep):
     @classmethod
     def get_next(cls, project_name, args):
         cases = DTIRepo().get_masks_to_qc(project_name)
+        unfinshed_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
+
+        unfinished_codes = [x["Code"] for x in unfinshed_nnicv]
+
+        cases = [x["Code"] for x in cases if DTIRepo().get_t1(
+                project_name, x["Code"]) not in unfinished_codes]
+
         LOGGER.info("%s cases in queue." % len(cases))
 
-        cases = [x["Code"] for x in cases]
         last_job = DTIRepo().find_where_left_off(project_name, 'MaskQC')
 
         while len(cases) != 0:
@@ -625,11 +668,13 @@ class MaskQC(BaseQCStep):
                     and last_job['Outcome'] == 'Cancelled'
                     and last_job['Comments'] != 'skipped'):
                 code = last_job["Code"]
-                cases.remove(code)
+                if code in cases:
+                    cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
             else:
                 code = random.choice(cases)
-                cases.remove(code)
+                if code in cases:
+                    cases.remove(code)
                 next_job = MaskQC(project_name, code, args)
 
             if not next_job.under_review():
@@ -842,13 +887,13 @@ class RoiStats(DTIStep):
             original = nib.load(self.fdwi)
             zooms = original.header.get_zooms()  # Returns voxel size
 
+            # Running and Saving
             measures = {'fa': [fa, self.fa_roi],
                         'md': [md, self.md_roi],
                         'ga': [ga, self.ga_roi],
                         'ad': [ad, self.ad_roi],
                         'rd': [rd, self.rd_roi]}
 
-            # Running and Saving
             self.logger.info('Calculating roi statistics')
             for idx in measures.values():
                 stats = dti_func.roi_stats(
