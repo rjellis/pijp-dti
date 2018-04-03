@@ -657,11 +657,14 @@ class MaskQC(BaseQCStep):
     def get_next(cls, project_name, args):
         cases = DTIRepo().get_masks_to_qc(project_name)
         unfinshed_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
+        finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
 
         unfinished_codes = [x["Code"] for x in unfinshed_nnicv]
+        finished_mask_qc_codes = [x["Code"] for x in finished_mask_qc]
 
         cases = [x["Code"] for x in cases if DTIRepo().get_t1(
-                project_name, x["Code"]) not in unfinished_codes]
+                project_name, x["Code"]) not in unfinished_codes
+                and x["Code"] not in finished_mask_qc_codes]
 
         LOGGER.info("%s cases in queue." % len(cases))
 
