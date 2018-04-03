@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(900, 578)
+        MainWindow.resize(900, 589)
         MainWindow.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         MainWindow.setStyleSheet("")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
@@ -48,6 +48,12 @@ class Ui_MainWindow(object):
         self.label_code.setAlignment(QtCore.Qt.AlignCenter)
         self.label_code.setObjectName("label_code")
         self.verticalLayout_3.addWidget(self.label_code)
+        self.label_status = QtWidgets.QLabel(self.centralwidget)
+        self.label_status.setStyleSheet("color: rgb(85, 85, 255);\n"
+"font: 81 9pt \"Open Sans\";")
+        self.label_status.setText("")
+        self.label_status.setObjectName("label_status")
+        self.verticalLayout_3.addWidget(self.label_status, 0, QtCore.Qt.AlignHCenter)
         spacerItem1 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout_3.addItem(spacerItem1)
         self.button_open = QtWidgets.QPushButton(self.centralwidget)

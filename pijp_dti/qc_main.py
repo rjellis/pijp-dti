@@ -8,15 +8,16 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from pijp_dti import qc_design, qc_func
+from pijp_dti import qc_design, qc_func, repo
 
 
 class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
-    def __init__(self, code, mode, image_path, overlay_path,
+    def __init__(self, project, code, mode, image_path, overlay_path,
                  overlay_original_path, disable_edit, parent=None):
         super(QCApp, self).__init__(parent)
 
+        self.project = project
         self.code = code
         self.mode = mode
         self.image_path = image_path
@@ -59,7 +60,8 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             self.button_edit.deleteLater()
         else:
             self.group_button.addButton(self.button_edit)
-
+        if self.mode == 'MaskQC':
+            self.set_status()
         self.group_button.addButton(self.button_fail)
 
     def skip(self):
@@ -176,6 +178,19 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
         self.overlay = qc_func.load_overlay(self.overlay_path)
         self.plot.update_figure(self.image, self.overlay)
 
+    def set_status(self):
+        status = repo.DTIRepo().get_mask_status(self.project, self.code)
+
+
+        if status.find("Used NNICV final mask.") != -1:
+            self.label_status.setText("Status: " + status)
+            self.label_status.setStyleSheet(
+                "color: rgb(0, 184, 148);\n""font: 81 9pt \"Open Sans\";")
+        else:
+            self.label_status.setText("Warning! " + status)
+            self.label_status.setStyleSheet(
+                "color: rgb(214, 48, 49);\n""font: 81 9pt \"Open Sans\";")
+
     def change_alpha(self):
         self.plot.update_alpha(self.slider_opacity.value()/100)
 
@@ -251,11 +266,12 @@ class MyMplCanvas(FigureCanvas):
         self.update_slice(delta)
 
 
-def main(code, mode, image_path, overlay_path, overlay_original_path,
+def main(project, code, mode, image_path, overlay_path, overlay_original_path,
          disable_edit=False):
 
     app = QtWidgets.QApplication([])
-    form = QCApp(code, mode, image_path, overlay_path, overlay_original_path,
+    form = QCApp(project, code, mode, image_path, overlay_path,
+                 overlay_original_path,
                  disable_edit)
     form.show()
 
