@@ -5,5 +5,3 @@ dipy
 nibabel
 pymssql
 pyqt5
-git+https://github.com/cind/pijp@devlop
-git+https://github.com/cind/pijp-nnicv@master
