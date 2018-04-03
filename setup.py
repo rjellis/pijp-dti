@@ -15,7 +15,9 @@ setup(
         "dipy",
         "nibabel",
         "pymssql",
-        "pyqt5"
+        "pyqt5",
+        "pijp",
+        "pijp_nnicv",
     ],
     entry_points="""
         [console_scripts]
