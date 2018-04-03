@@ -351,5 +351,6 @@ These paths need to be specified in the `pijp.conf` file in the /etc directory.
 
    "fsl": {
      "path": "/opt/fsl/fsl-5.0.10/bin"
+   }
  }
  ```
