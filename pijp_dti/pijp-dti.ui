@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>900</width>
-    <height>578</height>
+    <height>589</height>
    </rect>
   </property>
   <property name="cursor">
@@ -82,6 +82,17 @@ font: 81 13pt &quot;Open Sans&quot;;</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QLabel" name="label_status">
+          <property name="styleSheet">
+           <string notr="true">color: rgb(85, 85, 255);
+font: 81 9pt &quot;Open Sans&quot;;</string>
+          </property>
+          <property name="text">
+           <string/>
           </property>
          </widget>
         </item>
