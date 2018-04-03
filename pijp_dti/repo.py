@@ -2,8 +2,6 @@ import csv
 import getpass
 from datetime import datetime
 
-import pijp_nnicv
-
 from pijp.dbprocs import format_string_parameter as fsp
 from pijp.repositories import BaseRepository
 import pijp_dti
@@ -269,26 +267,27 @@ class DTIRepo(BaseRepository):
             ProcessingLog
         WHERE Project = {project}
             AND Process = {process}
-            AND Step = 'QC'
+            AND Step = 'MaskQC'
             AND (Outcome = 'Edit' OR Outcome = 'Pass' Or Outcome = 'Fail')
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
 
+    def get_staged_nnicv(self, project):
 
-project_name = 'NRC'
-staged = DTIRepo().get_staged_cases(project_name)
-nnicv = DTIRepo().get_finished_nnicv(project_name)
-qced = DTIRepo().get_finished_mask_qc(project_name)
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM
+            ProcessingLog
+        WHERE
+            Project = {project}
+            AND Process = {process}
+            AND Step = 'Mask'
+            AND Comments = 'Used NNICV final mask.'        
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
-staged_codes = [row['Code'] for row in staged]
-nnicv_codes = [row['Code'] for row in nnicv]
-qced_codes = [row["Code"] for row in qced]
-todo = [{'ProjectName': 'NRC', "Code": row} for row in staged_codes if
-        DTIRepo().get_t1('NRC', row) in nnicv_codes and row not in qced_codes]
+        todo = self.connection.fetchall(sql)
+        return todo
 
-print(len(staged_codes))
-print(len(nnicv_codes))
-print(len(qced_codes))
-print(len(todo))
