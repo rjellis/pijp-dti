@@ -251,7 +251,8 @@ class DTIRepo(BaseRepository):
                     FROM ProcessingLog 
                     WHERE Process = 'NNICV' 
                     AND Step = 'QC'
-                    AND (Outcome = 'Pass' OR Outcome = 'Edit')
+                    AND (Outcome = 'Pass' OR Outcome = 'Edit' OR Outcome = 
+                    'Fail')
                 )
         """.format(project=fsp(project))
 
@@ -285,9 +286,11 @@ class DTIRepo(BaseRepository):
             Project = {project}
             AND Process = {process}
             AND Step = 'Mask'
-            AND Comments = 'Used NNICV final mask.'        
+            AND (Comments = 'Used NNICV final mask.' OR
+                 Comments = 'Found failed NNICV mask. Used Otsu mask.')
+            AND (Outcome = 'Done' OR Outcome = 'Error')
+          
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
         return todo
-
