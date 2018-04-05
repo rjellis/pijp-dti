@@ -114,7 +114,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             qc_func.open_editor(self.image_path, self.overlay_path)
             self.detect_edits()
 
-        except FileNotFoundError:
+        except (KeyError, FileNotFoundError):
             msg = QtWidgets.QMessageBox(self.centralwidget)
             msg.setIcon(msg.Critical)
             msg.setWindowTitle("QC Tool")
@@ -181,13 +181,12 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
     def set_status(self):
         status = repo.DTIRepo().get_mask_status(self.project, self.code)
 
-
         if status.find("Used NNICV final mask.") != -1:
             self.label_status.setText("Status: " + status)
             self.label_status.setStyleSheet(
                 "color: rgb(0, 184, 148);\n""font: 81 9pt \"Open Sans\";")
         else:
-            self.label_status.setText("Warning! " + status)
+            self.label_status.setText("Warning: " + status)
             self.label_status.setStyleSheet(
                 "color: rgb(214, 48, 49);\n""font: 81 9pt \"Open Sans\";")
 
