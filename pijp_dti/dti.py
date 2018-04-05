@@ -560,7 +560,7 @@ _
                 status = DTIRepo().get_nnicv_status(self.project, t1_code)
 
             # Running
-            if os.path.isfile(nnicv_path):
+            if os.path.isfile(nnicv_path) and status != 'Fail':
 
                 self.logger.info('Found NNICV mask!')
                 shutil.copyfile(nnicv_path, self.nnicv)
@@ -625,11 +625,13 @@ _
         staged_nnicv_codes = [row["Code"] for row in staged_nnicv]
         finished_mask_qc_codes = [row["Code"] for row in finished_mask_qc]
 
-        todo = [{'ProjectName': project_name, "Code": row}
-                for row in staged_codes
-                if DTIRepo().get_t1(project_name, row) in nnicv_codes
-                and row not in staged_nnicv_codes
-                and row not in finished_mask_qc_codes]
+        todo = [
+            {'ProjectName': project_name, "Code": row}
+            for row in staged_codes
+            if DTIRepo().get_t1(project_name, row) in nnicv_codes
+            and row not in staged_nnicv_codes
+            and row not in finished_mask_qc_codes
+        ]
 
         return todo
 
@@ -659,12 +661,15 @@ class MaskQC(BaseQCStep):
         unfinshed_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
         finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
 
-        unfinished_codes = [x["Code"] for x in unfinshed_nnicv]
+        unfin_codes = [x["Code"] for x in unfinshed_nnicv]
         finished_mask_qc_codes = [x["Code"] for x in finished_mask_qc]
 
-        cases = [x["Code"] for x in cases if DTIRepo().get_t1(
-                project_name, x["Code"]) not in unfinished_codes
-                and x["Code"] not in finished_mask_qc_codes]
+        cases = [
+            x["Code"] for x in cases
+            if DTIRepo().get_t1(project_name, x["Code"])
+            not in unfin_codes
+            and x["Code"] not in finished_mask_qc_codes
+        ]
 
         LOGGER.info("%s cases in queue." % len(cases))
 
