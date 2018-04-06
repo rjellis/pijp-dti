@@ -56,10 +56,21 @@ def get_mask_editor():
     return mask_editor
 
 
-def open_editor(img, overlay):
-    editor = get_mask_editor()
-    cmd = "{mask_editor} -xh -yh {img} {overlay} -a 40 -cm Red".format(mask_editor=editor, img=img,
-                                                                       overlay=overlay)
+def open_editor(img, overlay, mode):
+    mask_editor = get_mask_editor()
+    if mode == 'MaskQC':
+        cmd = "{mask_editor} -hc -xh -yh {img} {overlay} -a 40 -cm red".format(
+            mask_editor=mask_editor, img=img, overlay=overlay)
+    elif mode == 'SegQC':
+        cmd = "{mask_editor} -hc -xh -yh {img} {overlay} -a 40 -cm red".format(
+            mask_editor=mask_editor, img=img, overlay=overlay)
+    elif mode == 'WarpQC':
+        cmd = "{mask_editor} -yh {img} {overlay} -a 40 -cm " \
+              "cortical".format(
+            mask_editor=mask_editor, img=img, overlay=overlay)
+    else:
+        cmd = ''
     args = cmd.split()
+    return subprocess.Popen(args, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
 
-    return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

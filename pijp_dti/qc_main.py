@@ -111,7 +111,7 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
 
     def open_editor(self):
         try:
-            qc_func.open_editor(self.image_path, self.overlay_path)
+            qc_func.open_editor(self.image_path, self.overlay_path, self.mode)
             self.detect_edits()
 
         except (KeyError, FileNotFoundError):
