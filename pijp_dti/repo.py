@@ -294,3 +294,53 @@ class DTIRepo(BaseRepository):
 
         todo = self.connection.fetchall(sql)
         return todo
+
+    def check_seg_qc_pass(self, project, code):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code, Outcome, CompletedOn
+        FROM
+            ProcessingLog
+        WHERE
+            Project = {project}
+        AND 
+            Process = {process}
+        AND
+            ScanCode = {code}
+        AND Step = 'SegQC'
+        AND (Outcome = 'Pass' OR Outcome = 'Fail' OR Outcome = 'Error')
+        ORDER BY CompletedOn DESC
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE),
+                   code=fsp(code))
+        todo = self.connection.fetchone(sql)
+        if todo:
+            todo = todo["Outcome"]
+        else:
+            todo = ''
+        return todo
+
+    def check_warp_qc_pass(self, project, code):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code, Outcome, CompletedOn
+        FROM
+            ProcessingLog
+        WHERE
+            Project = {project}
+        AND 
+            Process = {process}
+        AND
+            ScanCode = {code}
+        AND Step = 'WarpQC'
+        AND (Outcome = 'Pass' OR Outcome = 'Fail' OR Outcome = 'Error')
+        ORDER BY CompletedOn DESC
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE),
+                   code=fsp(code))
+        todo = self.connection.fetchone(sql)
+        if todo:
+            todo = todo["Outcome"]
+        else:
+            todo = ''
+        return todo
