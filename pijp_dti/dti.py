@@ -990,14 +990,28 @@ class StoreInDatabase(DTIStep):
         Loads the CSVs and stores them in a single database table.
 
         """
+
+
         self.logger.info("Storing in database")
         proj_id = DTIRepo().get_project_id(self.project)
         proj_id = proj_id['ProjectID']
 
         try:
-            DTIRepo().set_roi_stats(proj_id, self.code, self.md_roi,
-                                    self.fa_roi, self.ga_roi,
-                                    self.rd_roi, self.ad_roi)
+            if DTIRepo().check_seg_qc_pass(
+                    self.project, self.code) == 'Pass':
+                if DTIRepo().check_warp_qc_pass(
+                        self.project, self.code) == 'Pass':
+
+                    DTIRepo().set_roi_stats(proj_id, self.code, self.md_roi,
+                                            self.fa_roi, self.ga_roi,
+                                            self.rd_roi, self.ad_roi)
+
+                else:
+                    self.outcome = 'Error'
+                    self.logger.error(f"{self.code} did not pass WarpQC!")
+            else:
+                self.outcome = 'Error'
+                self.logger.error(f"{self.code} did not pass SegQC!")
 
         except pymssql.IntegrityError as e:
             self.outcome = 'Error'
