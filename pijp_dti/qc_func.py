@@ -66,7 +66,7 @@ def open_editor(img, overlay, mode):
             mask_editor=mask_editor, img=img, overlay=overlay)
     elif mode == 'WarpQC':
         cmd = "{mask_editor} -yh {img} {overlay} -a 40 -cm " \
-              "cortical".format(
+              "red".format(
             mask_editor=mask_editor, img=img, overlay=overlay)
     else:
         cmd = ''
