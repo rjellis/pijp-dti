@@ -203,6 +203,10 @@ class DTIRepo(BaseRepository):
             AND Process = 'NNICV'
             AND Step = 'QC'
             AND ScanCode = {code}  
+            AND NOT (
+                Outcome = 'Cancelled' 
+                OR Outcome = 'Queued' 
+                OR Outcome = 'Initiated')
         ORDER BY CompletedOn DESC          
         """.format(project=fsp(project), code=fsp(code))
 
@@ -288,7 +292,25 @@ class DTIRepo(BaseRepository):
             AND Step = 'Mask'
             AND (Comments = 'Used NNICV final mask.' OR
                  Comments = 'Found failed NNICV mask. Used Otsu mask.')
-            AND (Outcome = 'Done' OR Outcome = 'Error')
+            AND (Outcome = 'Done')
+          
+        """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
+
+        todo = self.connection.fetchall(sql)
+        return todo
+
+    def get_failed_mask(self, project):
+
+        sql = r"""
+        SELECT
+            ScanCode AS Code
+        FROM
+            ProcessingLog
+        WHERE
+            Project = {project}
+            AND Process = {process}
+            AND Step = 'Mask'
+            AND Outcome = 'Error'
           
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 

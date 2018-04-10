@@ -619,11 +619,13 @@ _
         nnicv = DTIRepo().get_finished_nnicv(project_name)
         staged_nnicv = DTIRepo().get_staged_nnicv(project_name)
         finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
+        failed_masks = DTIRepo().get_failed_mask(project_name)
 
         staged_codes = [row['Code'] for row in staged]
         nnicv_codes = [row['Code'] for row in nnicv]
         staged_nnicv_codes = [row["Code"] for row in staged_nnicv]
         finished_mask_qc_codes = [row["Code"] for row in finished_mask_qc]
+        failed_mask_codes = [row['Code'] for row in failed_masks]
 
         todo = [
             {'ProjectName': project_name, "Code": row}
@@ -631,6 +633,7 @@ _
             if DTIRepo().get_t1(project_name, row) in nnicv_codes
             and row not in staged_nnicv_codes
             and row not in finished_mask_qc_codes
+            and row not in failed_mask_codes
         ]
 
         return todo
@@ -990,7 +993,6 @@ class StoreInDatabase(DTIStep):
         Loads the CSVs and stores them in a single database table.
 
         """
-
 
         self.logger.info("Storing in database")
         proj_id = DTIRepo().get_project_id(self.project)
