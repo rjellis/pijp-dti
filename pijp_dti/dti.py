@@ -72,6 +72,7 @@ class DTIStep(Step):
         """
         super(DTIStep, self).__init__(project, code, args)
 
+        self.mem = 2048
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
 
