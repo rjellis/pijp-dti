@@ -206,13 +206,17 @@ class DTIRepo(BaseRepository):
             AND NOT (
                 Outcome = 'Cancelled' 
                 OR Outcome = 'Queued' 
-                OR Outcome = 'Initiated')
-        ORDER BY CompletedOn DESC          
+                OR Outcome = 'Initiated'
+                OR Outcome = 'None')
+        ORDER BY CompletedOn DESC
+                  
         """.format(project=fsp(project), code=fsp(code))
 
         status = self.connection.fetchone(sql)
         if status:
             status = status["Outcome"]
+        elif status is None:
+            status = 'No NNICV result found'
         return status
 
     def get_mask_status(self, project, code):
