@@ -71,7 +71,7 @@ class DTIStep(Step):
 
         """
         super(DTIStep, self).__init__(project, code, args)
-
+        self.cpu = 2
         self.mem = 2048
         self.working_dir = get_case_dir(project, code)
         self.logdir = os.path.join(get_process_dir(project), 'logs', code)
@@ -622,19 +622,13 @@ _
         finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
         failed_masks = DTIRepo().get_failed_mask(project_name)
 
-        staged_codes = [row['Code'] for row in staged]
-        nnicv_codes = [row['Code'] for row in nnicv]
-        staged_nnicv_codes = [row["Code"] for row in staged_nnicv]
-        finished_mask_qc_codes = [row["Code"] for row in finished_mask_qc]
-        failed_mask_codes = [row['Code'] for row in failed_masks]
-
         todo = [
-            {'ProjectName': project_name, "Code": row}
-            for row in staged_codes
-            if DTIRepo().get_t1(project_name, row) in nnicv_codes
-            and row not in staged_nnicv_codes
-            and row not in finished_mask_qc_codes
-            and row not in failed_mask_codes
+            {'ProjectName': project_name, "Code": row["Code"]}
+            for row in staged
+            if DTIRepo().get_t1(project_name, row["Code"]) in nnicv
+            and row["Code"] not in staged_nnicv
+            and row["Code"] not in finished_mask_qc
+            and row["Code"] not in failed_masks
         ]
 
         return todo
@@ -662,17 +656,14 @@ class MaskQC(BaseQCStep):
     @classmethod
     def get_next(cls, project_name, args):
         cases = DTIRepo().get_masks_to_qc(project_name)
-        unfinshed_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
+        unfinished_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
         finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
-
-        unfin_codes = [x["Code"] for x in unfinshed_nnicv]
-        finished_mask_qc_codes = [x["Code"] for x in finished_mask_qc]
 
         cases = [
             x["Code"] for x in cases
             if DTIRepo().get_t1(project_name, x["Code"])
-            not in unfin_codes
-            and x["Code"] not in finished_mask_qc_codes
+            not in unfinished_nnicv
+            and x["Code"] not in finished_mask_qc
         ]
 
         LOGGER.info("%s cases in queue." % len(cases))
