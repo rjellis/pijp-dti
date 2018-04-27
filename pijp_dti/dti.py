@@ -549,47 +549,54 @@ _
             # Loading
             dat, aff = self._load_nii(self.b0)
 
-            t1_code = DTIRepo().get_t1(self.project, self.code)
-            nnicv_path = ''
-            t2_path = ''
-            status = ''
+            use_nnicv = DTIRepo().get_project_settings(self.project)[
+                'UseNNICV']
 
-            if t1_code:  # Instantiate NNICV base step, get paths from there
-                ssstep = SkullStripStep(self.project, t1_code, self.args)
-                nnicv_path = ssstep.final_icv_mask
-                t2_path = ssstep.t2_path
+            t1_code = DTIRepo().get_t1(self.project, self.code)
+
+            if t1_code and use_nnicv:
+                # Instantiate NNICV base step, get paths from there
+                ss_step = SkullStripStep(self.project, t1_code, self.args)
+                nnicv_path = ss_step.final_icv_mask
+                t2_path = ss_step.t2_path
                 status = DTIRepo().get_nnicv_status(self.project, t1_code)
 
-            # Running
-            if os.path.isfile(nnicv_path) and status != 'Fail':
+                # Running
+                if os.path.isfile(nnicv_path) and status != 'Fail':
 
-                self.logger.info('Found NNICV mask!')
-                shutil.copyfile(nnicv_path, self.nnicv)
-                shutil.copyfile(t2_path, self.t2)
+                    self.logger.info('Found NNICV mask!')
+                    shutil.copyfile(nnicv_path, self.nnicv)
+                    shutil.copyfile(t2_path, self.t2)
 
-                nnicv, naff = self._load_nii(self.nnicv)
-                t2, taff = self._load_nii(self.t2)
+                    nnicv, naff = self._load_nii(self.nnicv)
+                    t2, taff = self._load_nii(self.t2)
 
-                self.logger.info('Warping T2 to average b0')
-                t2_reg, tmap = dti_func.sym_diff_registration(
-                    dat, t2, aff, taff)
-                self.logger.info('Applying transform to NNICV mask')
-                mask = tmap.transform(nnicv, interpolation='nearest')
-                self._save_nii(t2_reg, aff, self.t2_reg)
-                if status == 'Pass' or status == 'Edit':
-                    self.comments = "Used NNICV final mask."
+                    self.logger.info('Warping T2 to average b0')
+                    t2_reg, tmap = dti_func.sym_diff_registration(
+                        dat, t2, aff, taff)
+                    self.logger.info('Applying transform to NNICV mask')
+                    mask = tmap.transform(nnicv, interpolation='nearest')
+                    self._save_nii(t2_reg, aff, self.t2_reg)
+
+                    if status == 'Pass' or status == 'Edit':
+                        self.comments = "Used NNICV final mask."
+                    else:
+                        self.comments = "Used NNICV auto mask."
+
                 else:
-                    self.comments = "Used NNICV auto mask."
+                    self.logger.info('Masking the average b0 volume')
+                    mask = dti_func.mask(dat)
+                    if status == "Fail":
+                        self.comments = "Found failed NNICV mask. Used Otsu mask."
+                    elif not t1_code:
+                        self.comments = "Couldn't Find T1! Used Otsu mask."
+                    else:
+                        self.comments = "Couldn't find NNICV mask! Used Otsu mask."
 
             else:
                 self.logger.info('Masking the average b0 volume')
                 mask = dti_func.mask(dat)
-                if status == "Fail":
-                    self.comments = "Found failed NNICV mask. Used Otsu mask."
-                elif not t1_code:
-                    self.comments = "Couldn't Find T1! Used Otsu mask."
-                else:
-                    self.comments = "Couldn't find NNICV mask! Used Otsu mask."
+                self.comments = "Used Otsu mask."
 
             # Saving
             if os.path.isfile(self.auto_mask) and os.path.isfile(
@@ -616,20 +623,24 @@ _
     @classmethod
     def get_queue(cls, project_name):
 
-        staged = DTIRepo().get_staged_cases(project_name)
-        nnicv = DTIRepo().get_finished_nnicv(project_name)
-        staged_nnicv = DTIRepo().get_staged_nnicv(project_name)
-        finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
-        failed_masks = DTIRepo().get_failed_mask(project_name)
+        if DTIRepo().get_project_settings(project_name)['UseNNICV']:
+            staged = DTIRepo().get_staged_cases(project_name)
+            nnicv = DTIRepo().get_finished_nnicv(project_name)
+            staged_nnicv = DTIRepo().get_staged_nnicv(project_name)
+            finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
+            failed_masks = DTIRepo().get_failed_mask(project_name)
 
-        todo = [
-            {'ProjectName': project_name, "Code": row["Code"]}
-            for row in staged
-            if DTIRepo().get_t1(project_name, row["Code"]) in nnicv
-            and row["Code"] not in staged_nnicv
-            and row["Code"] not in finished_mask_qc
-            and row["Code"] not in failed_masks
-        ]
+            todo = [
+                {'ProjectName': project_name, "Code": row["Code"]}
+                for row in staged
+                if DTIRepo().get_t1(project_name, row["Code"]) in nnicv
+                and row["Code"] not in staged_nnicv
+                and row["Code"] not in finished_mask_qc
+                and row["Code"] not in failed_masks
+            ]
+
+        else:
+            todo = ''
 
         return todo
 
@@ -659,12 +670,17 @@ class MaskQC(BaseQCStep):
         unfinished_nnicv = DTIRepo().get_unfinished_nnicv(project_name)
         finished_mask_qc = DTIRepo().get_finished_mask_qc(project_name)
 
-        cases = [
-            x["Code"] for x in cases
-            if DTIRepo().get_t1(project_name, x["Code"])
-            not in unfinished_nnicv
-            and x["Code"] not in finished_mask_qc
-        ]
+        if DTIRepo().get_project_settings(project_name)['UseNNICV']:
+            cases = [
+                x["Code"] for x in cases
+                if DTIRepo().get_t1(project_name, x["Code"])
+                not in unfinished_nnicv
+                and x["Code"] not in finished_mask_qc
+            ]
+        else:
+            cases = [
+                x["Code"] for x in cases if x["Code"] not in finished_mask_qc
+            ]
 
         LOGGER.info("%s cases in queue." % len(cases))
 
@@ -979,6 +995,11 @@ class StoreInDatabase(DTIStep):
     def __init__(self, project, code, args):
         super(StoreInDatabase, self).__init__(project, code, args)
 
+        if DTIRepo().get_project_settings(self.project)['SaveMNI']:
+            self.next_step = SaveInMNI
+        else:
+            self.next_step = None
+
     def run(self):
         """Runs `StoreInDatabase`
 
@@ -1012,6 +1033,7 @@ class StoreInDatabase(DTIStep):
             self.comments = str(e)
             self.logger.error(f"Code {self.code} is already in the database! "
                               f"Use --force to reset.")
+            self.next_step = None
 
     def reset(self):
         self.logger.info("Removing {} from database".format(self.code))
@@ -1053,7 +1075,9 @@ class SaveInMNI(DTIStep):
             self._save_nii(rd_warp, aff, self.rd_warp)
             self._save_nii(ad_warp, aff, self.ad_warp)
 
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            self.outcome = 'Fail'
+            self.comments = str(e)
             self.next_step = None
 
 

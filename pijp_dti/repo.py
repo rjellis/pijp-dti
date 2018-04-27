@@ -11,9 +11,37 @@ PROCESS_TITLE = pijp_dti.__process_title__
 
 
 class DTIRepo(BaseRepository):
+
     def __init__(self):
         super().__init__()
         self.connection.setdb('imaging')
+
+    def get_project_id(self, project):
+        sql = r"""
+        SELECT ProjectID FROM Projects WHERE ProjectName = {}
+        """.format(fsp(project))
+
+        project_id = self.connection.fetchone(sql)
+
+        if project_id:
+            project_id = project_id["ProjectID"]
+
+        return project_id
+
+    def get_project_settings(self, project):
+
+        sql = r"""
+        SELECT
+            UseNNICV,
+            SaveMNI
+        FROM
+            ProjectPijpDTI
+        WHERE
+            ProjectID = {proj_id}
+        """.format(proj_id=(self.get_project_id(project)))
+
+        todo = self.connection.fetchall(sql)
+        return todo
 
     def get_project_dtis(self, project):
 
@@ -136,14 +164,6 @@ class DTIRepo(BaseRepository):
         """.format(project_id=project_id['ProjectID'], code=fsp(code))
 
         self.connection.execute_non_query(sql)
-
-    def get_project_id(self, project):
-        sql = r"""
-        SELECT ProjectID FROM Projects WHERE ProjectName = {}
-        """.format(fsp(project))
-
-        project_id = self.connection.fetchone(sql)
-        return project_id
 
     def find_where_left_off(self, project, step):
 
