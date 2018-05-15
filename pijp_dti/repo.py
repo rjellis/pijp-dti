@@ -16,6 +16,24 @@ class DTIRepo(BaseRepository):
         super().__init__()
         self.connection.setdb('imaging')
 
+    def get_scancode(self, code):
+         sql = r"""
+         SELECT 
+             ScanCode as Code
+         FROM 
+             dbo.DicomSeries se
+         INNER JOIN
+             dbo.DicomStudies st
+         ON
+             se.StudyInstanceUID = st.StudyInstanceUID
+         WHERE
+             SeriesCode = {code}
+         """.format(code=fsp(code))
+
+         todo = self.connection.fetchone(sql)
+         if todo:
+             return todo["Code"]
+
     def get_project_id(self, project):
         sql = r"""
         SELECT ProjectID FROM Projects WHERE ProjectName = {}
@@ -46,17 +64,12 @@ class DTIRepo(BaseRepository):
     def get_project_dtis(self, project):
 
         sql = r"""
-        SELECT 
-            SeriesCode AS Code
-        FROM 
-            dbo.DicomSeries se
-        INNER JOIN
-            dbo.DicomStudies st
-        ON
-            se.StudyInstanceUID = st.StudyInstanceUID
-        WHERE st.StudyCode = {project} 
-            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%'
-        """.format(project=fsp(project))
+        SELECT
+            Code
+        FROM ImageList.{project}
+        WHERE ImageType='DTI+B0'
+
+        """.format(project=project)
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -181,16 +194,15 @@ class DTIRepo(BaseRepository):
         left_off = self.connection.fetchone(sql)
         return left_off
 
-    def get_t1(self, project, code):
-        in_code = code.split('-')
-        subject_code = '-'.join(in_code[0:4])
+    def get_t1(self, project, scancode):
+
         sql = r"""
         SELECT
             Code
         FROM ImageList.{project}
         WHERE ScanCode = {code}
             AND ImageType='T1'
-        """.format(project=project, code=fsp(subject_code))
+        """.format(project=project, code=fsp(scancode))
 
         todo = self.connection.fetchone(sql)
         if todo is not None:
