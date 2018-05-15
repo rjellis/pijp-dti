@@ -17,22 +17,22 @@ class DTIRepo(BaseRepository):
         self.connection.setdb('imaging')
 
     def get_scancode(self, code):
-         sql = r"""
-         SELECT 
-             ScanCode as Code
-         FROM 
-             dbo.DicomSeries se
-         INNER JOIN
-             dbo.DicomStudies st
-         ON
-             se.StudyInstanceUID = st.StudyInstanceUID
-         WHERE
-             SeriesCode = {code}
-         """.format(code=fsp(code))
+        sql = r"""
+        SELECT 
+            ScanCode as Code
+        FROM 
+            dbo.DicomSeries se
+        INNER JOIN
+            dbo.DicomStudies st
+        ON
+            se.StudyInstanceUID = st.StudyInstanceUID
+        WHERE
+            SeriesCode = {code}
+        """.format(code=fsp(code))
 
-         todo = self.connection.fetchone(sql)
-         if todo:
-             return todo["Code"]
+        todo = self.connection.fetchone(sql)
+        if todo:
+            return todo["Code"]
 
     def get_project_id(self, project):
         sql = r"""
@@ -58,7 +58,8 @@ class DTIRepo(BaseRepository):
             ProjectID = {proj_id}
         """.format(proj_id=(self.get_project_id(project)))
 
-        todo = self.connection.fetchall(sql)
+        todo = self.connection.fetchone(sql)
+
         return todo
 
     def get_project_dtis(self, project):
@@ -138,7 +139,6 @@ class DTIRepo(BaseRepository):
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
-
         return todo
 
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
@@ -151,7 +151,7 @@ class DTIRepo(BaseRepository):
         for m in measures:
             with open(m) as csvfile:
                 mreader = csv.reader(csvfile, delimiter=',')
-                msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))  # fsp() : dbprocs.format_string_parameters
+                msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))
                 for row in mreader:
                     if mreader.line_num == 1:
                         row.pop()
@@ -164,10 +164,13 @@ class DTIRepo(BaseRepository):
                         sd = fsp(str(row[4]))
                         median_val = fsp(str(row[5]))
                         volume = fsp(str(row[6]))
-                        time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        formatted_sql = sql.format(code=fsp(code), project_id=project_id, fname=fname, measure=msr,
-                                                   roi=roi, min=min_val, max=max_val, mean=mean_val, sd=sd,
-                                                   median=median_val, vol=volume, time=time)
+                        time = fsp(
+                            datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        formatted_sql = sql.format(
+                            code=fsp(code), project_id=project_id, fname=fname,
+                            measure=msr, roi=roi, min=min_val, max=max_val,
+                            mean=mean_val, sd=sd, median=median_val,
+                            vol=volume, time=time)
                         self.connection.execute_non_query(formatted_sql)
 
     def remove_roi_stats(self, project, code):
@@ -205,8 +208,9 @@ class DTIRepo(BaseRepository):
         """.format(project=project, code=fsp(scancode))
 
         todo = self.connection.fetchone(sql)
-        if todo is not None:
+        if todo:
             todo = todo["Code"]
+
         return todo
 
     def get_finished_nnicv(self, project):
@@ -268,7 +272,7 @@ class DTIRepo(BaseRepository):
 
         todo = self.connection.fetchone(sql)
 
-        if todo is not None:
+        if todo:
             status = todo["Comments"]
         else:
             status = ""
