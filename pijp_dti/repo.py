@@ -11,24 +11,66 @@ PROCESS_TITLE = pijp_dti.__process_title__
 
 
 class DTIRepo(BaseRepository):
+
     def __init__(self):
         super().__init__()
         self.connection.setdb('imaging')
 
-    def get_project_dtis(self, project):
-
+    def get_scancode(self, code):
         sql = r"""
         SELECT 
-            SeriesCode AS Code
+            ScanCode as Code
         FROM 
             dbo.DicomSeries se
         INNER JOIN
             dbo.DicomStudies st
         ON
             se.StudyInstanceUID = st.StudyInstanceUID
-        WHERE st.StudyCode = {project} 
-            AND SeriesDescription LIKE '%MR 2D AXIAL DTI BRAIN%'
-        """.format(project=fsp(project))
+        WHERE
+            SeriesCode = {code}
+        """.format(code=fsp(code))
+
+        todo = self.connection.fetchone(sql)
+        if todo:
+            return todo["Code"]
+
+    def get_project_id(self, project):
+        sql = r"""
+        SELECT ProjectID FROM Projects WHERE ProjectName = {}
+        """.format(fsp(project))
+
+        project_id = self.connection.fetchone(sql)
+
+        if project_id:
+            project_id = project_id["ProjectID"]
+
+        return project_id
+
+    def get_project_settings(self, project):
+
+        sql = r"""
+        SELECT
+            UseNNICV,
+            SaveMNI
+        FROM
+            ProjectPijpDTI
+        WHERE
+            ProjectID = {proj_id}
+        """.format(proj_id=(self.get_project_id(project)))
+
+        todo = self.connection.fetchone(sql)
+
+        return todo
+
+    def get_project_dtis(self, project):
+
+        sql = r"""
+        SELECT
+            Code
+        FROM ImageList.{project}
+        WHERE ImageType='DTI+B0'
+
+        """.format(project=project)
 
         todo = self.connection.fetchall(sql)
         return todo
@@ -97,7 +139,6 @@ class DTIRepo(BaseRepository):
         """.format(project=fsp(project), process=fsp(PROCESS_TITLE))
 
         todo = self.connection.fetchall(sql)
-
         return todo
 
     def set_roi_stats(self, project_id, code, md, fa, ga, rd, ad):
@@ -110,7 +151,7 @@ class DTIRepo(BaseRepository):
         for m in measures:
             with open(m) as csvfile:
                 mreader = csv.reader(csvfile, delimiter=',')
-                msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))  # fsp() : dbprocs.format_string_parameters
+                msr = fsp(m.split('_')[-2].rstrip('_roi.csv'))
                 for row in mreader:
                     if mreader.line_num == 1:
                         row.pop()
@@ -123,10 +164,13 @@ class DTIRepo(BaseRepository):
                         sd = fsp(str(row[4]))
                         median_val = fsp(str(row[5]))
                         volume = fsp(str(row[6]))
-                        time = fsp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        formatted_sql = sql.format(code=fsp(code), project_id=project_id, fname=fname, measure=msr,
-                                                   roi=roi, min=min_val, max=max_val, mean=mean_val, sd=sd,
-                                                   median=median_val, vol=volume, time=time)
+                        time = fsp(
+                            datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        formatted_sql = sql.format(
+                            code=fsp(code), project_id=project_id, fname=fname,
+                            measure=msr, roi=roi, min=min_val, max=max_val,
+                            mean=mean_val, sd=sd, median=median_val,
+                            vol=volume, time=time)
                         self.connection.execute_non_query(formatted_sql)
 
     def remove_roi_stats(self, project, code):
@@ -136,14 +180,6 @@ class DTIRepo(BaseRepository):
         """.format(project_id=project_id['ProjectID'], code=fsp(code))
 
         self.connection.execute_non_query(sql)
-
-    def get_project_id(self, project):
-        sql = r"""
-        SELECT ProjectID FROM Projects WHERE ProjectName = {}
-        """.format(fsp(project))
-
-        project_id = self.connection.fetchone(sql)
-        return project_id
 
     def find_where_left_off(self, project, step):
 
@@ -161,20 +197,20 @@ class DTIRepo(BaseRepository):
         left_off = self.connection.fetchone(sql)
         return left_off
 
-    def get_t1(self, project, code):
-        in_code = code.split('-')
-        subject_code = '-'.join(in_code[0:4])
+    def get_t1(self, project, scancode):
+
         sql = r"""
         SELECT
             Code
         FROM ImageList.{project}
         WHERE ScanCode = {code}
             AND ImageType='T1'
-        """.format(project=project, code=fsp(subject_code))
+        """.format(project=project, code=fsp(scancode))
 
         todo = self.connection.fetchone(sql)
-        if todo is not None:
+        if todo:
             todo = todo["Code"]
+
         return todo
 
     def get_finished_nnicv(self, project):
@@ -206,13 +242,17 @@ class DTIRepo(BaseRepository):
             AND NOT (
                 Outcome = 'Cancelled' 
                 OR Outcome = 'Queued' 
-                OR Outcome = 'Initiated')
-        ORDER BY CompletedOn DESC          
+                OR Outcome = 'Initiated'
+                OR Outcome = 'None')
+        ORDER BY CompletedOn DESC
+                  
         """.format(project=fsp(project), code=fsp(code))
 
         status = self.connection.fetchone(sql)
         if status:
             status = status["Outcome"]
+        elif status is None:
+            status = 'No NNICV result found'
         return status
 
     def get_mask_status(self, project, code):
@@ -232,7 +272,7 @@ class DTIRepo(BaseRepository):
 
         todo = self.connection.fetchone(sql)
 
-        if todo is not None:
+        if todo:
             status = todo["Comments"]
         else:
             status = ""

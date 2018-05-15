@@ -60,8 +60,11 @@ class QCApp(QtWidgets.QMainWindow, qc_design.Ui_MainWindow):
             self.button_edit.deleteLater()
         else:
             self.group_button.addButton(self.button_edit)
-        if self.mode == 'MaskQC':
+
+        if self.mode == 'MaskQC' and repo.DTIRepo().get_project_settings(
+                self.project)['UseNNICV']:
             self.set_status()
+
         self.group_button.addButton(self.button_fail)
 
     def skip(self):
