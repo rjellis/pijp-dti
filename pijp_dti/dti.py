@@ -552,7 +552,8 @@ _
             use_nnicv = DTIRepo().get_project_settings(self.project)[
                 'UseNNICV']
 
-            t1_code = DTIRepo().get_t1(self.project, self.code)
+            scancode = DTIRepo().get_scancode(self.code)
+            t1_code = DTIRepo().get_t1(self.project, scancode)
 
             if t1_code and use_nnicv:
                 # Instantiate NNICV base step, get paths from there
@@ -560,7 +561,6 @@ _
                 nnicv_path = ss_step.final_icv_mask
                 t2_path = ss_step.t2_path
                 status = DTIRepo().get_nnicv_status(self.project, t1_code)
-
                 # Running
                 if os.path.isfile(nnicv_path) and status != 'Fail':
 
@@ -633,16 +633,14 @@ _
             todo = [
                 {'ProjectName': project_name, "Code": row["Code"]}
                 for row in staged
-                if DTIRepo().get_t1(project_name, row["Code"]) in nnicv
-                and row["Code"] not in staged_nnicv
-                and row["Code"] not in finished_mask_qc
-                and row["Code"] not in failed_masks
+                if {'Code': str(
+                    DTIRepo().get_t1(project_name, row["Code"]))} in nnicv
+                and row not in staged_nnicv
+                and row not in finished_mask_qc
+                and row not in failed_masks
             ]
 
-        else:
-            todo = ''
-
-        return todo
+            return todo
 
 
 class MaskQC(BaseQCStep):
