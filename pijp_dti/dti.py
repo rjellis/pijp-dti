@@ -852,15 +852,22 @@ class Segment(DTIStep):
         """
         try:
             # Loading
-            mask, maff = self._load_nii(self.final_mask)
             b0, baff = self._load_nii(self.b0)
+            mask, faff = self._load_nii(self.final_mask)
             warped, waff = self._load_nii(self.warped_labels)
 
             # Running
             self.logger.info(
-                'Segmenting tissue for the average b0 of the masked volume')
+                'Segmenting tissue for the masked volume')
             masked_b0 = dti_func.apply_mask(b0, mask)
-            segmented = dti_func.segment_tissue(masked_b0)
+
+            if os.path.isfile(self.t2_reg):
+                t2_reg, taff = self._load_nii(self.t2_reg)
+                masked_t2 = dti_func.apply_mask(t2_reg, mask)
+                segmented = dti_func.segment_tissue(masked_t2)
+            else:
+                segmented = dti_func.segment_tissue(masked_b0)
+
             segmented_wm = dti_func.apply_tissue_mask(
                 masked_b0, segmented, prob=1)
             warped_wm_labels = dti_func.apply_tissue_mask(
@@ -1007,7 +1014,6 @@ class StoreInDatabase(DTIStep):
 
         self.logger.info("Storing in database")
         proj_id = DTIRepo().get_project_id(self.project)
-        proj_id = proj_id['ProjectID']
 
         try:
             if DTIRepo().check_seg_qc_pass(
