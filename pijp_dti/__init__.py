@@ -1,2 +1,4 @@
-__version__ = '0.3.4'
-__process_title__ = 'pijp-dti-dev'
+__version__ = '0.3.5'
+__process_title__ = 'pijp-dti'
+
+# Added support for pulling ImageList, ProjectSettings
